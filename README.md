@@ -14,9 +14,10 @@ Here are some ideas to get you started:
 - 😄 Pronouns: ...
 - ⚡ Fun fact: ...
 -->
+### 嗨👋，我是 Rainey
 
-![https://www.rainey.space/api/social-image?id=09d66c5e86814920a88f6401888546bd](https://www.rainey.space/api/social-image?id=09d66c5e86814920a88f6401888546bd)
+<img align="right" src="https://github-readme-stats.vercel.app/api?username=raineySpace&theme=default&show_icons=true" alt="RaineySpace's github stats"/>
 
-### Hi there 👋
+ 一个爱折腾的**程序员**🧑‍💻 ，一个业余都算不上的[**摄影爱好者**📷](http://rainey.space/photography) ，一个并不专一的苹果信仰者📱，一个凭感觉做饭的[**厨子**👩🏻‍🍳](http://rainey.space/food)，日常休息的时候喜欢[**玩游戏**🎮](http://rainey.space/game)或者[**看剧**🎬](http://rainey.space/movie)，周末偶尔会去**户外露营**⛺️，但更多的时候会去探索很多没有尝试过的事情。
 
-![https://github-readme-stats.vercel.app/api?username=raineySpace&theme=default&show_icons=true](https://github-readme-stats.vercel.app/api?username=raineySpace&theme=default&show_icons=true)
+目前物理活动范围主要在**杭州**，虚拟活动范围包括并不仅限于 **[博客](http://rainey.space/)** 、**[B站](https://space.bilibili.com/18291848) 、[GitHub](https://github.com/RaineySpace)** 、[**即刻**](https://web.okjike.com/u/FBF0F46B-5CA8-4568-A98C-3D50EF570462) 。
