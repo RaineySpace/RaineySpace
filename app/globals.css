@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: white;
+  --text: black;
+  --title: black;
+  --lightLink: lab(63 59.3 -1.5);
+  --darkLink: lab(81 32.4 -7);
+  --pink: lab(63 59.32 -1.47);
+  --purple: lab(33 42.09 -43.19);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111;
+    --text: #ccc;
+    --title: white;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light dark;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+a {
+  color: var(--lightLink);
+  text-decoration: none;
+  transition: transform 0.2s ease-in-out, opacity 0.2s 0.4s linear;
+}
+
+a:hover {
+  text-decoration: underline;
+}
