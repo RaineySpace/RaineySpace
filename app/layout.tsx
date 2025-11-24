@@ -6,6 +6,9 @@ import Image from "next/image";
 export const metadata: Metadata = {
   title: "Rainey's Blog",
   description: "A blog by Rainey",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
