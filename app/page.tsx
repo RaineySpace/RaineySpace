@@ -24,14 +24,14 @@ export default async function Home() {
               {post.title}
             </h2>
             
-            <p className="text-[13px] text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              {post.date.toLocaleDateString()}
+            <div className="text-[13px] text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <time dateTime={post.date?.toISOString()}>{post.date?.toLocaleDateString()}</time>
               {post.tags?.map((tag) => (
                 <span key={tag} className="inline-block bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md text-[10px]">
                   {tag}
                 </span>
               ))}
-            </p>
+            </div>
             <p className="mt-1 text-gray-700 dark:text-gray-300">
               {post.summary}
             </p>
