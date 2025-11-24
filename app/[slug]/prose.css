@@ -1,0 +1,491 @@
+@charset "UTF-8";
+/*
+ * PrismJS default theme
+ * 这个文件只应该包含变量
+ */
+/*
+ * Default theme，适用于 core/mweb-base.scss。
+ * 取值参考 chrome 默认样式：
+ * https://chromium.googlesource.com/chromium/blink/+/refs/heads/main/Source/core/css/html.css
+ * 所有 import "core/mweb-base.scss" 的文件都应该同时导入此变量文件。
+ */
+/* color */
+/* font & line */
+/* boxing */
+/* elememts */
+/* color */
+/* prism & pre */
+/* font */
+/* header */
+/* spacing */
+/* table */
+/*
+ * 基准样式，相当于 reset.css，使主题在不同平台下有统一的表现。
+ * 各个属性的默认值为 chrome 的默认样式，见 variables/default.scss。
+ */
+/**
+ * PrismJS 的样式表。颜色全部用变量表示，方便后续切换不同的配色方案。
+ */
+/* PrismJS 1.23.0
+https://prismjs.com/download.html#themes=prism&languages=markup+css+clike+javascript */
+/**
+ * prism.js default theme for JavaScript, CSS and HTML
+ * Based on dabblet (http://dabblet.com)
+ * @author Lea Verou
+ */
+.markdown {
+  /* Code blocks */
+  /* Inline code */
+}
+.markdown code[class*=language-],
+.markdown pre[class*=language-] {
+  color: black;
+  background: none;
+  font-family: monospace, Menlo-Regular, Menlo, Monaco, Consolas, "Courier New";
+  font-size: 14px;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.6em;
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+}
+.markdown pre[class*=language-]::-moz-selection, .markdown pre[class*=language-] ::-moz-selection,
+.markdown code[class*=language-]::-moz-selection, .markdown code[class*=language-] ::-moz-selection {
+  text-shadow: none;
+  background: #b3d4fc;
+}
+.markdown pre[class*=language-]::selection, .markdown pre[class*=language-] ::selection,
+.markdown code[class*=language-]::selection, .markdown code[class*=language-] ::selection {
+  text-shadow: none;
+  background: #b3d4fc;
+}
+@media print {
+  .markdown code[class*=language-],
+.markdown pre[class*=language-] {
+    text-shadow: none;
+  }
+}
+.markdown pre[class*=language-] {
+  padding: 10px;
+  margin: 0.5em 0;
+  overflow: auto;
+}
+.markdown :not(pre) > code[class*=language-],
+.markdown pre[class*=language-] {
+  background: #f5f6f7;
+}
+.markdown :not(pre) > code[class*=language-] {
+  padding: 0.1em;
+  border-radius: 0.3em;
+  white-space: normal;
+}
+.markdown .token.comment,
+.markdown .token.prolog,
+.markdown .token.doctype,
+.markdown .token.cdata {
+  color: slategray;
+}
+.markdown .token.punctuation {
+  color: #999;
+}
+.markdown .token.namespace {
+  opacity: 0.7;
+}
+.markdown .token.number,
+.markdown .token.boolean {
+  color: #905;
+}
+.markdown .token.property,
+.markdown .token.tag,
+.markdown .token.constant,
+.markdown .token.symbol,
+.markdown .token.deleted {
+  color: #905;
+}
+.markdown .token.selector,
+.markdown .token.string,
+.markdown .token.char,
+.markdown .token.builtin,
+.markdown .token.inserted {
+  color: #690;
+}
+.markdown .token.attr-name {
+  color: #690;
+}
+.markdown .token.char {
+  color: #690;
+}
+.markdown .token.operator,
+.markdown .token.entity,
+.markdown .token.url,
+.markdown .language-css .token.string,
+.markdown .style .token.string {
+  color: #9a6e3a;
+  background: none;
+}
+.markdown .token.atrule,
+.markdown .token.attr-value,
+.markdown .token.keyword {
+  color: #07a;
+}
+.markdown .token.function,
+.markdown .token.class-name {
+  color: #DD4A68;
+}
+.markdown .token.regex,
+.markdown .token.important,
+.markdown .token.variable {
+  color: #e90;
+}
+.markdown .token.important,
+.markdown .token.bold {
+  font-weight: bold;
+}
+.markdown .token.italic {
+  font-style: italic;
+}
+.markdown .token.entity {
+  cursor: help;
+}
+
+/**
+ * html、body 标签仅适用于 MWeb
+ * 在用于 juejin 等平台时，需要转为 .markdown，防止污染全局样式
+ */
+html {
+  font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, Segoe UI, PingFang SC, Microsoft Yahei, Hiragino Sans GB, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+  font-size: 16px;
+  color: #1f2329;
+}
+
+body {
+  background-color: white;
+}
+
+/**
+ * MWeb 包裹 markdown 的容器是 .markdown
+ * Typora 中是 #write
+ */
+.markdown {
+  line-height: 1.68;
+  -webkit-text-size-adjust: 100%;
+  margin: 0px auto;
+  /* padding: 1.6rem 3.2rem; */
+  /* spacing */
+  /* block */
+  /* list */
+  /* inline */
+  /* table */
+  /* svg */
+}
+.markdown * {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}
+.markdown > *:first-child {
+  margin-top: 0 !important;
+}
+.markdown > *:last-child {
+  margin-top: 0 !important;
+}
+.markdown p, .markdown details, .markdown dl, .markdown ol, .markdown ul, .markdown pre, .markdown xmp, .markdown plaintext, .markdown listing, .markdown blockquote, .markdown table, .markdown figure, .markdown hr {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+.markdown h1 {
+  font-size: 26px;
+  font-weight: bold;
+  margin-top: 26px;
+  margin-bottom: 10px;
+  margin-left: 0;
+  margin-right: 0;
+}
+.markdown h2 {
+  font-size: 22px;
+  font-weight: bold;
+  margin-top: 22px;
+  margin-bottom: 8px;
+  margin-left: 0;
+  margin-right: 0;
+}
+.markdown h3 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 20px;
+  margin-bottom: 8px;
+  margin-left: 0;
+  margin-right: 0;
+}
+.markdown h4 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 18px;
+  margin-bottom: 8px;
+  margin-left: 0;
+  margin-right: 0;
+}
+.markdown h5 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  margin-left: 0;
+  margin-right: 0;
+}
+.markdown h6 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  margin-left: 0;
+  margin-right: 0;
+}
+.markdown p {
+  margin-left: 0;
+  margin-right: 0;
+}
+.markdown pre, .markdown xmp, .markdown plaintext, .markdown listing {
+  font-family: monospace, Menlo-Regular, Menlo, Monaco, Consolas, "Courier New";
+}
+.markdown blockquote > :first-child {
+  margin-top: 0;
+}
+.markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+.markdown hr {
+  border-style: inset;
+  border-width: 1px;
+}
+.markdown img {
+  max-width: 100%;
+  height: auto;
+}
+.markdown li {
+  word-wrap: break-all;
+}
+.markdown li + li {
+  margin-top: 4px;
+}
+.markdown ul ul, .markdown ol ul, .markdown ul ol, .markdown ol ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.markdown .task-list-item {
+  list-style-type: none;
+}
+.markdown a {
+  color: #3370ff;
+  text-decoration: underline;
+}
+.markdown a img {
+  border: none;
+}
+.markdown b, .markdown strong {
+  font-weight: bold;
+}
+.markdown i, .markdown cite, .markdown em, .markdown var, .markdown address, .markdown dfn {
+  font-style: italic;
+}
+.markdown code, .markdown kbd, .markdown tt, .markdown samp {
+  font-family: monospace, Menlo-Regular, Menlo, Monaco, Consolas, "Courier New";
+}
+.markdown mark {
+  padding: 0.2em 0;
+  background-color: rgba(255, 246, 122, 0.8);
+}
+.markdown del, .markdown s {
+  color: inherit;
+}
+.markdown table {
+  color: black;
+  border-collapse: collapse;
+  background-color: white;
+  border-spacing: 2px;
+  font-size: 1em;
+}
+.markdown th, .markdown td {
+  border-color: #dee0e3;
+  border-width: 1px;
+  border-style: solid;
+}
+.markdown th {
+  padding: 8px 8px;
+  font-size: 1em;
+  font-weight: 500;
+}
+.markdown td {
+  padding: 8px 8px;
+  font-size: 1em;
+  font-weight: normal;
+}
+.markdown div[id^=mweb-chart-ele] svg {
+  background-color: white;
+}
+
+.markdown * {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.markdown h1, .markdown h2, .markdown h3, .markdown h4, .markdown h5, .markdown h6 {
+  line-height: 1.4;
+  font-weight: 500;
+  margin-top: 1em;
+  margin-bottom: 0.37em;
+}
+.markdown blockquote {
+  display: block;
+  margin-left: 0;
+  padding-left: 14px;
+  border-left: 2px solid #3370ff;
+  color: rgba(31, 35, 41, 0.7);
+}
+.markdown code {
+  border-radius: 4px;
+  margin-left: 2px;
+  margin-right: 2px;
+  border: 1px solid #dee0e3;
+  background-color: #f5f6f7;
+  word-spacing: normal;
+  line-height: 1.6;
+  padding: 0 2px;
+}
+.markdown pre {
+  border-radius: 0px;
+  display: block;
+  border: solid 1px #dee0e3;
+  background-color: #f5f6f7;
+  padding: 10px;
+  font-size: 14px;
+  overflow-x: auto;
+}
+.markdown pre code {
+  border: none;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.markdown a {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  hyphens: auto;
+  word-break: break-word;
+  color: #3370ff;
+  text-decoration: none;
+}
+.markdown a:hover {
+  text-decoration: underline;
+}
+.markdown hr {
+  margin: 13px 0 12px;
+  border: 0px;
+  height: 1px;
+  background-origin: content-box;
+  background-image: linear-gradient(90deg, #bbbfc4, #bbbfc4);
+  background-repeat: no-repeat;
+}
+.markdown ul {
+  margin-left: 0;
+  padding: 0px;
+  list-style: none;
+}
+.markdown ul > li:not([class*=task-list-item]) {
+  word-wrap: break-all;
+  padding-left: 22px;
+}
+.markdown ul > li:not([class*=task-list-item]):before {
+  content: "•";
+  color: #3370ff;
+  display: inline-block;
+  margin-left: -20px;
+  margin-right: 20px;
+  width: 0px;
+  font-size: 0.8em;
+  transform: scale(1.25);
+  font-family: PingFangSC-Regular, PingFang SC;
+}
+.markdown ul > li:not([class*=task-list-item]) ul > li:not([class*=task-list-item])::before {
+  content: "◦";
+  transform: scale(1);
+  font-weight: 700;
+}
+.markdown ul > li:not([class*=task-list-item]) ul > li:not([class*=task-list-item]) ul > li:not([class*=task-list-item])::before {
+  content: "▪";
+  transform: scale(1.25);
+  font-weight: normal;
+}
+.markdown ol {
+  counter-reset: ol_counter;
+  margin-left: 0;
+  padding: 0px;
+  list-style: none;
+}
+.markdown ol > li:not([class*=task-list-item]) {
+  word-wrap: break-all;
+  padding-left: 22px;
+  position: relative;
+}
+.markdown ol > li:not([class*=task-list-item]):before {
+  content: counter(ol_counter) ".";
+  counter-increment: ol_counter;
+  color: #3370ff;
+  position: absolute;
+  margin-left: -22px;
+  margin-right: 4px;
+  padding-left: 2px;
+  padding-right: 2px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: visible;
+  min-width: 18px;
+  border-radius: 2px;
+  transform: translateX(-2px);
+  font-family: Helvetica Neue, Consolas;
+}
+.markdown li + li, .markdown ul ul, .markdown ol ul, .markdown ul ol, .markdown ol ol, .markdown li ul, .markdown li ol {
+  margin-top: 4px;
+}
+.markdown .task-list-item {
+  padding-left: 28px;
+  margin-left: -6px;
+  list-style: none;
+  word-wrap: break-all;
+}
+.markdown .task-list-item input {
+  margin: 0 !important;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.markdown .task-list-item input:before {
+  content: " ";
+  display: inline-block;
+  position: relative;
+  line-height: normal;
+  font-size: 16px;
+  top: 2px;
+  border-radius: 2px;
+  border: 1px solid #2b2f36;
+  background-position: 50%;
+  white-space: normal;
+  width: 14px;
+  height: 14px;
+  margin-left: -22px;
+  margin-right: 6px;
+}
+.markdown .task-list-item input:checked:before {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEwLjU4OSAzLjkwM2wuODA4LjgwOGEuMzUuMzUgMCAwIDEgMCAuNDk1TDYuMTggMTAuNDI1YS4zNS4zNSAwIDAgMS0uNDk1IDBMMi43MDMgNy40NDRhLjM1LjM1IDAgMCAxIDAtLjQ5NWwuODA4LS44MDhhLjM1LjM1IDAgMCAxIC40OTUgMGwxLjkyNSAxLjkyNCA0LjE2My00LjE2M2EuMzUuMzUgMCAwIDEgLjQ5NSAweiIgZmlsbD0iIzMzNzBGRiIvPjwvc3ZnPg==);
+  background-size: contain;
+}
+
+.markdown strong {
+  color: #245bdb;
+}

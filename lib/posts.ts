@@ -1,63 +1,35 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'fs/promises';
 import matter from 'gray-matter';
-import { marked } from 'marked';
-import dayjs from 'dayjs';
 
-const postsDirectory = path.join(process.cwd(), 'posts');
-
-export interface PostMeta {
+export interface Post {
   title: string;
-  date: string;
-  description: string;
+  date: Date;
+  summary: string;
   slug: string;
-}
-
-export interface Post extends PostMeta {
+  cover?: string;
+  tags?: string[];
+  hidden: boolean;
   content: string;
 }
 
-export function getAllPostSlugs(): string[] {
-  if (!fs.existsSync(postsDirectory)) {
-    return [];
-  }
-  const files = fs.readdirSync(postsDirectory);
-  return files
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => file.replace(/\.md$/, ''));
+export async function getPosts(): Promise<Post[]> {
+  const entries = await fs.readdir("./public/", { withFileTypes: true });
+  const dirs = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  const fileContents = await Promise.all(
+    dirs.map((dir) => fs.readFile("./public/" + dir + "/index.md", "utf8")),
+  );
+  const posts = dirs.map((slug, i) => {
+    const fileContent = fileContents[i];
+    const { data, content } = matter(fileContent);
+    return { ...data, content, slug } as Post;
+  });
+  return posts.sort((a, b) => a.date.getTime() < b.date.getTime() ? 1 : -1);
 }
 
-export function getPostBySlug(slug: string): Post {
-  const realSlug = slug.replace(/\.md$/, '');
-  const fullPath = path.join(postsDirectory, `${realSlug}.md`);
-  const fileContents = fs.readFileSync(fullPath, 'utf8');
-
+export async function getPostBySlug(slug: string): Promise<Post> {
+  const fileContents = await fs.readFile(`./public/${slug}/index.md`, 'utf8');
   const { data, content } = matter(fileContents);
-  const html = marked(content);
-
-  return {
-    slug: realSlug,
-    title: data.title || '',
-    date: data.date ? dayjs(data.date).format('YYYY-MM-DD') : '',
-    description: data.description || '',
-    content: html as string,
-  };
-}
-
-export function getAllPosts(): PostMeta[] {
-  const slugs = getAllPostSlugs();
-  return slugs
-    .map((slug) => {
-      const fullPath = path.join(postsDirectory, `${slug}.md`);
-      const fileContents = fs.readFileSync(fullPath, 'utf8');
-      const { data } = matter(fileContents);
-
-      return {
-        slug,
-        title: data.title || '',
-        date: data.date ? dayjs(data.date).format('MM月DD日, YYYY') : '',
-        description: data.description || '',
-      };
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return { ...data, content, slug } as Post;
 }

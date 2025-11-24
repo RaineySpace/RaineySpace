@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import "./prose.css";
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata: Metadata = {
-  title: "My Blog",
-  description: "A markdown-based blog built with Next.js",
+  title: "Rainey's Blog",
+  description: "A blog by Rainey",
 };
 
 export default function RootLayout({
@@ -29,19 +29,13 @@ export default function RootLayout({
               color: 'transparent',
               transition: '--pink 0.2s ease-out, --myColor2 0.2s ease-in-out',
             }}>
-              Rainey
+              Rainey&apos;s Blog
             </span>
           </Link>
           <span className="relative top-1 italic">
-            by{' '}
-            <a 
-              target="_blank" 
-              href="#" 
-              className="scale-100 active:scale-100"
-              style={{opacity: 1, transition: 'transform 0.2s ease-in-out, opacity 0.2s 0.4s linear'}}
-            >
-              Me
-            </a>
+            <Link href="/about">
+              <Image src="/me.jpg" alt="Me" width={20} height={20} className="relative -top-1 mx-1 inline h-8 w-8 rounded-full" />
+            </Link>
           </span>
         </header>
         <main>

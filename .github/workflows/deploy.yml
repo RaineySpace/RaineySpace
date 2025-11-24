@@ -1,0 +1,71 @@
+name: 部署到 Cloudflare Pages
+
+on:
+  # 当推送到 main 分支时触发
+  push:
+    branches: ["main"]
+  
+  # 允许手动触发工作流
+  workflow_dispatch:
+
+# 设置必要的权限
+permissions:
+  contents: read
+  deployments: write
+
+# 并发控制：确保部署按顺序执行
+# group: 将所有部署工作流归为同一组
+# cancel-in-progress: false - 不取消正在进行的工作流，新工作流会排队等待
+# 这样可以确保每次提交的工作流都会按顺序完整执行，不会被跳过或取消
+concurrency:
+  group: "cloudflare-pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: 构建并部署到 Cloudflare Pages
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      
+      - name: 设置 pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      
+      - name: 获取 pnpm store 目录
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      
+      - name: 设置 pnpm 缓存
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+      
+      - name: 构建项目
+        run: pnpm build
+      
+      - name: 部署到 Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: raineyspace
+          directory: out
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+

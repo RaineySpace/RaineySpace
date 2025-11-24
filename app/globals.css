@@ -36,7 +36,3 @@ a {
   text-decoration: none;
   transition: transform 0.2s ease-in-out, opacity 0.2s 0.4s linear;
 }
-
-a:hover {
-  text-decoration: underline;
-}
