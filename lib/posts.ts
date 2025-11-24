@@ -2,13 +2,13 @@ import fs from 'fs/promises';
 import matter from 'gray-matter';
 
 export interface Post {
-  title: string;
-  date: Date;
-  summary: string;
+  title?: string;
+  date?: Date;
+  summary?: string;
   slug: string;
   cover?: string;
   tags?: string[];
-  hidden: boolean;
+  hidden?: boolean;
   content: string;
 }
 
@@ -25,7 +25,12 @@ export async function getPosts(): Promise<Post[]> {
     const { data, content } = matter(fileContent);
     return { ...data, content, slug } as Post;
   });
-  return posts.sort((a, b) => a.date.getTime() < b.date.getTime() ? 1 : -1);
+  return posts.sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return a.date.getTime() < b.date.getTime() ? 1 : -1;
+  });
 }
 
 export async function getPostBySlug(slug: string): Promise<Post> {
