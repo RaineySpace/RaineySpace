@@ -8,6 +8,7 @@ export interface Post {
   slug: string;
   cover?: string;
   tags?: string[];
+  keywords?: string[];
   hidden?: boolean;
   content: string;
 }

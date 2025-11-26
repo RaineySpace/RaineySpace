@@ -1,6 +1,23 @@
+import type { Metadata } from 'next';
 import { getPostBySlug, getPosts } from '@/lib/posts';
 import { marked } from 'marked';
 import "./prose.css";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
+  const post = await getPostBySlug(decodeURIComponent(params.slug));
+  
+  return {
+    title: post.title ? `${post.title} - Rainey's Blog` : "Rainey's Blog",
+    authors: [{ name: "Rainey", url: "https://rainey.space" }],
+    creator: "Rainey",
+    description: post.summary || "A blog by Rainey",
+    keywords: ["Rainey", "blog", ...(post.keywords || []), ...(post.tags || [])],
+  };
+}
 
 export async function generateStaticParams() {
   const posts = await getPosts();

@@ -5,9 +5,27 @@ import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Rainey's Blog",
+  authors: [{ name: "Rainey", url: "https://rainey.space" }],
+  creator: "Rainey",
   description: "A blog by Rainey",
+  keywords: ["Rainey", "blog", "rainey", "raineyspace"],
   icons: {
-    icon: '/favicon.ico',
+    icon: "/favicon.ico",
+  },
+  openGraph: {
+    title: "Rainey's Blog",
+    description: "A blog by Rainey",
+    images: "/me.jpg",
+    url: "https://rainey.space",
+    siteName: "Rainey's Blog",
+    locale: "zh-CN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@site",
+    creator: "@creator",
+    images: "/me.jpg",
   },
 };
 
