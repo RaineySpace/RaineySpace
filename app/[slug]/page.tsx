@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getPostBySlug, getPosts } from '@/lib/posts';
 import "./prose.css";
+import "highlight.js/styles/github-dark.css";
 import * as config from '@/lib/config';
 
 export async function generateMetadata({

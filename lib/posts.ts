@@ -3,6 +3,19 @@ import matter from 'gray-matter';
 import { Feed } from 'feed';
 import * as config from './config';
 import { marked } from 'marked';
+import { markedHighlight } from 'marked-highlight';
+import hljs from 'highlight.js';
+
+// 配置 marked 使用 highlight.js
+marked.use(
+  markedHighlight({
+    langPrefix: 'hljs language-',
+    highlight(code, lang) {
+      const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+      return hljs.highlight(code, { language }).value;
+    }
+  })
+);
 
 export interface Post {
   title?: string;
