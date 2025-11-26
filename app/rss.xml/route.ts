@@ -4,6 +4,5 @@ export const dynamic = "force-static";
 
 export async function GET() {
   const feed = await generateFeed();
-  console.log(feed.rss2());
   return new Response(feed.rss2());
 }
