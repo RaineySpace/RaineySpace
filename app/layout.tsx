@@ -2,30 +2,31 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import Image from "next/image";
+import * as config from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "Rainey's Blog",
-  authors: [{ name: "Rainey", url: "https://rainey.space" }],
-  creator: "Rainey",
-  description: "A blog by Rainey",
-  keywords: ["Rainey", "blog", "rainey", "raineyspace"],
+  title: config.title,
+  authors: [{ name: config.author, url: config.siteUrl }],
+  creator: config.author,
+  description: config.description,
+  keywords: config.keywords,
   icons: {
-    icon: "/favicon.ico",
+    icon: config.icon,
   },
   openGraph: {
-    title: "Rainey's Blog",
-    description: "A blog by Rainey",
-    images: "/me.jpg",
-    url: "https://rainey.space",
-    siteName: "Rainey's Blog",
+    title: config.title,
+    description: config.description,
+    images: config.avatar,
+    url: config.siteUrl,
+    siteName: config.title,
     locale: "zh-CN",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    site: "@site",
-    creator: "@creator",
-    images: "/me.jpg",
+    site: config.author,
+    creator: config.author,
+    images: config.avatar,
   },
 };
 

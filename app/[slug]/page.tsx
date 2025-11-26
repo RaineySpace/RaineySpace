@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getPostBySlug, getPosts } from '@/lib/posts';
-import { marked } from 'marked';
 import "./prose.css";
+import * as config from '@/lib/config';
 
 export async function generateMetadata({
   params,
@@ -11,11 +11,11 @@ export async function generateMetadata({
   const post = await getPostBySlug(decodeURIComponent(params.slug));
   
   return {
-    title: post.title ? `${post.title} - Rainey's Blog` : "Rainey's Blog",
-    authors: [{ name: "Rainey", url: "https://rainey.space" }],
-    creator: "Rainey",
-    description: post.summary || "A blog by Rainey",
-    keywords: ["Rainey", "blog", ...(post.keywords || []), ...(post.tags || [])],
+    title: post.title ? `${post.title} - ${config.title}` : config.title,
+    authors: [{ name: config.author, url: config.siteUrl }],
+    creator: config.author,
+    description: post.summary || config.description,
+    keywords: [...config.keywords, ...(post.keywords || []), ...(post.tags || [])],
   };
 }
 
@@ -30,7 +30,7 @@ export default async function PostPage({
   params: { slug: string };
 }) {
   const post = await getPostBySlug(decodeURIComponent(params.slug));
-  const html = marked(post.content);
+
   return (
     <article className="markdown">
       <header>
@@ -53,7 +53,7 @@ export default async function PostPage({
           )
         }
       </header>
-      <section className="markdown-content" dangerouslySetInnerHTML={{ __html: html }} />
+      <section className="markdown-content" dangerouslySetInnerHTML={{ __html: post.content }} />
     </article>
   );
 }
