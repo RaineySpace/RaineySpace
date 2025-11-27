@@ -1,7 +1,7 @@
 ---
 title: Arc 带来的新鲜感
 date: 2023-08-08T03:42:35.469Z
-summary: 近来 Arc终于发布了正式版，我第一时间下载来体验使用了，在使用了大概小半天之后，我决定把我的主力浏览器从 Chrome 迁移到 Arc 使用，除了…
+summary: Arc浏览器体验评测。介绍这款创新浏览器的颠覆性设计，重点分析标签管理系统（Today、Pinned、Favorite）如何提高工作效率。详解其为互联网工作者量身定制的功能优势。
 cover: ./bafybeidermab6f5c4cavi6qqk5ske2wobq3domkpsfl6fl2k4o5tscrsby.png
 tags:
 ---
