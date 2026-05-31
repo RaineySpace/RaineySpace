@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "validate:content": "node scripts/validate-content.mjs",
+    "new-post": "node scripts/new-post.mjs",
     "deploy:cf": "pnpm build && wrangler pages deploy out --project-name=raineyspace"
   },
   "keywords": [],

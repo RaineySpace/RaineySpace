@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { getPosts } from '@/lib/posts';
+import { getPublicPosts } from '@/lib/posts';
 
 export default async function Home() {
-  const posts = await getPosts();
+  const posts = await getPublicPosts();
 
   return (
     <div className="relative -top-2.5 flex flex-col gap-8">
-      {posts.filter((post) => !post.hidden).map((post) => (
+      {posts.map((post) => (
         <Link 
           key={post.slug}
           href={`/${post.slug}`}
@@ -25,8 +25,8 @@ export default async function Home() {
             </h2>
             
             <div className="text-[13px] text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <time dateTime={post.date?.toISOString()}>{post.date?.toLocaleDateString()}</time>
-              {post.tags?.map((tag) => (
+              {post.date && <time dateTime={post.date.toISOString()}>{post.dateText}</time>}
+              {post.tags.map((tag) => (
                 <span key={tag} className="inline-block bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md text-[10px]">
                   {tag}
                 </span>

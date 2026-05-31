@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import matter from 'gray-matter';
 import { Feed } from 'feed';
 import * as config from './config';
-import { marked } from 'marked';
+import { Renderer, marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 
@@ -18,31 +18,103 @@ marked.use(
 );
 
 export interface Post {
-  title?: string;
-  date?: Date;
-  summary?: string;
+  title: string;
+  showTitle: boolean;
+  date: Date | null;
+  dateText: string;
+  summary: string;
   slug: string;
-  cover?: string;
-  tags?: string[];
-  keywords?: string[];
-  hidden?: boolean;
+  cover: string;
+  tags: string[];
+  keywords: string[];
+  hidden: boolean;
   content: string;
+  headings: Heading[];
+}
+
+export interface Heading {
+  id: string;
+  text: string;
+  level: 2 | 3;
+}
+
+function normalizeList(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeDate(value: unknown): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatDate(date: Date | null): string {
+  if (!date) return '';
+  return date.toISOString().slice(0, 10);
+}
+
+function stripHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, '').trim();
+}
+
+function createHeadingId(text: string, counts: Map<string, number>): string {
+  const base = text
+    .trim()
+    .toLowerCase()
+    .replace(/&[a-z0-9#]+;/gi, '')
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'section';
+  const count = counts.get(base) || 0;
+  counts.set(base, count + 1);
+  return count === 0 ? base : `${base}-${count + 1}`;
+}
+
+function renderMarkdown(content: string): { html: string; headings: Heading[] } {
+  const headings: Heading[] = [];
+  const counts = new Map<string, number>();
+  const renderer = new Renderer();
+
+  renderer.heading = (text, level) => {
+    const plainText = stripHtml(String(text));
+    if (level === 2 || level === 3) {
+      const id = createHeadingId(plainText, counts);
+      headings.push({ id, text: plainText, level });
+      return `<h${level} id="${id}">${text}</h${level}>`;
+    }
+    return `<h${level}>${text}</h${level}>`;
+  };
+
+  const html = marked.parse(content, { renderer }) as string;
+  return { html, headings };
 }
 
 export async function getPostBySlug(slug: string): Promise<Post> {
   const fileContents = await fs.readFile(`./public/${slug}/index.md`, 'utf8');
   const { data, content } = matter(fileContents);
+  const date = normalizeDate(data.date);
+  const rendered = renderMarkdown(content);
+
   return {
-    title: data.title ? String(data.title) : undefined,
-    date: data.date ? new Date(data.date) : undefined,
-    summary: data.summary ? String(data.summary) : undefined,
+    title: data.title ? String(data.title) : slug,
+    showTitle: Boolean(data.title),
+    date,
+    dateText: formatDate(date),
+    summary: data.summary ? String(data.summary) : '',
     slug,
-    cover: data.cover ? String(data.cover) : undefined,
-    tags: data.tags ? data.tags.map(String) : undefined,
-    keywords: data.keywords ? data.keywords.map(String) : undefined,
+    cover: data.cover ? String(data.cover) : '',
+    tags: normalizeList(data.tags),
+    keywords: normalizeList(data.keywords),
     hidden: !!data.hidden,
-    content: marked(content),
-  } as Post;
+    content: rendered.html,
+    headings: rendered.headings,
+  };
 }
 
 export async function getPosts(): Promise<Post[]> {
@@ -59,8 +131,12 @@ export async function getPosts(): Promise<Post[]> {
   });
 }
 
+export async function getPublicPosts(): Promise<Post[]> {
+  return (await getPosts()).filter((post) => !post.hidden);
+}
+
 export async function generateFeed() {
-  const posts = (await getPosts()).filter((post) => !post.hidden);
+  const posts = await getPublicPosts();
 
   const feed = new Feed({
     author: {
@@ -81,12 +157,14 @@ export async function generateFeed() {
 
   for (const post of posts) {
     feed.addItem({
-      date: new Date(post.date || new Date()),
-      description: post.summary || post.content.substring(0, 200) + '...',
+      author: [{ name: config.author, email: config.email, link: config.siteUrl }],
+      category: post.tags.map((tag) => ({ name: tag })),
+      date: post.date || new Date(),
+      description: post.summary || stripHtml(post.content).substring(0, 200) + '...',
       content: post.content,
       id: `${config.siteUrl}/${post.slug}/`,
       link: `${config.siteUrl}/${post.slug}/`,
-      title: post.title || '',
+      title: post.title,
     });
   }
   return feed;

@@ -11,9 +11,23 @@
   --color-text: #1f2329;
   --color-text-secondary: rgba(31, 35, 41, 0.7);
   --color-border: #dee0e3;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f6f7;
   --color-bg-code: #f5f6f7;
   --font-monospace: monospace, Menlo-Regular, Menlo, Monaco, Consolas, "Courier New";
   --font-sans: -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, Segoe UI, PingFang SC, Microsoft Yahei, Hiragino Sans GB, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: lab(81 32.4 -7);
+    --color-text: #d8d8d8;
+    --color-text-secondary: rgba(216, 216, 216, 0.72);
+    --color-border: #333;
+    --color-surface: #151515;
+    --color-surface-muted: #1d1d1d;
+    --color-bg-code: #1d1d1d;
+  }
 }
 
 /* ====================
@@ -26,7 +40,7 @@ html {
 }
 
 body {
-  background-color: white;
+  background-color: var(--bg);
 }
 
 /* ====================
@@ -38,6 +52,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   margin: 0 auto;
+  color: var(--color-text);
 }
 
 .markdown * {
@@ -83,6 +98,8 @@ body {
   margin-left: 0;
   margin-right: 0;
   margin-bottom: 0.37em;
+  color: var(--title);
+  scroll-margin-top: 24px;
 }
 
 .markdown h1 {
@@ -163,6 +180,10 @@ body {
 .markdown img {
   max-width: 100%;
   height: auto;
+  display: block;
+  margin: 18px auto;
+  border-radius: 8px;
+  background: var(--color-surface-muted);
 }
 
 /* ====================
@@ -218,15 +239,33 @@ body {
   background-color: var(--color-bg-code);
 }
 
+.markdown :not(pre) > code {
+  border-radius: 4px;
+  background: var(--color-bg-code);
+  padding: 0.12em 0.35em;
+  color: var(--color-text);
+}
+
+.markdown pre {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-code);
+  padding: 14px 16px;
+}
+
 /* ====================
  * 表格
  * ==================== */
 .markdown table {
-  color: black;
+  color: var(--color-text);
   border-collapse: collapse;
-  background-color: white;
+  background-color: var(--color-surface);
   border-spacing: 2px;
   font-size: 1em;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .markdown th,
@@ -240,6 +279,7 @@ body {
 
 .markdown th {
   font-weight: 500;
+  background: var(--color-surface-muted);
 }
 
 .markdown td {
@@ -250,7 +290,7 @@ body {
  * SVG 图表
  * ==================== */
 .markdown div[id^=mweb-chart-ele] svg {
-  background-color: white;
+  background-color: var(--color-surface);
 }
 /* ====================
  * 列表样式
@@ -418,4 +458,15 @@ body {
 
 .markdown del:hover {
   filter: blur(0);
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdown mark {
+    background-color: rgba(255, 246, 122, 0.24);
+    color: var(--color-text);
+  }
+
+  .markdown strong {
+    color: #161616;
+  }
 }

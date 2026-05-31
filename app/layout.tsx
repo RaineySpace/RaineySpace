@@ -5,6 +5,7 @@ import HomeLink from "./components/HomeLink";
 import AboutLink from "./components/AboutLink";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(config.siteUrl),
   title: config.title,
   authors: [{ name: config.author, url: config.siteUrl }],
   creator: config.author,
@@ -36,11 +37,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body className="mx-auto max-w-2xl bg-[--bg] px-5 py-12 text-[--text]">
-        <header className="mb-14 flex flex-row place-content-between">
+        <header className="mb-14 flex flex-row items-center justify-between">
           <HomeLink />
-          <AboutLink/>
+          <nav className="flex items-center gap-4">
+            <AboutLink/>
+          </nav>
         </header>
         <main>
         {children}
