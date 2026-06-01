@@ -3,6 +3,7 @@ import { getPostBySlug, getPosts } from '@/lib/posts';
 import "./prose.css";
 import "highlight.js/styles/github-dark.css";
 import * as config from '@/lib/config';
+import TableOfContents from './TableOfContents';
 
 export async function generateMetadata({
   params,
@@ -51,21 +52,7 @@ export default async function PostPage({
 
   return (
     <div className="relative">
-      {post.headings.length > 0 && (
-        <aside className="fixed left-[calc(50%+24rem)] top-28 hidden w-44 xl:block">
-          <nav className="flex max-h-[calc(100vh-8rem)] flex-col gap-2 overflow-y-auto border-l border-gray-200 pl-4 text-xs leading-relaxed text-gray-500 dark:border-gray-800 dark:text-gray-400">
-            {post.headings.map((heading) => (
-              <a
-                key={heading.id}
-                href={`#${heading.id}`}
-                className={heading.level === 3 ? "pl-3" : ""}
-              >
-                {heading.text}
-              </a>
-            ))}
-          </nav>
-        </aside>
-      )}
+      <TableOfContents headings={post.headings} />
       <article className="markdown">
         {(post.showTitle || post.date || post.tags.length > 0 || post.summary) && (
           <header>
