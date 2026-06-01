@@ -52,8 +52,8 @@ export default async function PostPage({
   return (
     <div className="relative">
       {post.headings.length > 0 && (
-        <aside className="absolute left-full top-0 ml-12 hidden w-44 xl:block">
-          <nav className="sticky top-8 flex flex-col gap-2 border-l border-gray-200 pl-4 text-xs leading-relaxed text-gray-500 dark:border-gray-800 dark:text-gray-400">
+        <aside className="fixed left-[calc(50%+24rem)] top-28 hidden w-44 xl:block">
+          <nav className="flex max-h-[calc(100vh-8rem)] flex-col gap-2 overflow-y-auto border-l border-gray-200 pl-4 text-xs leading-relaxed text-gray-500 dark:border-gray-800 dark:text-gray-400">
             {post.headings.map((heading) => (
               <a
                 key={heading.id}
