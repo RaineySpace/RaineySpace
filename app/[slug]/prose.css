@@ -186,6 +186,15 @@ body {
   background: var(--color-surface-muted);
 }
 
+.markdown img[data-image-preview="true"] {
+  cursor: pointer;
+}
+
+.markdown img[data-image-preview="true"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
 /* ====================
  * 内联元素
  * ==================== */

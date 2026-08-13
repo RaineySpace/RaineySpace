@@ -7,6 +7,9 @@ export async function GET() {
   const posts = await getPublicPosts();
   const urls = [
     { loc: config.siteUrl, lastmod: new Date().toISOString() },
+    { loc: `${config.siteUrl}/articles/`, lastmod: new Date().toISOString() },
+    { loc: `${config.siteUrl}/photography/`, lastmod: new Date().toISOString() },
+    { loc: `${config.siteUrl}/projects/`, lastmod: new Date().toISOString() },
     ...posts.map((post) => ({
       loc: `${config.siteUrl}/${post.slug}/`,
       lastmod: (post.date || new Date()).toISOString(),

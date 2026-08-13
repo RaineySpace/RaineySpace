@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+const reservedSlugs = new Set(["articles", "assets", "photography", "projects"]);
+
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -27,6 +29,11 @@ async function main() {
   const slug = normalizeSlug(rawSlug);
   if (!slug) {
     console.error("Slug is empty after normalization.");
+    process.exit(1);
+  }
+
+  if (reservedSlugs.has(slug)) {
+    console.error(`Slug "${slug}" is reserved by a site route.`);
     process.exit(1);
   }
 

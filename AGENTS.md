@@ -31,18 +31,30 @@ tags: []
 ---
 ```
 
-Use `hidden: true` for pages that should remain directly accessible but excluded from homepage, feeds, and sitemap.
+Optional collection metadata:
+
+```yaml
+location: Hangzhou
+pinned: true
+photography: true
+project: true
+projectUrl: https://example.com
+sourceUrl: https://github.com/example/repo
+```
+
+Use `hidden: true` for pages that should remain directly accessible but excluded from article listings, feeds, and sitemap. It does not hide content marked for photography or project collections.
 
 Local assets referenced by a post should live in the same post directory. Prefer relative paths such as `./image.png`.
+Photography images must use relative Markdown image paths with non-empty alt text.
 
 ## Implementation Rules
 
 - Preserve the current static export model in `next.config.js`.
 - Do not add a CMS, database, server runtime dependency, or dynamic hosting requirement unless explicitly requested.
-- Keep public content filtering based on `hidden`.
+- Keep article-channel filtering based on `hidden`; photography and project collection membership is independent.
 - Keep date display stable as `YYYY-MM-DD`.
 - Keep tags optional; most existing posts have empty tags.
-- Keep the homepage ordered by post date descending.
+- Keep homepage collections ordered by `pinned` first and post date descending within each group. Feeds remain strictly date-ordered.
 - Keep the visual style lightweight and personal; avoid broad redesigns unless explicitly requested.
 - Do not move Markdown posts out of `public/<slug>/index.md` without an explicit migration request.
 

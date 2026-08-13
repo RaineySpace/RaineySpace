@@ -36,3 +36,123 @@ a {
   text-decoration: none;
   transition: transform 0.2s ease-in-out, opacity 0.2s 0.4s linear;
 }
+
+button {
+  color: inherit;
+}
+
+.photo-strip {
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  padding: 1rem 0.25rem 1.25rem;
+  scrollbar-width: none;
+}
+
+.photo-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.photo-strip-item {
+  position: relative;
+  flex: 0 0 7rem;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 3px solid white;
+  border-radius: 0.5rem;
+  background: #f3f4f6;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+  transition: transform 0.2s ease-in-out, z-index 0s;
+}
+
+.photo-strip-item + .photo-strip-item {
+  margin-left: -0.9rem;
+}
+
+.photo-strip-item:hover,
+.photo-strip-item:focus-visible {
+  z-index: 10;
+  transform: translateY(-0.25rem) rotate(0deg);
+  outline: none;
+}
+
+.photo-strip-item:focus-visible {
+  box-shadow: 0 0 0 2px var(--lightLink), 0 4px 14px rgb(0 0 0 / 0.12);
+}
+
+.image-lightbox[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+}
+
+.image-lightbox::backdrop {
+  background: rgb(0 0 0 / 0.9);
+  backdrop-filter: blur(4px);
+}
+
+.image-lightbox-thumbnails {
+  position: relative;
+  width: min(100%, 25rem);
+  overflow: hidden;
+}
+
+.image-lightbox-thumbnail-track {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.image-lightbox-thumbnail-track::-webkit-scrollbar {
+  display: none;
+}
+
+.image-lightbox-thumbnail {
+  position: relative;
+  flex: 0 0 calc((100% - 2rem) / 5);
+  aspect-ratio: 1;
+  overflow: hidden;
+  scroll-snap-align: center;
+  border-width: 2px;
+  border-radius: 0.375rem;
+  background: #18181b;
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.image-lightbox-thumbnail:focus-visible {
+  outline: 2px solid white;
+  outline-offset: -4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .photo-strip-item {
+    border-color: #27272a;
+    background: #1f2937;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+  }
+
+  .photo-strip-item:focus-visible {
+    box-shadow: 0 0 0 2px var(--darkLink), 0 4px 16px rgb(0 0 0 / 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "对话式文章写作"
+  short_description: "通过多轮访谈确定选题、补齐素材、确认骨架并完成文章写作"
+  default_prompt: "使用 $guided-article-writing 和我通过多轮对话确定主题、补充素材、确认骨架并完成文章。"

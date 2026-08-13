@@ -4,6 +4,7 @@ import "./prose.css";
 import "highlight.js/styles/github-dark.css";
 import * as config from '@/lib/config';
 import TableOfContents from './TableOfContents';
+import MarkdownContent from '@/app/components/MarkdownContent';
 
 export async function generateMetadata({
   params,
@@ -54,12 +55,13 @@ export default async function PostPage({
     <div className="relative">
       <TableOfContents headings={post.headings} />
       <article className="markdown">
-        {(post.showTitle || post.date || post.tags.length > 0 || post.summary) && (
+        {(post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary) && (
           <header>
             {post.showTitle && <h1>{post.title}</h1>}
-            {(post.date || post.tags.length > 0) && (
+            {(post.date || post.location || post.tags.length > 0) && (
               <div className="flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300">
                 {post.date && <time dateTime={post.date.toISOString()}>{post.dateText}</time>}
+                {post.location && <span>{post.location}</span>}
                 {post.tags.map((tag) => (
                   <span key={tag} className="inline-block rounded-md bg-gray-100 px-2 py-1 text-[10px] text-gray-800 dark:bg-gray-800 dark:text-gray-200">
                     {tag}
@@ -74,7 +76,7 @@ export default async function PostPage({
             )}
           </header>
         )}
-        <section className="markdown-content" dangerouslySetInnerHTML={{ __html: post.content }} />
+        <MarkdownContent html={post.content} />
       </article>
     </div>
   );

@@ -1,10 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
+import { marked } from "marked";
 
 const publicDir = path.join(process.cwd(), "public");
 const requiredFields = ["title", "date", "summary"];
-const imagePattern = /!\[[^\]]*]\(([^)]+)\)/g;
+const booleanFields = ["hidden", "pinned", "photography", "project"];
+const reservedSlugs = new Set(["articles", "assets", "photography", "projects"]);
 
 function isLocalReference(value) {
   return value && !/^(https?:)?\/\//.test(value) && !value.startsWith("data:");
@@ -14,6 +16,59 @@ function isValidDate(value) {
   if (!value) return false;
   const date = value instanceof Date ? value : new Date(String(value));
   return !Number.isNaN(date.getTime());
+}
+
+function isHttpUrl(value) {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function normalizeRelativeImagePath(value) {
+  const href = String(value).trim().split(/[?#]/, 1)[0];
+  if (
+    !href ||
+    href.startsWith("/") ||
+    href.startsWith("//") ||
+    href.includes("\\") ||
+    /^[a-z][a-z\d+.-]*:/i.test(href)
+  ) {
+    return null;
+  }
+
+  let decodedHref;
+  try {
+    decodedHref = decodeURIComponent(href);
+  } catch {
+    return null;
+  }
+
+  if (decodedHref.includes("\\") || decodedHref.split("/").includes("..")) return null;
+  const normalized = path.posix.normalize(decodedHref).replace(/^\.\//, "");
+  return normalized && normalized !== "." ? normalized : null;
+}
+
+function extractImageTokens(content) {
+  const images = [];
+
+  const visit = (value) => {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    if (value.type === "image") {
+      images.push({ href: String(value.href || ""), alt: String(value.text || "").trim() });
+      return;
+    }
+    Object.values(value).forEach(visit);
+  };
+
+  visit(marked.lexer(content));
+  return images;
 }
 
 async function exists(filePath) {
@@ -27,15 +82,19 @@ async function exists(filePath) {
 
 async function main() {
   const entries = await fs.readdir(publicDir, { withFileTypes: true });
-  const slugs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  const slugs = entries
+    .filter((entry) => entry.isDirectory() && entry.name !== "assets")
+    .map((entry) => entry.name);
   const seen = new Set();
   const errors = [];
   const warnings = [];
+  let photographyCount = 0;
+  let projectCount = 0;
+  let photoCount = 0;
 
   for (const slug of slugs) {
-    if (seen.has(slug)) {
-      errors.push(`${slug}: duplicate slug`);
-    }
+    if (reservedSlugs.has(slug)) errors.push(`${slug}: reserved route cannot be used as a post slug`);
+    if (seen.has(slug)) errors.push(`${slug}: duplicate slug`);
     seen.add(slug);
 
     const postDir = path.join(publicDir, slug);
@@ -47,51 +106,83 @@ async function main() {
 
     const fileContents = await fs.readFile(filePath, "utf8");
     const { data, content } = matter(fileContents);
-    const hidden = Boolean(data.hidden);
+    const participatesInAList = !data.hidden || data.photography === true || data.project === true;
 
-    if (!hidden) {
+    if (participatesInAList) {
       for (const field of requiredFields) {
-        if (!data[field]) {
-          errors.push(`${slug}: missing required frontmatter "${field}"`);
-        }
+        if (!data[field]) errors.push(`${slug}: missing required frontmatter "${field}"`);
       }
     }
 
-    if (data.date && !isValidDate(data.date)) {
-      errors.push(`${slug}: invalid date "${data.date}"`);
+    for (const field of booleanFields) {
+      if (data[field] !== undefined && typeof data[field] !== "boolean") {
+        errors.push(`${slug}: frontmatter "${field}" must be a boolean`);
+      }
     }
 
-    if (hidden) continue;
+    if (data.date && !isValidDate(data.date)) errors.push(`${slug}: invalid date "${data.date}"`);
+    if (data.location !== undefined && typeof data.location !== "string") {
+      errors.push(`${slug}: frontmatter "location" must be a string`);
+    }
+    for (const field of ["projectUrl", "sourceUrl"]) {
+      if (data[field] && !isHttpUrl(data[field])) {
+        errors.push(`${slug}: invalid ${field} "${data[field]}"`);
+      }
+    }
 
     if (data.cover && isLocalReference(String(data.cover))) {
       const coverPath = path.resolve(postDir, String(data.cover));
-      if (!(await exists(coverPath))) {
-        warnings.push(`${slug}: missing cover asset ${data.cover}`);
+      if (!(await exists(coverPath))) warnings.push(`${slug}: missing cover asset ${data.cover}`);
+    }
+
+    const imageTokens = extractImageTokens(content);
+    const validPhotographyImages = [];
+    const seenPhotographyImages = new Set();
+
+    for (const image of imageTokens) {
+      const relativePath = normalizeRelativeImagePath(image.href);
+      if (!relativePath) {
+        if (data.photography && isLocalReference(image.href)) {
+          errors.push(`${slug}: photography image must stay inside its post directory: ${image.href}`);
+        }
+        continue;
+      }
+
+      const imagePath = path.join(postDir, relativePath);
+      const imageExists = await exists(imagePath);
+      if (!imageExists) {
+        const message = `${slug}: missing image asset ${image.href}`;
+        if (data.photography) errors.push(message);
+        else warnings.push(message);
+        continue;
+      }
+
+      if (data.photography && !seenPhotographyImages.has(relativePath)) {
+        seenPhotographyImages.add(relativePath);
+        validPhotographyImages.push(image);
+        if (!image.alt) errors.push(`${slug}: photography image must have non-empty alt text: ${image.href}`);
       }
     }
 
-    for (const match of content.matchAll(imagePattern)) {
-      const src = match[1].trim();
-      if (!isLocalReference(src)) continue;
-      const imagePath = path.resolve(postDir, src);
-      if (!(await exists(imagePath))) {
-        warnings.push(`${slug}: missing image asset ${src}`);
+    if (data.photography) {
+      photographyCount += 1;
+      photoCount += validPhotographyImages.length;
+      if (validPhotographyImages.length === 0) {
+        errors.push(`${slug}: photography post must contain at least one valid local Markdown image`);
       }
     }
+    if (data.project) projectCount += 1;
   }
 
-  for (const warning of warnings) {
-    console.warn(`WARN ${warning}`);
-  }
-
+  warnings.forEach((warning) => console.warn(`WARN ${warning}`));
   if (errors.length > 0) {
-    for (const error of errors) {
-      console.error(`ERROR ${error}`);
-    }
+    errors.forEach((error) => console.error(`ERROR ${error}`));
     process.exit(1);
   }
 
-  console.log(`Content validation passed for ${slugs.length} posts with ${warnings.length} warning(s).`);
+  console.log(
+    `Content validation passed for ${slugs.length} posts, ${photographyCount} photography posts (${photoCount} photos), and ${projectCount} projects with ${warnings.length} warning(s).`,
+  );
 }
 
 main().catch((error) => {
