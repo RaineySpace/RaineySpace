@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 
 export interface PreviewImage {
@@ -43,6 +43,58 @@ function wrapIndex(index: number, length: number) {
   return (index + length) % length;
 }
 
+type SlideRole = "previous" | "current" | "next";
+
+function LightboxSlide({
+  image,
+  isActive,
+  onActiveSettled,
+}: {
+  image: PreviewImage;
+  isActive: boolean;
+  onActiveSettled?: (src: string) => void;
+}) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const isReady = loadedSrc === image.src;
+  const isError = failedSrc === image.src;
+
+  useLayoutEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+    if (img.complete && img.naturalWidth > 0) {
+      setLoadedSrc(image.src);
+      return;
+    }
+    if (img.complete) {
+      setFailedSrc(image.src);
+    }
+  }, [image.src]);
+
+  useLayoutEffect(() => {
+    if (isActive && (isReady || isError)) onActiveSettled?.(image.src);
+  }, [image.src, isActive, isError, isReady, onActiveSettled]);
+
+  return (
+    <div className="image-lightbox-slide" aria-hidden={isActive ? undefined : true}>
+      {!isReady && !isError && <div className="image-lightbox-spinner" aria-hidden="true" />}
+      {isError && <p className="image-lightbox-error">图片加载失败</p>}
+      <img
+        ref={imgRef}
+        src={image.src}
+        alt={isActive ? image.alt : ""}
+        draggable={false}
+        decoding="async"
+        fetchPriority={isActive ? "high" : "low"}
+        className={isReady ? "is-ready" : undefined}
+        onLoad={() => setLoadedSrc(image.src)}
+        onError={() => setFailedSrc(image.src)}
+      />
+    </div>
+  );
+}
+
 export default function ImageLightbox({
   images,
   activeIndex,
@@ -56,6 +108,7 @@ export default function ImageLightbox({
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbnailTrackRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [settledSrc, setSettledSrc] = useState<string | null>(null);
   const isOpen = activeIndex !== null;
   const activeImage = activeIndex === null ? null : images[activeIndex];
   const hasMultipleImages = images.length > 1;
@@ -64,6 +117,12 @@ export default function ImageLightbox({
     hasMultipleImages && activeIndex !== null ? images[wrapIndex(activeIndex - 1, images.length)] : null;
   const nextImage =
     hasMultipleImages && activeIndex !== null ? images[wrapIndex(activeIndex + 1, images.length)] : null;
+  const duplicateAdjacent = Boolean(previousImage && nextImage && previousImage.id === nextImage.id);
+  const slides: Array<{ image: PreviewImage; role: SlideRole }> = [];
+  if (previousImage) slides.push({ image: previousImage, role: "previous" });
+  if (activeImage) slides.push({ image: activeImage, role: "current" });
+  if (nextImage) slides.push({ image: nextImage, role: "next" });
+  const isCurrentBusy = Boolean(activeImage && settledSrc !== activeImage.src);
 
   const restoreFocus = useCallback(() => {
     requestAnimationFrame(() => {
@@ -186,25 +245,21 @@ export default function ImageLightbox({
           <div
             ref={stageRef}
             className="image-lightbox-stage"
+            aria-busy={isCurrentBusy || undefined}
             onPointerDown={gestureHandlers.onPointerDown}
             onPointerMove={gestureHandlers.onPointerMove}
             onPointerUp={gestureHandlers.onPointerUp}
             onPointerCancel={gestureHandlers.onPointerCancel}
           >
             <div ref={trackRef} className="image-lightbox-track">
-              {previousImage && (
-                <div key="previous" className="image-lightbox-slide" aria-hidden="true">
-                  <img src={previousImage.src} alt="" draggable={false} />
-                </div>
-              )}
-              <div key="current" className="image-lightbox-slide">
-                <img src={activeImage.src} alt={activeImage.alt} draggable={false} />
-              </div>
-              {nextImage && (
-                <div key="next" className="image-lightbox-slide" aria-hidden="true">
-                  <img src={nextImage.src} alt="" draggable={false} />
-                </div>
-              )}
+              {slides.map(({ image, role }) => (
+                <LightboxSlide
+                  key={duplicateAdjacent && role !== "current" ? `${image.id}-${role}` : image.id}
+                  image={image}
+                  isActive={role === "current"}
+                  onActiveSettled={role === "current" ? setSettledSrc : undefined}
+                />
+              ))}
             </div>
 
             {hasMultipleImages && (
