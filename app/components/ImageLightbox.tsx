@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useRef } from "react";
+import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 
 export interface PreviewImage {
   id: string;
@@ -38,6 +39,10 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
   );
 }
 
+function wrapIndex(index: number, length: number) {
+  return (index + length) % length;
+}
+
 export default function ImageLightbox({
   images,
   activeIndex,
@@ -46,12 +51,19 @@ export default function ImageLightbox({
   returnFocus,
 }: ImageLightboxProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const thumbnailTrackRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const isOpen = activeIndex !== null;
   const activeImage = activeIndex === null ? null : images[activeIndex];
   const hasMultipleImages = images.length > 1;
   const hasOverflowingThumbnails = images.length > 5;
+  const previousImage =
+    hasMultipleImages && activeIndex !== null ? images[wrapIndex(activeIndex - 1, images.length)] : null;
+  const nextImage =
+    hasMultipleImages && activeIndex !== null ? images[wrapIndex(activeIndex + 1, images.length)] : null;
 
   const restoreFocus = useCallback(() => {
     requestAnimationFrame(() => {
@@ -75,13 +87,25 @@ export default function ImageLightbox({
 
   const showPrevious = useCallback(() => {
     if (activeIndex === null || images.length < 2) return;
-    onActiveIndexChange((activeIndex - 1 + images.length) % images.length);
+    onActiveIndexChange(wrapIndex(activeIndex - 1, images.length));
   }, [activeIndex, images.length, onActiveIndexChange]);
 
   const showNext = useCallback(() => {
     if (activeIndex === null || images.length < 2) return;
-    onActiveIndexChange((activeIndex + 1) % images.length);
+    onActiveIndexChange(wrapIndex(activeIndex + 1, images.length));
   }, [activeIndex, images.length, onActiveIndexChange]);
+
+  const gestureHandlers = useLightboxGestures({
+    isOpen,
+    activeIndex,
+    hasMultipleImages,
+    stageRef,
+    trackRef,
+    shellRef,
+    onPrevious: showPrevious,
+    onNext: showNext,
+    onClose: closeLightbox,
+  });
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -149,18 +173,39 @@ export default function ImageLightbox({
         if (event.target === event.currentTarget) closeLightbox();
       }}
     >
-      {activeImage && (
-        <div className="relative flex h-[92vh] w-[min(94vw,76rem)] flex-col items-center justify-center gap-3 py-2">
+      {activeImage && activeIndex !== null && (
+        <div ref={shellRef} className="image-lightbox-shell">
           <button
             type="button"
             onClick={closeLightbox}
-            className="absolute right-0 top-0 z-20 rounded-md bg-black/60 px-3 py-2 text-sm text-white hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="image-lightbox-close rounded-md bg-black/60 px-3 py-2 text-sm text-white hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             关闭
           </button>
 
-          <div className="relative mt-9 min-h-0 w-full flex-1">
-            <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full rounded-md object-contain" />
+          <div
+            ref={stageRef}
+            className="image-lightbox-stage"
+            onPointerDown={gestureHandlers.onPointerDown}
+            onPointerMove={gestureHandlers.onPointerMove}
+            onPointerUp={gestureHandlers.onPointerUp}
+            onPointerCancel={gestureHandlers.onPointerCancel}
+          >
+            <div ref={trackRef} className="image-lightbox-track">
+              {previousImage && (
+                <div key="previous" className="image-lightbox-slide" aria-hidden="true">
+                  <img src={previousImage.src} alt="" draggable={false} />
+                </div>
+              )}
+              <div key="current" className="image-lightbox-slide">
+                <img src={activeImage.src} alt={activeImage.alt} draggable={false} />
+              </div>
+              {nextImage && (
+                <div key="next" className="image-lightbox-slide" aria-hidden="true">
+                  <img src={nextImage.src} alt="" draggable={false} />
+                </div>
+              )}
+            </div>
 
             {hasMultipleImages && (
               <>
@@ -168,7 +213,7 @@ export default function ImageLightbox({
                   type="button"
                   onClick={showPrevious}
                   aria-label="上一张"
-                  className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:left-4"
+                  className="image-lightbox-nav absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:left-4"
                 >
                   <ChevronIcon direction="left" />
                 </button>
@@ -176,7 +221,7 @@ export default function ImageLightbox({
                   type="button"
                   onClick={showNext}
                   aria-label="下一张"
-                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-4"
+                  className="image-lightbox-nav absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-4"
                 >
                   <ChevronIcon direction="right" />
                 </button>
@@ -185,6 +230,11 @@ export default function ImageLightbox({
           </div>
 
           <div className="min-h-[2.5rem] max-w-full text-center">
+            {hasMultipleImages && (
+              <p className="text-xs text-gray-400">
+                {activeIndex + 1} / {images.length}
+              </p>
+            )}
             <p className="line-clamp-2 text-sm font-medium">{activeImage.alt}</p>
             {activeImage.metadata && <p className="mt-1 text-xs text-gray-300">{activeImage.metadata}</p>}
             {activeImage.sourceHref && activeImage.sourceLabel && (
