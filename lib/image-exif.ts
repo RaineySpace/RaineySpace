@@ -13,23 +13,6 @@ export interface ImageExif {
   focalLength35mm?: string;
 }
 
-const EXIF_PICK = [
-  "DateTimeOriginal",
-  "CreateDate",
-  "Make",
-  "Model",
-  "LensModel",
-  "LensMake",
-  "FNumber",
-  "ExposureTime",
-  "ISO",
-  "ISOSpeedRatings",
-  "FocalLength",
-  "FocalLengthIn35mmFormat",
-  "latitude",
-  "longitude",
-] as const;
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object";
 }
@@ -105,7 +88,7 @@ function formatIso(value: number): string | undefined {
 function readGps(value: unknown, min: number, max: number): number | undefined {
   const number = readNumber(value);
   if (number === undefined || number < min || number > max) return undefined;
-  return number;
+  return Math.round(number * 1e6) / 1e6;
 }
 
 export async function readImageExif(filePath: string): Promise<ImageExif> {
@@ -113,14 +96,12 @@ export async function readImageExif(filePath: string): Promise<ImageExif> {
   try {
     parsed = await exifr.parse(filePath, {
       tiff: true,
-      ifd0: true,
       exif: true,
       gps: true,
       mergeOutput: true,
       translateKeys: true,
       translateValues: true,
-      reviveValues: true,
-      pick: [...EXIF_PICK],
+      reviveValues: false,
     });
   } catch {
     return {};
@@ -148,7 +129,13 @@ export async function readImageExif(filePath: string): Promise<ImageExif> {
   }
   const camera = formatCamera(make, model);
   if (camera) exif.camera = camera;
-  if (lens) exif.lens = lens;
+  if (lens) {
+    const trimmedLens =
+      camera && lens.toLowerCase().startsWith(camera.toLowerCase())
+        ? lens.slice(camera.length).trim()
+        : lens;
+    if (trimmedLens) exif.lens = trimmedLens;
+  }
   if (fNumber !== undefined && fNumber > 0) exif.aperture = formatAperture(fNumber);
   if (exposureTime !== undefined) {
     const shutter = formatShutter(exposureTime);
