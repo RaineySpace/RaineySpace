@@ -79,7 +79,12 @@ export default async function PostPage({
             )}
           </header>
         )}
-        <MarkdownContent html={post.content} />
+        <MarkdownContent
+          html={post.content}
+          images={post.images}
+          location={post.photography ? post.location : undefined}
+          date={post.photography ? post.dateText : undefined}
+        />
       </article>
       {project && (
         <aside aria-label={`关于项目：${project.name}`} className="mt-10">

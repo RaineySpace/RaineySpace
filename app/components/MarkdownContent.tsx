@@ -3,11 +3,70 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import ImageLightbox, { type PreviewImage } from "@/app/components/ImageLightbox";
 
-interface MarkdownContentProps {
-  html: string;
+interface ArticleImageMeta {
+  src: string;
+  capturedAt?: string;
+  latitude?: number;
+  longitude?: number;
+  camera?: string;
+  lens?: string;
+  aperture?: string;
+  shutter?: string;
+  iso?: string;
+  focalLength?: string;
+  focalLength35mm?: string;
 }
 
-export default function MarkdownContent({ html }: MarkdownContentProps) {
+interface MarkdownContentProps {
+  html: string;
+  images?: ArticleImageMeta[];
+  location?: string;
+  date?: string;
+}
+
+const EMPTY_IMAGES: ArticleImageMeta[] = [];
+
+function previewFieldsFromPostImage(
+  image: ArticleImageMeta | undefined,
+  location?: string,
+  date?: string,
+): Pick<
+  PreviewImage,
+  | "capturedAt"
+  | "date"
+  | "location"
+  | "latitude"
+  | "longitude"
+  | "camera"
+  | "lens"
+  | "aperture"
+  | "shutter"
+  | "iso"
+  | "focalLength"
+  | "focalLength35mm"
+> {
+  return {
+    capturedAt: image?.capturedAt,
+    date,
+    location: location || undefined,
+    latitude: image?.latitude,
+    longitude: image?.longitude,
+    camera: image?.camera,
+    lens: image?.lens,
+    aperture: image?.aperture,
+    shutter: image?.shutter,
+    iso: image?.iso,
+    focalLength: image?.focalLength,
+    focalLength35mm: image?.focalLength35mm,
+  };
+}
+
+export default function MarkdownContent({
+  html,
+  images: postImages = EMPTY_IMAGES,
+  location,
+  date,
+}: MarkdownContentProps) {
   const contentRef = useRef<HTMLElement>(null);
   const returnFocusIndexRef = useRef<number | null>(null);
   const [images, setImages] = useState<PreviewImage[]>([]);
@@ -17,6 +76,7 @@ export default function MarkdownContent({ html }: MarkdownContentProps) {
     const content = contentRef.current;
     if (!content) return;
 
+    const extrasBySrc = new Map(postImages.map((image) => [image.src, image]));
     const previewImages: PreviewImage[] = [];
     const imageElements = Array.from(content.querySelectorAll("img"));
 
@@ -32,12 +92,13 @@ export default function MarkdownContent({ html }: MarkdownContentProps) {
         src: fullSrc,
         displaySrc,
         alt,
+        ...previewFieldsFromPostImage(extrasBySrc.get(fullSrc), location, date),
       });
     });
 
     setImages(previewImages.filter((image) => image.src));
     setActiveIndex(null);
-  }, [html]);
+  }, [date, html, location, postImages]);
 
   useEffect(() => {
     const content = contentRef.current;

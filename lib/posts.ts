@@ -6,6 +6,7 @@ import * as config from './config';
 import { Renderer, marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
+import { readImageExif, type ImageExif } from './image-exif';
 import {
   resolveDisplaySrc,
   SKIP_PUBLIC_DIRS,
@@ -43,7 +44,7 @@ export interface Post {
   headings: Heading[];
 }
 
-export interface PostImage {
+export interface PostImage extends ImageExif {
   id: string;
   src: string;
   displaySrc: string;
@@ -156,12 +157,14 @@ async function extractMarkdownImages(
   for (const relativePath of relativePaths) {
     const src = toOriginalSrc(slug, relativePath);
     const displaySrc = await resolveDisplaySrc(slug, relativePath);
+    const filePath = path.join(process.cwd(), 'public', slug, relativePath);
     displaySrcByRelativePath.set(relativePath, displaySrc);
     images.push({
       id: `${slug}/${relativePath}`,
       src,
       displaySrc,
       alt: alts.get(relativePath) || '',
+      ...(await readImageExif(filePath)),
     });
   }
 

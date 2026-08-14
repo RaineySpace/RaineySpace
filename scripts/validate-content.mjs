@@ -2,12 +2,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
 import { marked } from "marked";
+import exifr from "exifr";
 
 const publicDir = path.join(process.cwd(), "public");
 const projectsPath = path.join(process.cwd(), "content", "projects.json");
 const requiredFields = ["title", "date", "summary"];
 const booleanFields = ["hidden", "pinned", "photography"];
 const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "_optimized"]);
+const exifExtensions = new Set([".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".heic"]);
 const deprecatedProjectFields = [
   "project",
   "projectUrl",
@@ -129,6 +131,18 @@ async function exists(filePath) {
   try {
     await fs.access(filePath);
     return true;
+  } catch {
+    return false;
+  }
+}
+
+async function hasCaptureTime(filePath) {
+  try {
+    const parsed = await exifr.parse(filePath, {
+      pick: ["DateTimeOriginal", "CreateDate"],
+      reviveValues: true,
+    });
+    return Boolean(parsed?.DateTimeOriginal || parsed?.CreateDate);
   } catch {
     return false;
   }
@@ -306,6 +320,10 @@ async function main() {
         seenPhotographyImages.add(relativePath);
         validPhotographyImages.push(image);
         if (!image.alt) errors.push(`${slug}: photography image must have non-empty alt text: ${image.href}`);
+        const extension = path.extname(relativePath).toLowerCase();
+        if (exifExtensions.has(extension) && !(await hasCaptureTime(imagePath))) {
+          warnings.push(`${slug}: photography image is missing EXIF capture time: ${image.href}`);
+        }
       }
     }
 
