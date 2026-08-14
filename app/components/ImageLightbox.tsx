@@ -10,7 +10,18 @@ export interface PreviewImage {
   src: string;
   displaySrc?: string;
   alt: string;
-  metadata?: string;
+  capturedAt?: string;
+  date?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  camera?: string;
+  lens?: string;
+  aperture?: string;
+  shutter?: string;
+  iso?: string;
+  focalLength?: string;
+  focalLength35mm?: string;
   sourceHref?: string;
   sourceLabel?: string;
 }
@@ -42,6 +53,25 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
 
 function wrapIndex(index: number, length: number) {
   return (index + length) % length;
+}
+
+function hasGps(image: PreviewImage): image is PreviewImage & { latitude: number; longitude: number } {
+  return Number.isFinite(image.latitude) && Number.isFinite(image.longitude);
+}
+
+function mapUrl(latitude: number, longitude: number): string {
+  return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=16/${latitude}/${longitude}`;
+}
+
+function exposureLine(image: PreviewImage): string {
+  return [
+    image.aperture,
+    image.shutter,
+    image.iso ? `ISO ${image.iso}` : "",
+    image.focalLength35mm || image.focalLength,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 type SlideRole = "previous" | "current" | "next";
@@ -146,6 +176,11 @@ export default function ImageLightbox({
   if (activeImage) slides.push({ image: activeImage, role: "current" });
   if (nextImage) slides.push({ image: nextImage, role: "next" });
   const isCurrentBusy = Boolean(activeImage && settledSrc !== activeImage.src);
+  const timeLocation = activeImage
+    ? [activeImage.capturedAt || activeImage.date, activeImage.location].filter(Boolean).join(" · ")
+    : "";
+  const gear = activeImage ? [activeImage.camera, activeImage.lens].filter(Boolean).join(" · ") : "";
+  const exposure = activeImage ? exposureLine(activeImage) : "";
 
   const restoreFocus = useCallback(() => {
     requestAnimationFrame(() => {
@@ -314,7 +349,26 @@ export default function ImageLightbox({
               </p>
             )}
             <p className="line-clamp-2 text-sm font-medium">{activeImage.alt}</p>
-            {activeImage.metadata && <p className="mt-1 text-xs text-gray-300">{activeImage.metadata}</p>}
+            {timeLocation && (
+              <p className="mt-1 text-xs text-gray-300">
+                {timeLocation}
+                {hasGps(activeImage) && (
+                  <>
+                    {" · "}
+                    <a
+                      href={mapUrl(activeImage.latitude, activeImage.longitude)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="underline decoration-gray-500 underline-offset-4 hover:text-white"
+                    >
+                      查看地图
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
+            {gear && <p className="mt-1 text-xs text-gray-400">{gear}</p>}
+            {exposure && <p className="mt-0.5 text-xs text-gray-400">{exposure}</p>}
             {activeImage.sourceHref && activeImage.sourceLabel && (
               <a
                 href={activeImage.sourceHref}
