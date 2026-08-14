@@ -5,10 +5,13 @@
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
+    "predev": "node scripts/optimize-images.mjs",
+    "prebuild": "node scripts/optimize-images.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "validate:content": "node scripts/validate-content.mjs",
+    "optimize:images": "node scripts/optimize-images.mjs",
     "new-post": "node scripts/new-post.mjs",
     "deploy:cf": "pnpm build && wrangler pages deploy out --project-name=raineyspace"
   },
@@ -34,8 +37,12 @@
     "autoprefixer": "^10.4.0",
     "eslint-config-next": "^14.0.0",
     "postcss": "^8.4.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.0.0",
     "wrangler": "^4.49.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp"]
   }
 }

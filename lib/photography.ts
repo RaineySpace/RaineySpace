@@ -3,6 +3,7 @@ import { formatDate, getPosts } from "@/lib/posts";
 export interface Photo {
   id: string;
   src: string;
+  displaySrc: string;
   alt: string;
   date: string;
   location?: string;

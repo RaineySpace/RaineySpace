@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const reservedSlugs = new Set(["articles", "assets", "photography", "projects"]);
+const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "_optimized"]);
 
 function today() {
   return new Date().toISOString().slice(0, 10);

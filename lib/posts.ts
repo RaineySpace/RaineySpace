@@ -6,6 +6,11 @@ import * as config from './config';
 import { Renderer, marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
+import {
+  resolveDisplaySrc,
+  SKIP_PUBLIC_DIRS,
+  toOriginalSrc,
+} from './optimized-images';
 
 // 配置 marked 使用 highlight.js
 marked.use(
@@ -41,6 +46,7 @@ export interface Post {
 export interface PostImage {
   id: string;
   src: string;
+  displaySrc: string;
   alt: string;
 }
 
@@ -74,6 +80,14 @@ function stripHtml(value: string): string {
   return value.replace(/<[^>]*>/g, '').trim();
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function normalizeRelativeImagePath(value: string): string | null {
   const href = value.trim().split(/[?#]/, 1)[0];
   if (
@@ -104,9 +118,15 @@ function normalizeRelativeImagePath(value: string): string | null {
   return normalized;
 }
 
-function extractMarkdownImages(content: string, slug: string): PostImage[] {
+async function extractMarkdownImages(
+  content: string,
+  slug: string,
+): Promise<{ images: PostImage[]; displaySrcByRelativePath: Map<string, string> }> {
   const images: PostImage[] = [];
+  const displaySrcByRelativePath = new Map<string, string>();
   const seen = new Set<string>();
+  const relativePaths: string[] = [];
+  const alts = new Map<string, string>();
 
   const visit = (value: unknown) => {
     if (Array.isArray(value)) {
@@ -120,11 +140,8 @@ function extractMarkdownImages(content: string, slug: string): PostImage[] {
       const relativePath = normalizeRelativeImagePath(token.href);
       if (relativePath && !seen.has(relativePath)) {
         seen.add(relativePath);
-        images.push({
-          id: `${slug}/${relativePath}`,
-          src: `/${slug}/${relativePath}`,
-          alt: typeof token.text === 'string' ? token.text.trim() : '',
-        });
+        relativePaths.push(relativePath);
+        alts.set(relativePath, typeof token.text === 'string' ? token.text.trim() : '');
       }
       return;
     }
@@ -135,7 +152,20 @@ function extractMarkdownImages(content: string, slug: string): PostImage[] {
   };
 
   visit(marked.lexer(content));
-  return images;
+
+  for (const relativePath of relativePaths) {
+    const src = toOriginalSrc(slug, relativePath);
+    const displaySrc = await resolveDisplaySrc(slug, relativePath);
+    displaySrcByRelativePath.set(relativePath, displaySrc);
+    images.push({
+      id: `${slug}/${relativePath}`,
+      src,
+      displaySrc,
+      alt: alts.get(relativePath) || '',
+    });
+  }
+
+  return { images, displaySrcByRelativePath };
 }
 
 function createHeadingId(text: string, counts: Map<string, number>): string {
@@ -152,7 +182,10 @@ function createHeadingId(text: string, counts: Map<string, number>): string {
   return count === 0 ? base : `${base}-${count + 1}`;
 }
 
-function renderMarkdown(content: string): { html: string; headings: Heading[] } {
+function renderMarkdown(
+  content: string,
+  options?: { slug: string; displaySrcByRelativePath: Map<string, string> },
+): { html: string; headings: Heading[] } {
   const headings: Heading[] = [];
   const counts = new Map<string, number>();
   const renderer = new Renderer();
@@ -165,6 +198,21 @@ function renderMarkdown(content: string): { html: string; headings: Heading[] } 
       return `<h${level} id="${id}">${text}</h${level}>`;
     }
     return `<h${level}>${text}</h${level}>`;
+  };
+
+  renderer.image = (href, title, text) => {
+    const hrefValue = href || '';
+    const alt = escapeHtml(stripHtml(String(text || '')));
+    const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+    const relativePath = options ? normalizeRelativeImagePath(hrefValue) : null;
+
+    if (!options || !relativePath) {
+      return `<img src="${escapeHtml(hrefValue)}" alt="${alt}"${titleAttr} loading="lazy">`;
+    }
+
+    const originalSrc = toOriginalSrc(options.slug, relativePath);
+    const displaySrc = options.displaySrcByRelativePath.get(relativePath) || originalSrc;
+    return `<img src="${escapeHtml(displaySrc)}" alt="${alt}"${titleAttr} loading="lazy" data-full-src="${escapeHtml(originalSrc)}">`;
   };
 
   const html = marked.parse(content, { renderer }) as string;
@@ -180,7 +228,8 @@ export async function getPostBySlug(slug: string): Promise<Post> {
   const fileContents = await fs.readFile(`./public/${slug}/index.md`, 'utf8');
   const { data, content } = matter(fileContents);
   const date = normalizeDate(data.date);
-  const rendered = renderMarkdown(content);
+  const { images, displaySrcByRelativePath } = await extractMarkdownImages(content, slug);
+  const rendered = renderMarkdown(content, { slug, displaySrcByRelativePath });
 
   return {
     title: data.title ? String(data.title) : slug,
@@ -197,7 +246,7 @@ export async function getPostBySlug(slug: string): Promise<Post> {
     pinned: !!data.pinned,
     photography: !!data.photography,
     projectId: data.projectId ? String(data.projectId).trim() : '',
-    images: extractMarkdownImages(content, slug),
+    images,
     content: rendered.html,
     headings: rendered.headings,
   };
@@ -219,7 +268,7 @@ function comparePosts(a: Post, b: Post): number {
 export async function getPosts(): Promise<Post[]> {
   const entries = await fs.readdir("./public/", { withFileTypes: true });
   const dirs = entries
-    .filter((entry) => entry.isDirectory() && entry.name !== "assets")
+    .filter((entry) => entry.isDirectory() && !SKIP_PUBLIC_DIRS.has(entry.name))
     .map((entry) => entry.name);
   const posts = await Promise.all(dirs.map(getPostBySlug));
   return posts.sort(comparePosts);
