@@ -8,6 +8,7 @@ import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 export interface PreviewImage {
   id: string;
   src: string;
+  displaySrc?: string;
   alt: string;
   metadata?: string;
   sourceHref?: string;
@@ -55,10 +56,14 @@ function LightboxSlide({
   onActiveSettled?: (src: string) => void;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
+  const previewRef = useRef<HTMLImageElement>(null);
+  const previewSrc = image.displaySrc && image.displaySrc !== image.src ? image.displaySrc : null;
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [previewReady, setPreviewReady] = useState(false);
   const isReady = loadedSrc === image.src;
   const isError = failedSrc === image.src;
+  const showSpinner = !isReady && !isError && !previewReady;
 
   useLayoutEffect(() => {
     const img = imgRef.current;
@@ -73,13 +78,31 @@ function LightboxSlide({
   }, [image.src]);
 
   useLayoutEffect(() => {
+    setPreviewReady(false);
+    const img = previewRef.current;
+    if (!img) return;
+    if (img.complete && img.naturalWidth > 0) setPreviewReady(true);
+  }, [previewSrc]);
+
+  useLayoutEffect(() => {
     if (isActive && (isReady || isError)) onActiveSettled?.(image.src);
   }, [image.src, isActive, isError, isReady, onActiveSettled]);
 
   return (
     <div className="image-lightbox-slide" aria-hidden={isActive ? undefined : true}>
-      {!isReady && !isError && <div className="image-lightbox-spinner" aria-hidden="true" />}
+      {showSpinner && <div className="image-lightbox-spinner" aria-hidden="true" />}
       {isError && <p className="image-lightbox-error">图片加载失败</p>}
+      {previewSrc && (
+        <img
+          ref={previewRef}
+          src={previewSrc}
+          alt=""
+          draggable={false}
+          decoding="async"
+          className={`is-preview ${previewReady ? "is-ready" : ""}`}
+          onLoad={() => setPreviewReady(true)}
+        />
+      )}
       <img
         ref={imgRef}
         src={image.src}
@@ -87,7 +110,7 @@ function LightboxSlide({
         draggable={false}
         decoding="async"
         fetchPriority={isActive ? "high" : "low"}
-        className={isReady ? "is-ready" : undefined}
+        className={`is-full ${isReady ? "is-ready" : ""}`}
         onLoad={() => setLoadedSrc(image.src)}
         onError={() => setFailedSrc(image.src)}
       />
@@ -324,7 +347,7 @@ export default function ImageLightbox({
                       : "border-transparent opacity-55 hover:opacity-90"
                   }`}
                 >
-                  <img src={image.src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <img src={image.displaySrc || image.src} alt="" className="h-full w-full object-cover" loading="lazy" />
                 </button>
               ))}
             </div>

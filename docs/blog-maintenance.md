@@ -12,6 +12,7 @@
 - `lib/config.ts`：站点 URL、标题、作者、头像、关键词等全局配置。
 - `scripts/new-post.mjs`：新建文章脚本。
 - `scripts/validate-content.mjs`：内容校验脚本。
+- `scripts/optimize-images.mjs`：构建前根据原图生成展示用 WebP。
 
 ## 新建文章
 
@@ -63,6 +64,12 @@ hidden: true
 ```
 
 内容校验会检查公开文章中的本地图片和 `cover` 是否存在。缺失图片会输出 warning。
+
+正文继续引用原图，例如 `./photo.jpg`。构建和本地开发前会生成压缩 WebP 到 `public/_optimized/`，用于文章正文、摄影列表和灯箱底栏；灯箱主预览仍加载原图。压缩图是构建产物，不要提交到 git。
+
+```bash
+pnpm optimize:images
+```
 
 ## 内容校验
 

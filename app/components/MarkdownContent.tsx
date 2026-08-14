@@ -25,9 +25,12 @@ export default function MarkdownContent({ html }: MarkdownContentProps) {
 
       const index = previewImages.length;
       const alt = image.alt.trim() || `文章图片 ${index + 1}`;
+      const displaySrc = image.currentSrc || image.getAttribute("src") || "";
+      const fullSrc = image.getAttribute("data-full-src") || displaySrc;
       previewImages.push({
-        id: `article-image-${index}-${image.currentSrc || image.getAttribute("src") || "unknown"}`,
-        src: image.currentSrc || image.getAttribute("src") || "",
+        id: `article-image-${index}-${fullSrc || "unknown"}`,
+        src: fullSrc,
+        displaySrc,
         alt,
       });
     });

@@ -65,6 +65,7 @@ Photography images must use relative Markdown image paths with non-empty alt tex
 pnpm dev
 pnpm build
 pnpm validate:content
+pnpm optimize:images
 pnpm new-post <slug> [title]
 pnpm deploy:cf
 ```

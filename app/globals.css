@@ -156,6 +156,8 @@ button {
 }
 
 .image-lightbox-slide img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -168,6 +170,14 @@ button {
   -webkit-touch-callout: none;
 }
 
+.image-lightbox-slide img.is-preview {
+  z-index: 0;
+}
+
+.image-lightbox-slide img.is-full {
+  z-index: 1;
+}
+
 .image-lightbox-slide img.is-ready {
   opacity: 1;
 }
@@ -176,6 +186,7 @@ button {
   position: absolute;
   top: 50%;
   left: 50%;
+  z-index: 2;
   width: 1.75rem;
   height: 1.75rem;
   margin: -0.875rem 0 0 -0.875rem;
@@ -188,6 +199,7 @@ button {
 .image-lightbox-error {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;

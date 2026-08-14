@@ -20,6 +20,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
       photos.map((photo) => ({
         id: photo.id,
         src: photo.src,
+        displaySrc: photo.displaySrc,
         alt: photo.alt,
         metadata: [photo.location, photo.date].filter(Boolean).join(" · "),
         sourceHref: `/${photo.sourceSlug}`,
@@ -52,7 +53,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
             aria-label={`查看大图：${photo.alt}`}
           >
             <Image
-              src={photo.src}
+              src={photo.displaySrc}
               alt={photo.alt}
               fill
               sizes={variant === "strip" ? "120px" : "(min-width: 640px) 200px, 50vw"}

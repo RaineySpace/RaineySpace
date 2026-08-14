@@ -7,7 +7,7 @@ const publicDir = path.join(process.cwd(), "public");
 const projectsPath = path.join(process.cwd(), "content", "projects.json");
 const requiredFields = ["title", "date", "summary"];
 const booleanFields = ["hidden", "pinned", "photography"];
-const reservedSlugs = new Set(["articles", "assets", "photography", "projects"]);
+const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "_optimized"]);
 const deprecatedProjectFields = [
   "project",
   "projectUrl",
@@ -213,7 +213,7 @@ async function validateProjectRegistry(errors) {
 async function main() {
   const entries = await fs.readdir(publicDir, { withFileTypes: true });
   const slugs = entries
-    .filter((entry) => entry.isDirectory() && entry.name !== "assets")
+    .filter((entry) => entry.isDirectory() && entry.name !== "assets" && entry.name !== "_optimized")
     .map((entry) => entry.name);
   const seen = new Set();
   const errors = [];
