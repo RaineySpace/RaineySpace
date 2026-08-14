@@ -171,6 +171,11 @@ function renderMarkdown(content: string): { html: string; headings: Heading[] } 
   return { html, headings };
 }
 
+export async function getAboutContent(): Promise<string> {
+  const readme = await fs.readFile(path.join(process.cwd(), 'README.md'), 'utf8');
+  return renderMarkdown(readme).html;
+}
+
 export async function getPostBySlug(slug: string): Promise<Post> {
   const fileContents = await fs.readFile(`./public/${slug}/index.md`, 'utf8');
   const { data, content } = matter(fileContents);

@@ -432,31 +432,45 @@ body {
   margin: 0 0.2rem;
   border-radius: 0.5rem;
   border-bottom-left-radius: 0.125rem;
+  background: #d9d9d9;
   color: #1f1f1f;
 }
 
-.markdown strong:nth-child(5n) {
-  background: #fff1b8;
-}
-
-.markdown strong:nth-child(5n + 1) {
-  background: #d9d9d9;
-}
-
-.markdown strong:nth-child(5n + 2) {
+.markdown strong:nth-of-type(5n + 2) {
   background: #91caff;
 }
 
-.markdown strong:nth-child(5n + 3) {
+.markdown strong:nth-of-type(5n + 3) {
   background: #ffccc7;
 }
 
-.markdown strong:nth-child(5n + 4) {
+.markdown strong:nth-of-type(5n + 4) {
   background: #faebdd;
 }
 
-.markdown strong:nth-child(5n + 5) {
+.markdown strong:nth-of-type(5n) {
   background: #efdbff;
+}
+
+/* 链接会为 strong 创建独立父元素，按同级链接位置单独轮换颜色。 */
+.markdown a:nth-of-type(5n + 1) strong {
+  background: #91caff;
+}
+
+.markdown a:nth-of-type(5n + 2) strong {
+  background: #ffccc7;
+}
+
+.markdown a:nth-of-type(5n + 3) strong {
+  background: #faebdd;
+}
+
+.markdown a:nth-of-type(5n + 4) strong {
+  background: #efdbff;
+}
+
+.markdown a:nth-of-type(5n) strong {
+  background: #fff1b8;
 }
 
 /* 删除线模糊效果 */
