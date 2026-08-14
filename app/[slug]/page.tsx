@@ -5,6 +5,8 @@ import "highlight.js/styles/github-dark.css";
 import * as config from '@/lib/config';
 import TableOfContents from './TableOfContents';
 import MarkdownContent from '@/app/components/MarkdownContent';
+import ProjectCard from '@/app/components/ProjectCard';
+import { getProjectById } from '@/lib/projects';
 
 export async function generateMetadata({
   params,
@@ -50,6 +52,7 @@ export default async function PostPage({
   params: { slug: string };
 }) {
   const post = await getPostBySlug(decodeURIComponent(params.slug));
+  const project = getProjectById(post.projectId);
 
   return (
     <div className="relative">
@@ -78,6 +81,11 @@ export default async function PostPage({
         )}
         <MarkdownContent html={post.content} />
       </article>
+      {project && (
+        <aside aria-label={`关于项目：${project.name}`} className="mt-10">
+          <ProjectCard project={project} headingLevel="h2" />
+        </aside>
+      )}
     </div>
   );
 }

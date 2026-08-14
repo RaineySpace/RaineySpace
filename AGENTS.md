@@ -15,6 +15,7 @@ The GitHub profile `README.md` is not project documentation. Do not edit `README
 - `app/sitemap.xml/route.ts` and `app/robots.txt/route.ts` generate SEO metadata files.
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
 - `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, public-post filtering, and feed data behavior centralized there.
+- `content/projects.json` is the canonical registry for project names, links, descriptions, covers, source links, and pinning.
 - `public/<slug>/index.md` is the source format for posts.
 - `scripts/` contains local maintenance scripts.
 
@@ -37,12 +38,12 @@ Optional collection metadata:
 location: Hangzhou
 pinned: true
 photography: true
-project: true
-projectUrl: https://example.com
-sourceUrl: https://github.com/example/repo
+projectId: example-project
 ```
 
-Use `hidden: true` for pages that should remain directly accessible but excluded from article listings, feeds, and sitemap. It does not hide content marked for photography or project collections.
+Use `hidden: true` for pages that should remain directly accessible but excluded from article listings, feeds, and sitemap. It does not hide content marked for photography or associated with a registered project.
+
+Project posts reference a key from `content/projects.json` through `projectId`. Do not duplicate project display metadata in post frontmatter. Registered projects must have at least one referencing post.
 
 Local assets referenced by a post should live in the same post directory. Prefer relative paths such as `./image.png`.
 Photography images must use relative Markdown image paths with non-empty alt text.
@@ -51,10 +52,10 @@ Photography images must use relative Markdown image paths with non-empty alt tex
 
 - Preserve the current static export model in `next.config.js`.
 - Do not add a CMS, database, server runtime dependency, or dynamic hosting requirement unless explicitly requested.
-- Keep article-channel filtering based on `hidden`; photography and project collection membership is independent.
+- Keep article-channel filtering based on `hidden`; photography and registered-project collection membership is independent.
 - Keep date display stable as `YYYY-MM-DD`.
 - Keep tags optional; most existing posts have empty tags.
-- Keep homepage collections ordered by `pinned` first and post date descending within each group. Feeds remain strictly date-ordered.
+- Keep homepage articles and photography ordered by post `pinned` first and post date descending. Keep projects ordered by registry `pinned` first and their latest referencing post date descending. Feeds remain strictly date-ordered.
 - Keep the visual style lightweight and personal; avoid broad redesigns unless explicitly requested.
 - Do not move Markdown posts out of `public/<slug>/index.md` without an explicit migration request.
 

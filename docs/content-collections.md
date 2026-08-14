@@ -1,6 +1,6 @@
 # 文章、摄影与项目内容维护
 
-所有内容统一存放在 `public/<slug>/index.md`。每个 Markdown 都有详情页，也可以通过 frontmatter 标记汇入摄影或项目列表。
+文章与摄影内容存放在 `public/<slug>/index.md`，项目资料集中保存在 `content/projects.json`。每个 Markdown 都有详情页，也可以通过 frontmatter 汇入摄影列表或关联一个项目。
 
 ## 通用字段
 
@@ -14,16 +14,14 @@ location: 杭州
 hidden: false
 pinned: false
 photography: false
-project: false
-projectUrl: https://example.com
-sourceUrl: https://github.com/example/repo
+projectId: example-project
 ---
 ```
 
 - `location` 可用于任何文章，也是摄影灯箱显示的地点。
-- `pinned: true` 会在文章、摄影和项目列表中置顶；多篇置顶内容仍按日期倒序。
+- `pinned: true` 会在文章和摄影列表中置顶；项目是否置顶由项目注册表控制。
 - `hidden: true` 只从首页文章、文章列表、RSS/Atom 和 sitemap 隐藏，详情页仍可访问。
-- `photography: true` 和 `project: true` 不受 `hidden` 影响，可以同时使用。
+- `photography: true` 和 `projectId` 不受 `hidden` 影响，可以同时使用。
 
 ## 添加摄影图集
 
@@ -44,26 +42,42 @@ sourceUrl: https://github.com/example/repo
 
 ## 添加项目
 
-在普通文章 frontmatter 中设置 `project: true`：
+先在 `content/projects.json` 注册项目。对象的键是稳定的项目 ID，不随项目名称或网址变化：
+
+```json
+{
+  "example-project": {
+    "name": "项目名称",
+    "url": "https://example.com",
+    "description": "项目解决的问题或用途",
+    "cover": "/assets/projects/example-project.webp",
+    "sourceUrl": "https://github.com/example/repo",
+    "pinned": false
+  }
+}
+```
+
+- `name`、`url` 必填。
+- `description`、`cover`、`sourceUrl`、`pinned` 可省略。
+- `cover` 可以是 HTTPS 图片，也可以是指向 `public/` 中文件的站点绝对路径。未设置时卡片使用项目名称首字符生成渐变字标。
+- 每个注册项目至少需要被一篇文章引用；规范化后相同的项目网址不能注册为多个项目。
+
+然后在相关文章 frontmatter 中引用项目 ID：
 
 ```yaml
 ---
-title: 项目名称
+title: 一篇与项目有关的文章
 date: 2026-08-13
-summary: 项目解决的问题或用途
-tags:
-  - Next.js
-  - TypeScript
-project: true
-projectUrl: https://example.com
-sourceUrl: https://github.com/example/repo
+summary: 文章摘要
+projectId: example-project
 ---
 ```
 
-- 项目名称链接站内文章详情。
-- `projectUrl` 和 `sourceUrl` 都可省略；存在时分别显示“访问项目”和“查看源码”。
-- 项目按置顶状态和日期倒序排列，首页显示前 3 个。
-- 如果项目不应进入文章渠道，可同时设置 `hidden: true`。
+- 同一个项目可以被多篇文章引用，主页和项目页仍只显示一张项目卡片。
+- 项目先按注册表中的 `pinned` 排序，再按最新关联文章日期倒序；首页显示前 3 个。
+- 项目卡片直接打开注册表中的 `url`，文章正文底部也会显示同一张项目卡片。
+- 注册表是项目展示资料的唯一来源；修改注册表会同步影响主页、项目页和所有相关文章。
+- 如果相关文章不应进入文章渠道，可以同时设置 `hidden: true`，它仍会参与项目聚合。
 
 修改完成后运行：
 

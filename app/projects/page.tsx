@@ -18,7 +18,7 @@ export default async function ProjectsPage() {
           做过的一些产品、工具与个人实验。
         </p>
       </header>
-      <ProjectList projects={projects} />
+      <ProjectList projects={projects} headingLevel="h2" />
     </div>
   );
 }

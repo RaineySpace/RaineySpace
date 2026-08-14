@@ -5,8 +5,7 @@ summary: 一款简洁、高效、智能的新媒体运营辅助工具，支持�
 tags:
   - 新媒体辅助工具
 hidden: true
-project: true
-projectUrl: https://www.wefeather.cn
+projectId: wefeather-copilot
 ---
 
 **微羽助手**是一款简洁、高效、智能的新媒体运营辅助工具，为您提供多账号管理、文章编辑、导入文章、文章同步、批量发布等多样化服务。

@@ -32,9 +32,7 @@ export interface Post {
   hidden: boolean;
   pinned: boolean;
   photography: boolean;
-  project: boolean;
-  projectUrl: string;
-  sourceUrl: string;
+  projectId: string;
   images: PostImage[];
   content: string;
   headings: Heading[];
@@ -193,9 +191,7 @@ export async function getPostBySlug(slug: string): Promise<Post> {
     hidden: !!data.hidden,
     pinned: !!data.pinned,
     photography: !!data.photography,
-    project: !!data.project,
-    projectUrl: data.projectUrl ? String(data.projectUrl) : '',
-    sourceUrl: data.sourceUrl ? String(data.sourceUrl) : '',
+    projectId: data.projectId ? String(data.projectId).trim() : '',
     images: extractMarkdownImages(content, slug),
     content: rendered.html,
     headings: rendered.headings,

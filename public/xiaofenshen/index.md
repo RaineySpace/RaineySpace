@@ -6,8 +6,7 @@ tags:
   - AI Agent
   - 个人创作
 hidden: true
-project: true
-projectUrl: https://xiaofenshen.com
+projectId: xiaofenshen
 ---
 
 大多数 AI 写作工具都能生成一篇看起来完整的文章，但当创作变成一件长期的事，真正麻烦的往往不是「写不出来」，而是每次都要重新解释：我是谁、写给谁、我在意什么，以及哪些表达根本不像我。
