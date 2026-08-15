@@ -1,9 +1,10 @@
 import projectDefinitions from "@/content/projects.json";
-import { getPosts, type Post } from "@/lib/posts";
+import { formatDate, getPosts, type Post } from "@/lib/posts";
 
 interface ProjectDefinition {
   name: string;
   url: string;
+  date: string;
   description?: string;
   cover?: string;
   sourceUrl?: string;
@@ -20,9 +21,18 @@ export interface Project {
   cover?: string;
   sourceUrl?: string;
   pinned: boolean;
+  date: Date | null;
+  dateText: string;
+}
+
+function normalizeDate(value: unknown): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function toProject(id: string, definition: ProjectDefinition): Project {
+  const date = normalizeDate(definition.date);
   return {
     id,
     name: definition.name,
@@ -31,6 +41,8 @@ function toProject(id: string, definition: ProjectDefinition): Project {
     cover: definition.cover || undefined,
     sourceUrl: definition.sourceUrl || undefined,
     pinned: definition.pinned || false,
+    date,
+    dateText: formatDate(date),
   };
 }
 

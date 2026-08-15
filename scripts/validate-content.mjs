@@ -21,11 +21,16 @@ const deprecatedProjectFields = [
 const allowedProjectFields = new Set([
   "name",
   "url",
+  "date",
   "description",
   "cover",
   "sourceUrl",
   "pinned",
 ]);
+
+function isDateText(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim()) && isValidDate(value);
+}
 
 function isLocalReference(value) {
   return value && !/^(https?:)?\/\//.test(value) && !value.startsWith("data:");
@@ -181,6 +186,10 @@ async function validateProjectRegistry(errors) {
       if (typeof definition[field] !== "string" || !definition[field].trim()) {
         errors.push(`${prefix}: "${field}" must be a non-empty string`);
       }
+    }
+
+    if (!isDateText(definition.date)) {
+      errors.push(`${prefix}: "date" must be a YYYY-MM-DD date`);
     }
 
     if (typeof definition.url === "string" && definition.url.trim()) {

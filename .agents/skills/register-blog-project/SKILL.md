@@ -34,6 +34,7 @@ description: 根据用户提供的项目官网、产品页或代码仓库地址�
 - `projectId`：简短、稳定、全小写的 kebab-case 标识；不能因展示名变化而轻易变化。
 - `name`：项目正式名称；只有页面稳定使用副标题时才保留副标题。
 - `url`：可访问的官方 HTTP(S) 地址，去掉无意义的追踪参数。
+- `date`：项目自身日期，格式 `YYYY-MM-DD`。不要猜测上线或发布时间；没有官方明示或用户确认时向用户询问，不要用关联文章日期冒充。
 - `description`：一句中文简介，说明目标用户、核心问题和主要能力；只保留官方来源能支撑的内容。
 - `cover`：可选。优先稳定的官方 HTTPS Logo/封面；不能确认稳定性时留空，让现有首字母占位生效。不要使用搜索结果缩略图、临时签名 URL 或非官方重制图。
 - `sourceUrl`：可选。仅在官方页面明确链接公开源码仓库，或仓库本身就是用户输入地址时填写。
@@ -48,7 +49,7 @@ description: 根据用户提供的项目官网、产品页或代码仓库地址�
 ### 项目已存在
 
 1. 明确告知用户项目已经登记，并给出 registry 条目和关联文章的位置。
-2. 展示 `projectId`、`name`、`url`、`description`、`cover`、`sourceUrl`、`pinned` 的“当前值 / 官网候选值 / 建议”对比。没有官方依据的可选字段标为“未核实”，不要擅自清空现有值。
+2. 展示 `projectId`、`name`、`url`、`date`、`description`、`cover`、`sourceUrl`、`pinned` 的“当前值 / 官网候选值 / 建议”对比。没有官方依据的可选字段标为“未核实”，不要擅自清空现有值。
 3. 明确列出保持一致、发生漂移、当前缺失和仅来自用户配置的字段。即使没有差异，也要说明“当前信息与官网一致”。
 4. 询问用户是否需要更新信息。存在差异时给出推荐更新对象和确切文件；没有差异时询问是否保持现状，或是否仍要调整置顶等用户配置。
 5. 在用户明确回复“确认更新”及更新范围前停止。不要把同一项目作为新项目再添加。
@@ -90,7 +91,7 @@ description: 根据用户提供的项目官网、产品页或代码仓库地址�
 
 1. **更新现有项目**：只修改用户确认的字段，保留稳定的 `projectId` 和现有文章关联；除非关联缺失且用户确认补全，否则不新建文章。
 2. **新增项目**：向 `content/projects.json` 写入确认过的完整对象，并关联已有文章或创建已确认的 `public/<slug>/index.md`。
-3. 只使用当前 schema 允许的 `name`、`url`、`description`、`cover`、`sourceUrl`、`pinned`。
+3. 只使用当前 schema 允许的 `name`、`url`、`date`、`description`、`cover`、`sourceUrl`、`pinned`。
 4. 文章 frontmatter 只写 `projectId`，不要重复 `projectName`、`projectUrl`、`projectDescription` 或 `projectCover`。
 5. 新文章至少包含 `title`、`date`、`summary`、`tags` 和 `projectId`；按确认结果设置 `hidden: true`。
 6. 只写已核实或用户亲自确认的正文。信息不足时缩短页面，不用泛化文案填充。
