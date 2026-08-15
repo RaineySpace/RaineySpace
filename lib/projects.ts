@@ -1,9 +1,10 @@
 import projectDefinitions from "@/content/projects.json";
-import { getPosts, type Post } from "@/lib/posts";
+import { formatDate, getPosts, type Post } from "@/lib/posts";
 
 interface ProjectDefinition {
   name: string;
   url: string;
+  date: string;
   description?: string;
   cover?: string;
   sourceUrl?: string;
@@ -24,7 +25,14 @@ export interface Project {
   dateText: string;
 }
 
+function normalizeDate(value: unknown): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function toProject(id: string, definition: ProjectDefinition): Project {
+  const date = normalizeDate(definition.date);
   return {
     id,
     name: definition.name,
@@ -33,8 +41,8 @@ function toProject(id: string, definition: ProjectDefinition): Project {
     cover: definition.cover || undefined,
     sourceUrl: definition.sourceUrl || undefined,
     pinned: definition.pinned || false,
-    date: null,
-    dateText: "",
+    date,
+    dateText: formatDate(date),
   };
 }
 
@@ -81,11 +89,7 @@ export async function getProjects(): Promise<Project[]> {
       if (a.project.pinned !== b.project.pinned) return a.project.pinned ? -1 : 1;
       return compareLatestDates(a.latestPost, b.latestPost) || a.project.id.localeCompare(b.project.id);
     })
-    .map(({ project, latestPost }) => ({
-      ...project,
-      date: latestPost.date,
-      dateText: latestPost.dateText,
-    }));
+    .map(({ project }) => project);
 }
 
 export async function getFeaturedProjects(limit = 3): Promise<Project[]> {

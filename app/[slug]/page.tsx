@@ -88,14 +88,7 @@ export default async function PostPage({
       </article>
       {project && (
         <aside aria-label={`关于项目：${project.name}`} className="mt-10">
-          <ProjectCard
-            project={{
-              ...project,
-              date: post.date,
-              dateText: post.dateText,
-            }}
-            headingLevel="h2"
-          />
+          <ProjectCard project={project} headingLevel="h2" />
         </aside>
       )}
     </div>
