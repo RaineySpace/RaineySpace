@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 
 export interface PreviewImage {
@@ -51,6 +51,84 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-3.5 w-3.5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function FocalIcon() {
+  return (
+    <Icon>
+      <circle cx="12" cy="12" r="7" />
+      <circle cx="12" cy="12" r="2.5" />
+    </Icon>
+  );
+}
+
+function ApertureIcon() {
+  return (
+    <Icon>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 4v6M12 14v6M4.8 8.2l5.2 3M14 12.8l5.2 3M4.8 15.8 10 12.8M14 11.2l5.2-3" />
+    </Icon>
+  );
+}
+
+function ShutterIcon() {
+  return (
+    <Icon>
+      <circle cx="12" cy="13" r="7" />
+      <path d="M12 13V9M9 3h6" />
+    </Icon>
+  );
+}
+
+function IsoIcon() {
+  return (
+    <Icon>
+      <rect x="4" y="6" width="16" height="12" rx="2" />
+      <path d="M8 15V9h2.2a2 2 0 0 1 0 6H8Zm6 0V9h2" />
+    </Icon>
+  );
+}
+
+function PinIcon() {
+  return (
+    <Icon>
+      <path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.25" />
+    </Icon>
+  );
+}
+
 function wrapIndex(index: number, length: number) {
   return (index + length) % length;
 }
@@ -63,15 +141,27 @@ function mapUrl(latitude: number, longitude: number): string {
   return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=16/${latitude}/${longitude}`;
 }
 
-function exposureLine(image: PreviewImage): string {
-  return [
-    image.aperture,
-    image.shutter,
-    image.iso ? `ISO ${image.iso}` : "",
-    image.focalLength35mm || image.focalLength,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+function displayDate(image: PreviewImage): string | undefined {
+  const capturedDate = image.capturedAt?.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  return capturedDate || image.date || undefined;
+}
+
+function MetaColumn({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="image-lightbox-meta-item">
+      <span className="image-lightbox-meta-label">{label}</span>
+      <div className="image-lightbox-meta-value">{children}</div>
+    </div>
+  );
+}
+
+function Param({ icon, value }: { icon: ReactNode; value: string }) {
+  return (
+    <span className="image-lightbox-param">
+      {icon}
+      {value}
+    </span>
+  );
 }
 
 type SlideRole = "previous" | "current" | "next";
@@ -176,11 +266,17 @@ export default function ImageLightbox({
   if (activeImage) slides.push({ image: activeImage, role: "current" });
   if (nextImage) slides.push({ image: nextImage, role: "next" });
   const isCurrentBusy = Boolean(activeImage && settledSrc !== activeImage.src);
-  const timeLocation = activeImage
-    ? [activeImage.capturedAt || activeImage.date, activeImage.location].filter(Boolean).join(" · ")
-    : "";
-  const gear = activeImage ? [activeImage.camera, activeImage.lens].filter(Boolean).join(" · ") : "";
-  const exposure = activeImage ? exposureLine(activeImage) : "";
+  const dateText = activeImage ? displayDate(activeImage) : undefined;
+  const focalText = activeImage ? activeImage.focalLength35mm || activeImage.focalLength : undefined;
+  const params: Array<{ key: string; icon: ReactNode; value: string }> = [];
+  if (focalText) params.push({ key: "focal", icon: <FocalIcon />, value: focalText });
+  if (activeImage?.aperture) params.push({ key: "aperture", icon: <ApertureIcon />, value: activeImage.aperture });
+  if (activeImage?.shutter) params.push({ key: "shutter", icon: <ShutterIcon />, value: activeImage.shutter });
+  if (activeImage?.iso) params.push({ key: "iso", icon: <IsoIcon />, value: `ISO ${activeImage.iso}` });
+  const locationText = activeImage?.location || (activeImage && hasGps(activeImage) ? "查看地图" : undefined);
+  const hasMeta = Boolean(
+    params.length > 0 || locationText || dateText || activeImage?.camera || activeImage?.lens,
+  );
 
   const restoreFocus = useCallback(() => {
     requestAnimationFrame(() => {
@@ -295,10 +391,25 @@ export default function ImageLightbox({
           <button
             type="button"
             onClick={closeLightbox}
-            className="image-lightbox-close rounded-md bg-black/60 px-3 py-2 text-sm text-white hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="关闭"
+            className="image-lightbox-close flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            关闭
+            <CloseIcon />
           </button>
+
+          <p className="image-lightbox-title-row">
+            <span className="image-lightbox-title">{activeImage.alt}</span>
+            {activeImage.sourceHref && activeImage.sourceLabel && (
+              <>
+                <span className="image-lightbox-title-sep" aria-hidden="true">
+                  ·
+                </span>
+                <a href={activeImage.sourceHref} className="image-lightbox-album">
+                  {activeImage.sourceLabel}
+                </a>
+              </>
+            )}
+          </p>
 
           <div
             ref={stageRef}
@@ -342,76 +453,77 @@ export default function ImageLightbox({
             )}
           </div>
 
-          <div className="min-h-[2.5rem] max-w-full text-center">
-            {hasMultipleImages && (
-              <p className="text-xs text-gray-400">
-                {activeIndex + 1} / {images.length}
-              </p>
-            )}
-            <p className="line-clamp-2 text-sm font-medium">{activeImage.alt}</p>
-            {timeLocation && (
-              <p className="mt-1 text-xs text-gray-300">
-                {timeLocation}
-                {hasGps(activeImage) && (
-                  <>
-                    {" · "}
-                    <a
-                      href={mapUrl(activeImage.latitude, activeImage.longitude)}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="underline decoration-gray-500 underline-offset-4 hover:text-white"
-                    >
-                      查看地图
-                    </a>
-                  </>
+          <div className="image-lightbox-caption">
+            {hasMeta && (
+              <div className="image-lightbox-meta">
+                {params.length > 0 && (
+                  <MetaColumn label="参数">
+                    {params.map((param) => (
+                      <Param key={param.key} icon={param.icon} value={param.value} />
+                    ))}
+                  </MetaColumn>
                 )}
-              </p>
-            )}
-            {gear && <p className="mt-1 text-xs text-gray-400">{gear}</p>}
-            {exposure && <p className="mt-0.5 text-xs text-gray-400">{exposure}</p>}
-            {activeImage.sourceHref && activeImage.sourceLabel && (
-              <a
-                href={activeImage.sourceHref}
-                className="mt-1 inline-block text-xs text-gray-300 underline decoration-gray-500 underline-offset-4 hover:text-white"
-              >
-                {activeImage.sourceLabel}
-              </a>
+                {locationText && (
+                  <MetaColumn label="地点">
+                    {hasGps(activeImage) ? (
+                      <a
+                        href={mapUrl(activeImage.latitude, activeImage.longitude)}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="image-lightbox-meta-link"
+                      >
+                        <PinIcon />
+                        {locationText}
+                      </a>
+                    ) : (
+                      <span className="image-lightbox-param">
+                        <PinIcon />
+                        {locationText}
+                      </span>
+                    )}
+                  </MetaColumn>
+                )}
+                {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
+                {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
+                {activeImage.lens && <MetaColumn label="镜头">{activeImage.lens}</MetaColumn>}
+              </div>
             )}
           </div>
 
-          <div className="image-lightbox-thumbnails">
-            <div
-              ref={thumbnailTrackRef}
-              className={`image-lightbox-thumbnail-track ${hasOverflowingThumbnails ? "justify-start" : "justify-center"}`}
-              aria-label="图片缩略图"
-            >
-              {images.map((image, index) => (
-                <button
-                  key={image.id}
-                  ref={(element) => {
-                    thumbnailRefs.current[index] = element;
-                  }}
-                  type="button"
-                  onClick={() => onActiveIndexChange(index)}
-                  aria-label={`查看第 ${index + 1} 张：${image.alt}`}
-                  aria-current={index === activeIndex ? "true" : undefined}
-                  className={`image-lightbox-thumbnail ${
-                    index === activeIndex
-                      ? "border-white opacity-100"
-                      : "border-transparent opacity-55 hover:opacity-90"
-                  }`}
-                >
-                  <img src={image.displaySrc || image.src} alt="" className="h-full w-full object-cover" loading="lazy" />
-                </button>
-              ))}
+          {hasMultipleImages && (
+            <div className="image-lightbox-thumbnails">
+              <p className="image-lightbox-count">
+                {activeIndex + 1} / {images.length}
+              </p>
+              <div
+                ref={thumbnailTrackRef}
+                className={`image-lightbox-thumbnail-track ${hasOverflowingThumbnails ? "justify-start" : "justify-center"}`}
+                aria-label="图片缩略图"
+              >
+                {images.map((image, index) => (
+                  <button
+                    key={image.id}
+                    ref={(element) => {
+                      thumbnailRefs.current[index] = element;
+                    }}
+                    type="button"
+                    onClick={() => onActiveIndexChange(index)}
+                    aria-label={`查看第 ${index + 1} 张：${image.alt}`}
+                    aria-current={index === activeIndex ? "true" : undefined}
+                    className={`image-lightbox-thumbnail ${index === activeIndex ? "is-active" : ""}`}
+                  >
+                    <img src={image.displaySrc || image.src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+              {hasOverflowingThumbnails && (
+                <>
+                  <span className="image-lightbox-thumbnail-fade is-left" />
+                  <span className="image-lightbox-thumbnail-fade is-right" />
+                </>
+              )}
             </div>
-            {hasOverflowingThumbnails && (
-              <>
-                <span className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-black via-black/80 to-transparent" />
-                <span className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black via-black/80 to-transparent" />
-              </>
-            )}
-          </div>
+          )}
         </div>
       )}
     </dialog>

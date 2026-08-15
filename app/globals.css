@@ -127,7 +127,6 @@ button {
 
 .image-lightbox-stage {
   position: relative;
-  margin-top: 2.25rem;
   min-height: 0;
   width: 100%;
   flex: 1;
@@ -152,7 +151,7 @@ button {
   flex: 0 0 100%;
   width: 100%;
   height: 100%;
-  background: #18181b;
+  background: transparent;
 }
 
 .image-lightbox-slide img {
@@ -161,10 +160,11 @@ button {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 0.375rem;
+  border-radius: 0.75rem;
   object-fit: contain;
   pointer-events: none;
   opacity: 0;
+  filter: drop-shadow(0 16px 40px rgb(0 0 0 / 0.45));
   transition: opacity 0.2s ease;
   -webkit-user-drag: none;
   -webkit-touch-callout: none;
@@ -220,15 +220,128 @@ button {
   }
 }
 
+.image-lightbox-caption {
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.25rem;
+  text-align: center;
+}
+
+.image-lightbox-title-row {
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem 0.5rem;
+  margin: 0;
+  padding: 0 3rem;
+  text-align: center;
+}
+
+.image-lightbox-title {
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #fff;
+}
+
+.image-lightbox-title-sep {
+  color: #9ca3af;
+}
+
+.image-lightbox-album {
+  font-size: 0.8125rem;
+  color: #d1d5db;
+  text-decoration: underline;
+  text-decoration-color: #6b7280;
+  text-underline-offset: 4px;
+}
+
+.image-lightbox-album:hover {
+  color: #fff;
+}
+
+.image-lightbox-meta {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  gap: 1rem 1.75rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+
+.image-lightbox-meta::-webkit-scrollbar {
+  display: none;
+}
+
+.image-lightbox-meta-item {
+  display: flex;
+  min-width: max-content;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.image-lightbox-meta-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: #9ca3af;
+}
+
+.image-lightbox-meta-value {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  color: #e5e7eb;
+}
+
+.image-lightbox-param,
+.image-lightbox-meta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.image-lightbox-meta-link {
+  color: #e5e7eb;
+  text-decoration: underline;
+  text-decoration-color: #6b7280;
+  text-underline-offset: 3px;
+}
+
+.image-lightbox-meta-link:hover {
+  color: #fff;
+}
+
+.image-lightbox-count {
+  margin: 0 0 0.15rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: #9ca3af;
+}
+
 .image-lightbox-thumbnails {
   position: relative;
   width: min(100%, 25rem);
+  flex-shrink: 0;
   overflow: hidden;
 }
 
 .image-lightbox-thumbnail-track {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
+  padding: 0.5rem 0.15rem;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x proximity;
@@ -246,16 +359,54 @@ button {
   aspect-ratio: 1;
   overflow: hidden;
   scroll-snap-align: center;
-  border-width: 2px;
+  border: 2px solid transparent;
   border-radius: 0.375rem;
   background: #18181b;
+  opacity: 0.55;
   cursor: pointer;
-  transition: border-color 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.image-lightbox-thumbnail:hover {
+  opacity: 0.9;
+}
+
+.image-lightbox-thumbnail.is-active {
+  z-index: 1;
+  border-color: #fff;
+  opacity: 1;
+  transform: scale(1.12);
 }
 
 .image-lightbox-thumbnail:focus-visible {
   outline: 2px solid white;
   outline-offset: -4px;
+}
+
+.image-lightbox-thumbnail-fade {
+  pointer-events: none;
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2rem;
+}
+
+.image-lightbox-thumbnail-fade.is-left {
+  left: 0;
+  background: linear-gradient(to right, #000, rgb(0 0 0 / 0.8), transparent);
+}
+
+.image-lightbox-thumbnail-fade.is-right {
+  right: 0;
+  background: linear-gradient(to left, #000, rgb(0 0 0 / 0.8), transparent);
+}
+
+@media (min-width: 640px) {
+  .image-lightbox-meta {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow: visible;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
