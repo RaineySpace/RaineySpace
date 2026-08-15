@@ -25,7 +25,7 @@ export default function ProjectList({
       </div>
       {showCount && (
         <p className="mt-6 text-right text-xs text-gray-400 dark:text-gray-500">
-          {projects.length} 个项目
+          {`${projects.length} 个项目`}
         </p>
       )}
     </div>
