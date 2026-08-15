@@ -11,7 +11,7 @@ export default function ProjectList({
   headingLevel = "h3",
 }: ProjectListProps) {
   return (
-    <div className="grid gap-4">
+    <div className="flex flex-col">
       {projects.map((project) => (
         <ProjectCard
           key={project.id}

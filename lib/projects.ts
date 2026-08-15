@@ -20,6 +20,8 @@ export interface Project {
   cover?: string;
   sourceUrl?: string;
   pinned: boolean;
+  date: Date | null;
+  dateText: string;
 }
 
 function toProject(id: string, definition: ProjectDefinition): Project {
@@ -31,6 +33,8 @@ function toProject(id: string, definition: ProjectDefinition): Project {
     cover: definition.cover || undefined,
     sourceUrl: definition.sourceUrl || undefined,
     pinned: definition.pinned || false,
+    date: null,
+    dateText: "",
   };
 }
 
@@ -77,7 +81,11 @@ export async function getProjects(): Promise<Project[]> {
       if (a.project.pinned !== b.project.pinned) return a.project.pinned ? -1 : 1;
       return compareLatestDates(a.latestPost, b.latestPost) || a.project.id.localeCompare(b.project.id);
     })
-    .map(({ project }) => project);
+    .map(({ project, latestPost }) => ({
+      ...project,
+      date: latestPost.date,
+      dateText: latestPost.dateText,
+    }));
 }
 
 export async function getFeaturedProjects(limit = 3): Promise<Project[]> {
