@@ -67,12 +67,12 @@ function CloseIcon() {
   );
 }
 
-function Icon({ children }: { children: ReactNode }) {
+function Icon({ children, className = "h-3.5 w-3.5" }: { children: ReactNode; className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
       aria-hidden="true"
-      className="h-3.5 w-3.5 shrink-0"
+      className={`${className} shrink-0`}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.75"
@@ -164,6 +164,29 @@ function Param({ icon, value }: { icon: ReactNode; value: string }) {
   );
 }
 
+function SheetCard({
+  label,
+  value,
+  detail,
+  icon,
+  children,
+}: {
+  label: string;
+  value?: string;
+  detail?: string;
+  icon?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="image-lightbox-sheet-card">
+      <span className="image-lightbox-sheet-card-label">{label}</span>
+      {children || <span className="image-lightbox-sheet-card-value">{value}</span>}
+      {detail && <span className="image-lightbox-sheet-card-detail">{detail}</span>}
+      {icon && <span className="image-lightbox-sheet-card-icon">{icon}</span>}
+    </div>
+  );
+}
+
 type SlideRole = "previous" | "current" | "next";
 
 function LightboxSlide({
@@ -252,6 +275,7 @@ export default function ImageLightbox({
   const thumbnailTrackRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [settledSrc, setSettledSrc] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const isOpen = activeIndex !== null;
   const activeImage = activeIndex === null ? null : images[activeIndex];
   const hasMultipleImages = images.length > 1;
@@ -274,9 +298,10 @@ export default function ImageLightbox({
   if (activeImage?.shutter) params.push({ key: "shutter", icon: <ShutterIcon />, value: activeImage.shutter });
   if (activeImage?.iso) params.push({ key: "iso", icon: <IsoIcon />, value: `ISO ${activeImage.iso}` });
   const locationText = activeImage?.location || (activeImage && hasGps(activeImage) ? "查看地图" : undefined);
-  const hasMeta = Boolean(
-    params.length > 0 || locationText || dateText || activeImage?.camera || activeImage?.lens,
-  );
+  const capturedTime = activeImage?.capturedAt?.match(/\d{2}:\d{2}$/)?.[0];
+  const hasSummary = Boolean(locationText || dateText || activeImage?.camera);
+  const hasExtra = Boolean(params.length > 0 || activeImage?.lens);
+  const hasMeta = hasSummary || hasExtra;
 
   const restoreFocus = useCallback(() => {
     requestAnimationFrame(() => {
@@ -291,12 +316,17 @@ export default function ImageLightbox({
   }, [onClose, restoreFocus]);
 
   const closeLightbox = useCallback(() => {
+    setSheetOpen(false);
     if (dialogRef.current?.open) {
       dialogRef.current.close();
     } else {
       handleClosed();
     }
   }, [handleClosed]);
+
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+  }, []);
 
   const showPrevious = useCallback(() => {
     if (activeIndex === null || images.length < 2) return;
@@ -320,7 +350,7 @@ export default function ImageLightbox({
     onClose: closeLightbox,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!isOpen) {
       if (dialog?.open) dialog.close();
@@ -342,9 +372,14 @@ export default function ImageLightbox({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
+        if (sheetOpen) {
+          closeSheet();
+          return;
+        }
         closeLightbox();
         return;
       }
+      if (sheetOpen) return;
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         showPrevious();
@@ -357,7 +392,7 @@ export default function ImageLightbox({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeLightbox, isOpen, showNext, showPrevious]);
+  }, [closeLightbox, closeSheet, isOpen, sheetOpen, showNext, showPrevious]);
 
   useEffect(() => {
     if (activeIndex === null || !hasOverflowingThumbnails) return;
@@ -372,14 +407,31 @@ export default function ImageLightbox({
     });
   }, [activeIndex, hasOverflowingThumbnails]);
 
+  useEffect(() => {
+    setSheetOpen(false);
+  }, [activeIndex]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 640px)");
+    const handleChange = () => {
+      if (media.matches) setSheetOpen(false);
+    };
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
+
   return (
     <dialog
       ref={dialogRef}
       aria-label="图片预览"
-      className="image-lightbox m-auto max-h-none max-w-none bg-transparent p-0 text-white"
+      className="image-lightbox max-h-none max-w-none bg-transparent p-0 text-white"
       onClose={handleClosed}
       onCancel={(event) => {
         event.preventDefault();
+        if (sheetOpen) {
+          closeSheet();
+          return;
+        }
         closeLightbox();
       }}
       onClick={(event) => {
@@ -455,38 +507,73 @@ export default function ImageLightbox({
 
           <div className="image-lightbox-caption">
             {hasMeta && (
-              <div className="image-lightbox-meta">
-                {params.length > 0 && (
-                  <MetaColumn label="参数">
-                    {params.map((param) => (
-                      <Param key={param.key} icon={param.icon} value={param.value} />
-                    ))}
-                  </MetaColumn>
-                )}
-                {locationText && (
-                  <MetaColumn label="地点">
-                    {hasGps(activeImage) ? (
-                      <a
-                        href={mapUrl(activeImage.latitude, activeImage.longitude)}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="image-lightbox-meta-link"
-                      >
-                        <PinIcon />
-                        {locationText}
-                      </a>
-                    ) : (
-                      <span className="image-lightbox-param">
-                        <PinIcon />
-                        {locationText}
-                      </span>
-                    )}
-                  </MetaColumn>
-                )}
-                {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
-                {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
-                {activeImage.lens && <MetaColumn label="镜头">{activeImage.lens}</MetaColumn>}
-              </div>
+              <>
+                <div className="image-lightbox-meta image-lightbox-meta-summary">
+                  {locationText && (
+                    <MetaColumn label="地点">
+                      {hasGps(activeImage) ? (
+                        <a
+                          href={mapUrl(activeImage.latitude, activeImage.longitude)}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="image-lightbox-meta-link"
+                        >
+                          <PinIcon />
+                          {locationText}
+                        </a>
+                      ) : (
+                        <span className="image-lightbox-param">
+                          <PinIcon />
+                          {locationText}
+                        </span>
+                      )}
+                    </MetaColumn>
+                  )}
+                  {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
+                  {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
+                  {hasExtra && (
+                    <button
+                      type="button"
+                      className="image-lightbox-more"
+                      onClick={() => setSheetOpen(true)}
+                    >
+                      更多
+                    </button>
+                  )}
+                </div>
+                <div className="image-lightbox-meta image-lightbox-meta-full">
+                  {params.length > 0 && (
+                    <MetaColumn label="参数">
+                      {params.map((param) => (
+                        <Param key={param.key} icon={param.icon} value={param.value} />
+                      ))}
+                    </MetaColumn>
+                  )}
+                  {locationText && (
+                    <MetaColumn label="地点">
+                      {hasGps(activeImage) ? (
+                        <a
+                          href={mapUrl(activeImage.latitude, activeImage.longitude)}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="image-lightbox-meta-link"
+                        >
+                          <PinIcon />
+                          {locationText}
+                        </a>
+                      ) : (
+                        <span className="image-lightbox-param">
+                          <PinIcon />
+                          {locationText}
+                        </span>
+                      )}
+                    </MetaColumn>
+                  )}
+                  {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
+                  {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
+                  {activeImage.lens && <MetaColumn label="镜头">{activeImage.lens}</MetaColumn>}
+                </div>
+              </>
             )}
           </div>
 
@@ -524,6 +611,62 @@ export default function ImageLightbox({
               )}
             </div>
           )}
+        </div>
+      )}
+      {activeImage && sheetOpen && (
+        <div className="image-lightbox-sheet-layer">
+          <button
+            type="button"
+            className="image-lightbox-sheet-backdrop"
+            aria-label="关闭参数"
+            onClick={closeSheet}
+          />
+          <div className="image-lightbox-sheet" role="dialog" aria-label="基本参数">
+            <div className="image-lightbox-sheet-header">
+              <span className="image-lightbox-sheet-title">基本参数</span>
+              <button
+                type="button"
+                className="image-lightbox-sheet-close"
+                aria-label="关闭参数"
+                onClick={closeSheet}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="image-lightbox-sheet-grid">
+              {locationText && (
+                <SheetCard label="地点">
+                  {hasGps(activeImage) ? (
+                    <a
+                      href={mapUrl(activeImage.latitude, activeImage.longitude)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="image-lightbox-sheet-card-value image-lightbox-meta-link"
+                    >
+                      {locationText}
+                    </a>
+                  ) : (
+                    <span className="image-lightbox-sheet-card-value">{locationText}</span>
+                  )}
+                </SheetCard>
+              )}
+              {dateText && (
+                <SheetCard label="拍摄于" value={dateText} detail={capturedTime} />
+              )}
+              {activeImage.camera && <SheetCard label="相机" value={activeImage.camera} />}
+              {activeImage.lens && <SheetCard label="镜头" value={activeImage.lens} />}
+              {activeImage.aperture && (
+                <SheetCard label="光圈" value={activeImage.aperture} icon={<ApertureIcon />} />
+              )}
+              {activeImage.shutter && (
+                <SheetCard label="快门" value={activeImage.shutter} icon={<ShutterIcon />} />
+              )}
+              {focalText && <SheetCard label="焦距" value={focalText} icon={<FocalIcon />} />}
+              {activeImage.iso && (
+                <SheetCard label="感光度" value={activeImage.iso} icon={<IsoIcon />} />
+              )}
+            </div>
+          </div>
         </div>
       )}
     </dialog>
