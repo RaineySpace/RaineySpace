@@ -25,7 +25,7 @@ export default function ProjectCard({
         className="absolute inset-0 z-0 cursor-pointer rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[--lightLink] dark:focus-visible:ring-[--darkLink]"
       />
 
-      <div className="relative z-10">
+      <div className="pointer-events-none relative z-10">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-2">
             {project.cover ? (
