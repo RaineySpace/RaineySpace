@@ -16,13 +16,13 @@ export default function ProjectCard({
   const Heading = headingLevel;
 
   return (
-    <article className="group relative -mx-3 rounded-lg px-3 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+    <article className="group relative cursor-pointer rounded-lg border border-gray-200 px-3 py-3 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.04]">
       <a
         href={project.url}
         target="_blank"
         rel="noreferrer"
         aria-label={`访问项目：${project.name}`}
-        className="absolute inset-0 z-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[--lightLink] dark:focus-visible:ring-[--darkLink]"
+        className="absolute inset-0 z-0 cursor-pointer rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[--lightLink] dark:focus-visible:ring-[--darkLink]"
       />
 
       <div className="relative z-10">
