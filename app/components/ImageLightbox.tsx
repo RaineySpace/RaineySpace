@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
+import { useSheetGestures } from "@/app/components/useSheetGestures";
 
 export interface PreviewImage {
   id: string;
@@ -272,6 +273,8 @@ export default function ImageLightbox({
   const shellRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const sheetBackdropRef = useRef<HTMLButtonElement>(null);
   const thumbnailTrackRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [settledSrc, setSettledSrc] = useState<string | null>(null);
@@ -348,6 +351,13 @@ export default function ImageLightbox({
     onPrevious: showPrevious,
     onNext: showNext,
     onClose: closeLightbox,
+  });
+
+  const sheetGestureHandlers = useSheetGestures({
+    isOpen: sheetOpen,
+    sheetRef,
+    backdropRef: sheetBackdropRef,
+    onClose: closeSheet,
   });
 
   useLayoutEffect(() => {
@@ -616,22 +626,35 @@ export default function ImageLightbox({
       {activeImage && sheetOpen && (
         <div className="image-lightbox-sheet-layer">
           <button
+            ref={sheetBackdropRef}
             type="button"
             className="image-lightbox-sheet-backdrop"
             aria-label="关闭参数"
             onClick={closeSheet}
           />
-          <div className="image-lightbox-sheet" role="dialog" aria-label="基本参数">
-            <div className="image-lightbox-sheet-header">
-              <span className="image-lightbox-sheet-title">基本参数</span>
-              <button
-                type="button"
-                className="image-lightbox-sheet-close"
-                aria-label="关闭参数"
-                onClick={closeSheet}
-              >
-                <CloseIcon />
-              </button>
+          <div
+            ref={sheetRef}
+            className="image-lightbox-sheet"
+            role="dialog"
+            aria-label="基本参数"
+            onPointerDown={sheetGestureHandlers.onPointerDown}
+            onPointerMove={sheetGestureHandlers.onPointerMove}
+            onPointerUp={sheetGestureHandlers.onPointerUp}
+            onPointerCancel={sheetGestureHandlers.onPointerCancel}
+          >
+            <div className="image-lightbox-sheet-grab" data-sheet-handle>
+              <span className="image-lightbox-sheet-handle" aria-hidden="true" />
+              <div className="image-lightbox-sheet-header">
+                <span className="image-lightbox-sheet-title">基本参数</span>
+                <button
+                  type="button"
+                  className="image-lightbox-sheet-close"
+                  aria-label="关闭参数"
+                  onClick={closeSheet}
+                >
+                  <CloseIcon />
+                </button>
+              </div>
             </div>
             <div className="image-lightbox-sheet-grid">
               {locationText && (
