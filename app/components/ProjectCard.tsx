@@ -45,7 +45,7 @@ export default function ProjectCard({
                 {getProjectInitial(project.name)}
               </span>
             )}
-            <Heading className="text-[15px] font-semibold leading-snug text-[--title]">
+            <Heading className="min-w-0 truncate text-[15px] font-semibold leading-snug text-[--title]">
               {project.name}
             </Heading>
           </div>
