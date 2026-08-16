@@ -14,7 +14,7 @@ export default function ProjectList({
 }: ProjectListProps) {
   return (
     <div>
-      <div className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2 sm:gap-x-10">
+      <div className="flex flex-col gap-3">
         {projects.map((project) => (
           <ProjectCard
             key={project.id}
