@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 
 const AXIS_LOCK_PX = 8;
-const VERTICAL_DISTANCE_PX = 80;
-const VERTICAL_FLICK_PX = 36;
-const VELOCITY_PX_MS = 0.45;
+const VERTICAL_DISTANCE_PX = 96;
+const VERTICAL_FLICK_PX = 64;
+const VELOCITY_PX_MS = 0.55;
 const SETTLE_MS = 250;
 
 interface GestureSession {
