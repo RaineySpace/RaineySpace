@@ -306,10 +306,9 @@ export default function ImageLightbox({
   const locationText = activeImage?.location || (activeImage && hasGps(activeImage) ? "查看地图" : undefined);
   const capturedTime = activeImage?.capturedAt?.match(/\d{2}:\d{2}$/)?.[0];
   const titleText = activeImage?.alt?.trim() || undefined;
-  const hasAlbum = Boolean(activeImage?.sourceHref && activeImage?.sourceLabel);
   const hasSummary = Boolean(locationText || dateText || activeImage?.camera);
   const hasExtra = Boolean(params.length > 0 || activeImage?.lens);
-  const showMore = Boolean(titleText || hasAlbum || hasExtra || hasSummary);
+  const showMore = Boolean(titleText || hasExtra || hasSummary);
   const hasDesktopMeta = hasSummary || hasExtra;
 
   const restoreFocus = useCallback(() => {
@@ -635,14 +634,14 @@ export default function ImageLightbox({
             ref={sheetBackdropRef}
             type="button"
             className="image-lightbox-sheet-backdrop"
-            aria-label="关闭参数"
+            aria-label="关闭详情"
             onClick={closeSheet}
           />
           <div
             ref={sheetRef}
             className="image-lightbox-sheet"
             role="dialog"
-            aria-label="基本参数"
+            aria-label={titleText || "图片详情"}
             onPointerDown={sheetGestureHandlers.onPointerDown}
             onPointerMove={sheetGestureHandlers.onPointerMove}
             onPointerUp={sheetGestureHandlers.onPointerUp}
@@ -651,11 +650,11 @@ export default function ImageLightbox({
             <div className="image-lightbox-sheet-grab" data-sheet-handle>
               <span className="image-lightbox-sheet-handle" aria-hidden="true" />
               <div className="image-lightbox-sheet-header">
-                <span className="image-lightbox-sheet-title">基本参数</span>
+                <span className="image-lightbox-sheet-title">{titleText || "图片详情"}</span>
                 <button
                   type="button"
                   className="image-lightbox-sheet-close"
-                  aria-label="关闭参数"
+                  aria-label="关闭详情"
                   onClick={closeSheet}
                 >
                   <CloseIcon />
@@ -663,17 +662,6 @@ export default function ImageLightbox({
               </div>
             </div>
             <div className="image-lightbox-sheet-grid">
-              {titleText && <SheetCard label="标题" value={titleText} wide={!hasAlbum} />}
-              {hasAlbum && activeImage.sourceHref && (
-                <SheetCard label="图集" wide={!titleText}>
-                  <a
-                    href={activeImage.sourceHref}
-                    className="image-lightbox-sheet-card-value image-lightbox-meta-link"
-                  >
-                    {activeImage.sourceTitle || activeImage.sourceLabel}
-                  </a>
-                </SheetCard>
-              )}
               {locationText && (
                 <SheetCard label="地点">
                   {hasGps(activeImage) ? (
