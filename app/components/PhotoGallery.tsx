@@ -32,6 +32,7 @@ function toPreviewImage(photo: Photo): PreviewImage {
     focalLength35mm: photo.focalLength35mm,
     sourceHref: `/${photo.sourceSlug}/`,
     sourceLabel: `查看图集《${photo.sourceTitle}》`,
+    sourceTitle: photo.sourceTitle,
   };
 }
 
