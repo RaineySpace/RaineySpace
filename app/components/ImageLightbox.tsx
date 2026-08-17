@@ -25,6 +25,7 @@ export interface PreviewImage {
   focalLength35mm?: string;
   sourceHref?: string;
   sourceLabel?: string;
+  sourceTitle?: string;
 }
 
 interface ImageLightboxProps {
@@ -170,16 +171,18 @@ function SheetCard({
   value,
   detail,
   icon,
+  wide,
   children,
 }: {
   label: string;
   value?: string;
   detail?: string;
   icon?: ReactNode;
+  wide?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <div className="image-lightbox-sheet-card">
+    <div className={`image-lightbox-sheet-card${wide ? " is-wide" : ""}`}>
       <span className="image-lightbox-sheet-card-label">{label}</span>
       {children || <span className="image-lightbox-sheet-card-value">{value}</span>}
       {detail && <span className="image-lightbox-sheet-card-detail">{detail}</span>}
@@ -302,9 +305,12 @@ export default function ImageLightbox({
   if (activeImage?.iso) params.push({ key: "iso", icon: <IsoIcon />, value: `ISO ${activeImage.iso}` });
   const locationText = activeImage?.location || (activeImage && hasGps(activeImage) ? "查看地图" : undefined);
   const capturedTime = activeImage?.capturedAt?.match(/\d{2}:\d{2}$/)?.[0];
+  const titleText = activeImage?.alt?.trim() || undefined;
+  const hasAlbum = Boolean(activeImage?.sourceHref && activeImage?.sourceLabel);
   const hasSummary = Boolean(locationText || dateText || activeImage?.camera);
   const hasExtra = Boolean(params.length > 0 || activeImage?.lens);
-  const hasMeta = hasSummary || hasExtra;
+  const showMore = Boolean(titleText || hasAlbum || hasExtra || hasSummary);
+  const hasDesktopMeta = hasSummary || hasExtra;
 
   const restoreFocus = useCallback(() => {
     requestAnimationFrame(() => {
@@ -516,74 +522,74 @@ export default function ImageLightbox({
           </div>
 
           <div className="image-lightbox-caption">
-            {hasMeta && (
-              <>
-                <div className="image-lightbox-meta image-lightbox-meta-summary">
-                  {locationText && (
-                    <MetaColumn label="地点">
-                      {hasGps(activeImage) ? (
-                        <a
-                          href={mapUrl(activeImage.latitude, activeImage.longitude)}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="image-lightbox-meta-link"
-                        >
-                          <PinIcon />
-                          {locationText}
-                        </a>
-                      ) : (
-                        <span className="image-lightbox-param">
-                          <PinIcon />
-                          {locationText}
-                        </span>
-                      )}
-                    </MetaColumn>
-                  )}
-                  {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
-                  {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
-                  {hasExtra && (
-                    <button
-                      type="button"
-                      className="image-lightbox-more"
-                      onClick={() => setSheetOpen(true)}
-                    >
-                      更多
-                    </button>
-                  )}
-                </div>
-                <div className="image-lightbox-meta image-lightbox-meta-full">
-                  {params.length > 0 && (
-                    <MetaColumn label="参数">
-                      {params.map((param) => (
-                        <Param key={param.key} icon={param.icon} value={param.value} />
-                      ))}
-                    </MetaColumn>
-                  )}
-                  {locationText && (
-                    <MetaColumn label="地点">
-                      {hasGps(activeImage) ? (
-                        <a
-                          href={mapUrl(activeImage.latitude, activeImage.longitude)}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="image-lightbox-meta-link"
-                        >
-                          <PinIcon />
-                          {locationText}
-                        </a>
-                      ) : (
-                        <span className="image-lightbox-param">
-                          <PinIcon />
-                          {locationText}
-                        </span>
-                      )}
-                    </MetaColumn>
-                  )}
-                  {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
-                  {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
-                  {activeImage.lens && <MetaColumn label="镜头">{activeImage.lens}</MetaColumn>}
-                </div>
-              </>
+            {showMore && (
+              <div className="image-lightbox-meta image-lightbox-meta-summary">
+                {locationText && (
+                  <MetaColumn label="地点">
+                    {hasGps(activeImage) ? (
+                      <a
+                        href={mapUrl(activeImage.latitude, activeImage.longitude)}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="image-lightbox-meta-link"
+                      >
+                        <PinIcon />
+                        {locationText}
+                      </a>
+                    ) : (
+                      <span className="image-lightbox-param">
+                        <PinIcon />
+                        {locationText}
+                      </span>
+                    )}
+                  </MetaColumn>
+                )}
+                {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
+                {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
+                {showMore && (
+                  <button
+                    type="button"
+                    className="image-lightbox-more"
+                    onClick={() => setSheetOpen(true)}
+                  >
+                    更多
+                  </button>
+                )}
+              </div>
+            )}
+            {hasDesktopMeta && (
+              <div className="image-lightbox-meta image-lightbox-meta-full">
+                {params.length > 0 && (
+                  <MetaColumn label="参数">
+                    {params.map((param) => (
+                      <Param key={param.key} icon={param.icon} value={param.value} />
+                    ))}
+                  </MetaColumn>
+                )}
+                {locationText && (
+                  <MetaColumn label="地点">
+                    {hasGps(activeImage) ? (
+                      <a
+                        href={mapUrl(activeImage.latitude, activeImage.longitude)}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="image-lightbox-meta-link"
+                      >
+                        <PinIcon />
+                        {locationText}
+                      </a>
+                    ) : (
+                      <span className="image-lightbox-param">
+                        <PinIcon />
+                        {locationText}
+                      </span>
+                    )}
+                  </MetaColumn>
+                )}
+                {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
+                {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
+                {activeImage.lens && <MetaColumn label="镜头">{activeImage.lens}</MetaColumn>}
+              </div>
             )}
           </div>
 
@@ -657,6 +663,17 @@ export default function ImageLightbox({
               </div>
             </div>
             <div className="image-lightbox-sheet-grid">
+              {titleText && <SheetCard label="标题" value={titleText} wide={!hasAlbum} />}
+              {hasAlbum && activeImage.sourceHref && (
+                <SheetCard label="图集" wide={!titleText}>
+                  <a
+                    href={activeImage.sourceHref}
+                    className="image-lightbox-sheet-card-value image-lightbox-meta-link"
+                  >
+                    {activeImage.sourceTitle || activeImage.sourceLabel}
+                  </a>
+                </SheetCard>
+              )}
               {locationText && (
                 <SheetCard label="地点">
                   {hasGps(activeImage) ? (

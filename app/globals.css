@@ -250,7 +250,7 @@ button {
 }
 
 .image-lightbox-title-row {
-  display: flex;
+  display: none;
   width: 100%;
   flex-shrink: 0;
   flex-wrap: wrap;
@@ -475,6 +475,10 @@ button {
   text-align: center;
 }
 
+.image-lightbox-sheet-card.is-wide {
+  grid-column: 1 / -1;
+}
+
 .image-lightbox-sheet-card-label {
   font-size: 0.7rem;
   color: #9ca3af;
@@ -590,6 +594,10 @@ button {
 }
 
 @media (min-width: 640px) {
+  .image-lightbox-title-row {
+    display: flex;
+  }
+
   .image-lightbox-meta {
     flex-wrap: wrap;
     justify-content: center;
