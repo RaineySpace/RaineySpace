@@ -8,9 +8,33 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { createPortal } from "react-dom";
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function canHoverPlay() {
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches && !prefersReducedMotion();
+}
+
+function useLivePhotoMedia() {
+  const [media, setMedia] = useState<{ hover: boolean; reduced: boolean } | null>(null);
+
+  useEffect(() => {
+    const hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setMedia({ hover: hover.matches, reduced: reduced.matches });
+    update();
+    hover.addEventListener("change", update);
+    reduced.addEventListener("change", update);
+    return () => {
+      hover.removeEventListener("change", update);
+      reduced.removeEventListener("change", update);
+    };
+  }, []);
+
+  return media;
 }
 
 function prepareLiveVideo(video: HTMLVideoElement) {
@@ -19,6 +43,13 @@ function prepareLiveVideo(video: HTMLVideoElement) {
   video.playsInline = true;
   video.setAttribute("playsinline", "");
   video.setAttribute("webkit-playsinline", "");
+}
+
+function armLiveVideo(video: HTMLVideoElement, src: string) {
+  prepareLiveVideo(video);
+  if (video.getAttribute("data-live-src") === src && video.getAttribute("src")) return;
+  video.src = src;
+  video.setAttribute("data-live-src", src);
 }
 
 function resetLiveVideo(video: HTMLVideoElement) {
@@ -45,71 +76,137 @@ function LivePhotoBadge({ size = "md" }: { size?: "sm" | "md" }) {
   );
 }
 
-function useLivePhotoOnce({
+function useLivePhotoPlayback({
   root,
   videoRef,
   videoSrc,
-  enabled,
+  hoverLoop,
+  playOnce,
 }: {
   root: HTMLElement | null;
   videoRef: RefObject<HTMLVideoElement>;
   videoSrc?: string;
-  enabled: boolean;
+  hoverLoop: boolean;
+  playOnce: boolean;
 }) {
-  useEffect(() => {
+  const hoverRef = useRef(false);
+  const finishedOnceRef = useRef(false);
+  const playTokenRef = useRef(0);
+  const hoverLoopRef = useRef(hoverLoop);
+  const playOnceRef = useRef(playOnce);
+  const videoSrcRef = useRef(videoSrc);
+
+  hoverLoopRef.current = hoverLoop;
+  playOnceRef.current = playOnce;
+  videoSrcRef.current = videoSrc;
+
+  const syncPlayback = () => {
     const video = videoRef.current;
-    if (!root || !video || !videoSrc || !enabled || prefersReducedMotion()) {
+    const src = videoSrcRef.current;
+    const looping = Boolean(src && hoverLoopRef.current && hoverRef.current && canHoverPlay());
+    const once = Boolean(
+      src &&
+        playOnceRef.current &&
+        !finishedOnceRef.current &&
+        !canHoverPlay() &&
+        !prefersReducedMotion(),
+    );
+    const shouldPlay = looping || once;
+
+    if (!shouldPlay) {
+      playTokenRef.current += 1;
       root?.classList.remove("is-playing");
-      if (video) resetLiveVideo(video);
+      if (video) {
+        video.loop = false;
+        resetLiveVideo(video);
+      }
       return;
     }
+    if (!video || !src) return;
 
-    let cancelled = false;
-    prepareLiveVideo(video);
-    if (video.getAttribute("data-live-src") !== videoSrc || !video.getAttribute("src")) {
-      video.src = videoSrc;
-      video.setAttribute("data-live-src", videoSrc);
+    const token = ++playTokenRef.current;
+    armLiveVideo(video, src);
+    video.loop = looping;
+    try {
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        video.currentTime = 0;
+      }
+    } catch {
+      /* ignore unset media */
     }
 
-    const hide = () => {
-      root.classList.remove("is-playing");
-    };
-
     const reveal = () => {
-      if (!cancelled) root.classList.add("is-playing");
+      if (token !== playTokenRef.current) return;
+      root?.classList.add("is-playing");
     };
 
-    const tryPlay = () => {
-      if (cancelled) return;
-      try {
-        if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
-          video.currentTime = 0;
-        }
-      } catch {
-        /* ignore unset media */
-      }
-      video.play()?.then(reveal).catch(() => {
-        if (!cancelled) hide();
-      });
+    const hide = () => {
+      if (token !== playTokenRef.current) return;
+      root?.classList.remove("is-playing");
     };
+
+    const playPromise = video.play();
+    playPromise
+      ?.then(reveal)
+      .catch((error: unknown) => {
+        if (token !== playTokenRef.current) return;
+        const name =
+          error && typeof error === "object" && "name" in error
+            ? String((error as { name?: string }).name)
+            : "";
+        if (name === "AbortError" || name === "NotAllowedError") {
+          video.play()?.then(reveal).catch(hide);
+          return;
+        }
+        hide();
+      });
+  };
+  const syncPlaybackRef = useRef(syncPlayback);
+  syncPlaybackRef.current = syncPlayback;
+
+  useEffect(() => {
+    finishedOnceRef.current = false;
+    hoverRef.current = false;
+    if (root && hoverLoop && canHoverPlay() && root.matches(":hover")) {
+      hoverRef.current = true;
+    }
+    syncPlaybackRef.current();
+  }, [hoverLoop, playOnce, root, videoSrc]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !playOnce) return;
 
     const onEnded = () => {
-      hide();
+      finishedOnceRef.current = true;
+      root?.classList.remove("is-playing");
       resetLiveVideo(video);
     };
-
     video.addEventListener("ended", onEnded);
-    video.addEventListener("playing", reveal);
-    tryPlay();
+    return () => video.removeEventListener("ended", onEnded);
+  }, [playOnce, root, videoRef, videoSrc]);
 
-    return () => {
-      cancelled = true;
-      video.removeEventListener("ended", onEnded);
-      video.removeEventListener("playing", reveal);
-      hide();
-      resetLiveVideo(video);
+  useEffect(() => {
+    if (!root) return;
+
+    const onMouseEnter = () => {
+      if (!hoverLoopRef.current || !canHoverPlay()) return;
+      hoverRef.current = true;
+      syncPlaybackRef.current();
     };
-  }, [enabled, root, videoRef, videoSrc]);
+    const onMouseLeave = () => {
+      if (!hoverRef.current) return;
+      hoverRef.current = false;
+      syncPlaybackRef.current();
+    };
+
+    root.addEventListener("mouseenter", onMouseEnter);
+    root.addEventListener("mouseleave", onMouseLeave);
+    return () => {
+      root.removeEventListener("mouseenter", onMouseEnter);
+      root.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [root]);
 }
 
 function containedBadgeStyle(
@@ -132,6 +229,30 @@ function containedBadgeStyle(
   };
 }
 
+function LivePhotoVideo({
+  videoRef,
+  objectFit,
+  loop,
+}: {
+  videoRef: RefObject<HTMLVideoElement>;
+  objectFit: "cover" | "contain";
+  loop: boolean;
+}) {
+  return (
+    <video
+      ref={videoRef}
+      className={`live-photo-video is-${objectFit}`}
+      muted
+      loop={loop}
+      playsInline
+      preload="auto"
+      disablePictureInPicture
+      controls={false}
+      aria-hidden="true"
+    />
+  );
+}
+
 interface LivePhotoProps {
   children: ReactNode;
   className?: string;
@@ -139,7 +260,8 @@ interface LivePhotoProps {
   fill?: boolean;
   objectFit?: "cover" | "contain";
   videoSrc?: string;
-  enabled?: boolean;
+  playOnce?: boolean;
+  hoverLoop?: boolean;
   naturalWidth?: number;
   naturalHeight?: number;
 }
@@ -151,7 +273,8 @@ export default function LivePhoto({
   fill = false,
   objectFit = "cover",
   videoSrc,
-  enabled = false,
+  playOnce = false,
+  hoverLoop = true,
   naturalWidth,
   naturalHeight,
 }: LivePhotoProps) {
@@ -159,13 +282,17 @@ export default function LivePhoto({
   const videoRef = useRef<HTMLVideoElement>(null);
   const containBadge = objectFit === "contain";
   const [badgeStyle, setBadgeStyle] = useState<CSSProperties | undefined>();
-  const playOnce = Boolean(videoSrc && enabled);
+  const media = useLivePhotoMedia();
+  const allowHover = Boolean(videoSrc && hoverLoop && media?.hover && !media.reduced);
+  const allowOnce = Boolean(videoSrc && playOnce && media && !media.hover && !media.reduced);
+  const mountVideo = allowHover || allowOnce;
 
-  useLivePhotoOnce({
+  useLivePhotoPlayback({
     root,
     videoRef,
     videoSrc,
-    enabled: playOnce,
+    hoverLoop: allowHover,
+    playOnce: allowOnce,
   });
 
   useEffect(() => {
@@ -189,21 +316,34 @@ export default function LivePhoto({
       data-live-src={videoSrc}
     >
       {children}
-      {playOnce && (
-        <video
-          ref={videoRef}
-          className={`live-photo-video is-${objectFit}`}
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          controls={false}
-          aria-hidden="true"
-        />
-      )}
+      {mountVideo && <LivePhotoVideo videoRef={videoRef} objectFit={objectFit} loop={allowHover} />}
       <span className="live-photo-badge-anchor" style={containBadge ? badgeStyle : undefined}>
         <LivePhotoBadge size={badgeSize} />
       </span>
     </span>
   );
+}
+
+export function AttachedLivePhoto({
+  root,
+  videoSrc,
+}: {
+  root: HTMLElement;
+  videoSrc: string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const media = useLivePhotoMedia();
+  const allowHover = Boolean(media?.hover && !media.reduced);
+
+  useLivePhotoPlayback({
+    root,
+    videoRef,
+    videoSrc,
+    hoverLoop: allowHover,
+    playOnce: false,
+  });
+
+  if (!allowHover) return null;
+
+  return createPortal(<LivePhotoVideo videoRef={videoRef} objectFit="cover" loop />, root);
 }

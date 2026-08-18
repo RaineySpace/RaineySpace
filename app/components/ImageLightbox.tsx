@@ -283,7 +283,8 @@ function LightboxSlide({
           videoSrc={image.liveVideoSrc}
           fill
           objectFit="contain"
-          enabled={isActive}
+          playOnce={isActive}
+          hoverLoop={isActive}
           naturalWidth={naturalSize?.width}
           naturalHeight={naturalSize?.height}
         >

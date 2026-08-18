@@ -71,6 +71,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
             >
               {photo.liveVideoSrc ? (
                 <LivePhoto
+                  videoSrc={photo.liveVideoSrc}
                   fill
                   badgeSize="sm"
                   className="transition-transform duration-200 group-hover:scale-[1.02]"
