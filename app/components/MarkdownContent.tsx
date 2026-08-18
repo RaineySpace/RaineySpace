@@ -184,11 +184,6 @@ export default function MarkdownContent({
             openImage(image);
           }
         }}
-        onContextMenu={(event) => {
-          if (event.target instanceof Element && event.target.closest(".live-photo")) {
-            event.preventDefault();
-          }
-        }}
       />
       {livePhotos.map((item, index) => (
         <AttachedLivePhoto key={`${item.videoSrc}-${index}`} root={item.root} videoSrc={item.videoSrc} />

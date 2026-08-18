@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 import { useSheetGestures } from "@/app/components/useSheetGestures";
-import LivePhoto, { unlockLiveVideo } from "@/app/components/LivePhoto";
+import LivePhoto from "@/app/components/LivePhoto";
 
 export interface PreviewImage {
   id: string;
@@ -198,12 +198,10 @@ type SlideRole = "previous" | "current" | "next";
 function LightboxSlide({
   image,
   isActive,
-  livePlaying = false,
   onActiveSettled,
 }: {
   image: PreviewImage;
   isActive: boolean;
-  livePlaying?: boolean;
   onActiveSettled?: (src: string) => void;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
@@ -285,9 +283,8 @@ function LightboxSlide({
           videoSrc={image.liveVideoSrc}
           fill
           objectFit="contain"
-          enablePress={false}
-          enabled={isActive}
-          playing={isActive && livePlaying}
+          playOnce={isActive}
+          hoverLoop={isActive}
           naturalWidth={naturalSize?.width}
           naturalHeight={naturalSize?.height}
         >
@@ -317,7 +314,6 @@ export default function ImageLightbox({
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [settledSrc, setSettledSrc] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [liveHold, setLiveHold] = useState(false);
   const isOpen = activeIndex !== null;
   const activeImage = activeIndex === null ? null : images[activeIndex];
   const hasMultipleImages = images.length > 1;
@@ -386,16 +382,12 @@ export default function ImageLightbox({
     isOpen,
     activeIndex,
     hasMultipleImages,
-    canLivePhoto: Boolean(activeImage?.liveVideoSrc),
-    liveVideoSrc: activeImage?.liveVideoSrc,
     stageRef,
     trackRef,
     shellRef,
     onPrevious: showPrevious,
     onNext: showNext,
     onClose: closeLightbox,
-    onLivePhotoHoldStart: () => setLiveHold(true),
-    onLivePhotoHoldEnd: () => setLiveHold(false),
   });
 
   const sheetGestureHandlers = useSheetGestures({
@@ -526,16 +518,6 @@ export default function ImageLightbox({
             onPointerMove={gestureHandlers.onPointerMove}
             onPointerUp={gestureHandlers.onPointerUp}
             onPointerCancel={gestureHandlers.onPointerCancel}
-            onContextMenu={(event) => {
-              if (activeImage?.liveVideoSrc) event.preventDefault();
-            }}
-            onTouchStart={() => {
-              if (!activeImage?.liveVideoSrc) return;
-              const video = stageRef.current?.querySelector<HTMLVideoElement>(
-                '.image-lightbox-slide:not([aria-hidden="true"]) video.live-photo-video',
-              ) ?? null;
-              unlockLiveVideo(video, activeImage.liveVideoSrc);
-            }}
           >
             <div ref={trackRef} className="image-lightbox-track">
               {slides.map(({ image, role }) => (
@@ -543,7 +525,6 @@ export default function ImageLightbox({
                   key={duplicateAdjacent && role !== "current" ? `${image.id}-${role}` : image.id}
                   image={image}
                   isActive={role === "current"}
-                  livePlaying={role === "current" && liveHold}
                   onActiveSettled={role === "current" ? setSettledSrc : undefined}
                 />
               ))}

@@ -10,15 +10,31 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-export const LIVE_PHOTO_LONG_PRESS_MS = 280;
-export const LIVE_PHOTO_MOVE_CANCEL_PX = 24;
-
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function canHoverPlay() {
   return window.matchMedia("(hover: hover) and (pointer: fine)").matches && !prefersReducedMotion();
+}
+
+function useLivePhotoMedia() {
+  const [media, setMedia] = useState<{ hover: boolean; reduced: boolean } | null>(null);
+
+  useEffect(() => {
+    const hover = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setMedia({ hover: hover.matches, reduced: reduced.matches });
+    update();
+    hover.addEventListener("change", update);
+    reduced.addEventListener("change", update);
+    return () => {
+      hover.removeEventListener("change", update);
+      reduced.removeEventListener("change", update);
+    };
+  }, []);
+
+  return media;
 }
 
 function prepareLiveVideo(video: HTMLVideoElement) {
@@ -47,17 +63,6 @@ function resetLiveVideo(video: HTMLVideoElement) {
   }
 }
 
-export function unlockLiveVideo(video: HTMLVideoElement | null, src?: string) {
-  if (!video) return;
-  if (src) armLiveVideo(video, src);
-  else prepareLiveVideo(video);
-  if (!video.getAttribute("src") && !src) return;
-  const playPromise = video.play();
-  playPromise?.catch(() => {
-    /* Safari may reject until the media is armed; the reveal path retries. */
-  });
-}
-
 function LivePhotoBadge({ size = "md" }: { size?: "sm" | "md" }) {
   const compact = size === "sm";
   return (
@@ -75,67 +80,53 @@ function useLivePhotoPlayback({
   root,
   videoRef,
   videoSrc,
-  enableHover = true,
-  enablePress = true,
-  enabled = true,
-  playing: playingProp = false,
+  hoverLoop,
+  playOnce,
 }: {
   root: HTMLElement | null;
   videoRef: RefObject<HTMLVideoElement>;
-  videoSrc: string;
-  enableHover?: boolean;
-  enablePress?: boolean;
-  enabled?: boolean;
-  playing?: boolean;
+  videoSrc?: string;
+  hoverLoop: boolean;
+  playOnce: boolean;
 }) {
   const hoverRef = useRef(false);
-  const pressRef = useRef(false);
-  const playingRef = useRef(false);
-  const armedRef = useRef(false);
+  const finishedOnceRef = useRef(false);
   const playTokenRef = useRef(0);
-  const suppressClickRef = useRef(false);
-  const pressTimerRef = useRef<number | null>(null);
-  const pressPointRef = useRef<{ id: number; x: number; y: number; startedAt: number } | null>(null);
-  const enabledRef = useRef(enabled);
-  const enableHoverRef = useRef(enableHover);
-  const enablePressRef = useRef(enablePress);
-  const playingPropRef = useRef(playingProp);
+  const hoverLoopRef = useRef(hoverLoop);
+  const playOnceRef = useRef(playOnce);
   const videoSrcRef = useRef(videoSrc);
 
-  enabledRef.current = enabled;
-  enableHoverRef.current = enableHover;
-  enablePressRef.current = enablePress;
-  playingPropRef.current = playingProp;
+  hoverLoopRef.current = hoverLoop;
+  playOnceRef.current = playOnce;
   videoSrcRef.current = videoSrc;
-
-  const clearPressTimer = () => {
-    if (pressTimerRef.current != null) {
-      window.clearTimeout(pressTimerRef.current);
-      pressTimerRef.current = null;
-    }
-  };
 
   const syncPlayback = () => {
     const video = videoRef.current;
-    const shouldPlay =
-      enabledRef.current && (playingPropRef.current || hoverRef.current || pressRef.current);
+    const src = videoSrcRef.current;
+    const looping = Boolean(src && hoverLoopRef.current && hoverRef.current && canHoverPlay());
+    const once = Boolean(
+      src &&
+        playOnceRef.current &&
+        !finishedOnceRef.current &&
+        !canHoverPlay() &&
+        !prefersReducedMotion(),
+    );
+    const shouldPlay = looping || once;
 
     if (!shouldPlay) {
       playTokenRef.current += 1;
-      playingRef.current = false;
       root?.classList.remove("is-playing");
-      if (video) resetLiveVideo(video);
+      if (video) {
+        video.loop = false;
+        resetLiveVideo(video);
+      }
       return;
     }
-
-    if (!video) return;
-
-    armedRef.current = true;
-    armLiveVideo(video, videoSrcRef.current);
+    if (!video || !src) return;
 
     const token = ++playTokenRef.current;
-    playingRef.current = true;
-    root?.classList.add("is-playing");
+    armLiveVideo(video, src);
+    video.loop = looping;
     try {
       if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
         video.currentTime = 0;
@@ -143,225 +134,79 @@ function useLivePhotoPlayback({
     } catch {
       /* ignore unset media */
     }
-    const playPromise = video.play();
-    playPromise?.catch((error: unknown) => {
+
+    const reveal = () => {
       if (token !== playTokenRef.current) return;
-      const name = error && typeof error === "object" && "name" in error ? String((error as { name?: string }).name) : "";
-      if (name === "AbortError" || name === "NotAllowedError") {
-        const retry = video.play();
-        retry?.catch(() => {
-          if (token !== playTokenRef.current) return;
-          playingRef.current = false;
-          root?.classList.remove("is-playing");
-        });
-        return;
-      }
-      playingRef.current = false;
+      root?.classList.add("is-playing");
+    };
+
+    const hide = () => {
+      if (token !== playTokenRef.current) return;
       root?.classList.remove("is-playing");
-    });
+    };
+
+    const playPromise = video.play();
+    playPromise
+      ?.then(reveal)
+      .catch((error: unknown) => {
+        if (token !== playTokenRef.current) return;
+        const name =
+          error && typeof error === "object" && "name" in error
+            ? String((error as { name?: string }).name)
+            : "";
+        if (name === "AbortError" || name === "NotAllowedError") {
+          video.play()?.then(reveal).catch(hide);
+          return;
+        }
+        hide();
+      });
   };
   const syncPlaybackRef = useRef(syncPlayback);
   syncPlaybackRef.current = syncPlayback;
 
   useEffect(() => {
+    finishedOnceRef.current = false;
     hoverRef.current = false;
-    pressRef.current = false;
-    armedRef.current = false;
-    if (root && enabledRef.current && enableHoverRef.current && canHoverPlay() && root.matches(":hover")) {
+    if (root && hoverLoop && canHoverPlay() && root.matches(":hover")) {
       hoverRef.current = true;
     }
     syncPlaybackRef.current();
-  }, [root, videoSrc]);
-
-  useEffect(() => {
-    if (!enabled) {
-      hoverRef.current = false;
-      pressRef.current = false;
-      clearPressTimer();
-      pressPointRef.current = null;
-    } else if (root && enableHoverRef.current && canHoverPlay() && root.matches(":hover")) {
-      hoverRef.current = true;
-    }
-    syncPlaybackRef.current();
-  }, [enabled, playingProp, root]);
+  }, [hoverLoop, playOnce, root, videoSrc]);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (video) prepareLiveVideo(video);
-  }, [root, videoRef]);
+    if (!video || !playOnce) return;
+
+    const onEnded = () => {
+      finishedOnceRef.current = true;
+      root?.classList.remove("is-playing");
+      resetLiveVideo(video);
+    };
+    video.addEventListener("ended", onEnded);
+    return () => video.removeEventListener("ended", onEnded);
+  }, [playOnce, root, videoRef, videoSrc]);
 
   useEffect(() => {
     if (!root) return;
 
-    const endPress = () => {
-      const hadPress = pressRef.current || pressPointRef.current != null || pressTimerRef.current != null;
-      clearPressTimer();
-      pressPointRef.current = null;
-      if (!hadPress) return;
-      pressRef.current = false;
-      syncPlaybackRef.current();
-    };
-
     const onMouseEnter = () => {
-      if (!enabledRef.current || !enableHoverRef.current || !canHoverPlay()) return;
+      if (!hoverLoopRef.current || !canHoverPlay()) return;
       hoverRef.current = true;
       syncPlaybackRef.current();
     };
-
     const onMouseLeave = () => {
       if (!hoverRef.current) return;
       hoverRef.current = false;
       syncPlaybackRef.current();
     };
 
-    const beginPress = (pointerId: number, x: number, y: number) => {
-      if (!enabledRef.current || !enablePressRef.current) return;
-      if (pressPointRef.current) return;
-
-      pressPointRef.current = { id: pointerId, x, y, startedAt: performance.now() };
-      unlockLiveVideo(videoRef.current, videoSrcRef.current);
-      clearPressTimer();
-      pressTimerRef.current = window.setTimeout(() => {
-        pressTimerRef.current = null;
-        if (!pressPointRef.current) return;
-        pressRef.current = true;
-        suppressClickRef.current = true;
-        syncPlaybackRef.current();
-      }, LIVE_PHOTO_LONG_PRESS_MS);
-    };
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (!enabledRef.current || !enablePressRef.current) return;
-      if (event.pointerType !== "touch" && event.pointerType !== "pen" && canHoverPlay()) return;
-      if (event.pointerType !== "touch" && event.button !== 0) return;
-      beginPress(event.pointerId, event.clientX, event.clientY);
-    };
-
-    const onPointerMove = (event: PointerEvent) => {
-      const point = pressPointRef.current;
-      if (!point) return;
-      if (performance.now() - point.startedAt < 80) {
-        point.x = event.clientX;
-        point.y = event.clientY;
-        return;
-      }
-      const dx = event.clientX - point.x;
-      const dy = event.clientY - point.y;
-      if (Math.hypot(dx, dy) < LIVE_PHOTO_MOVE_CANCEL_PX) return;
-      endPress();
-    };
-
-    const onPointerEnd = () => {
-      endPress();
-    };
-
-    const onClickCapture = (event: MouseEvent) => {
-      if (!suppressClickRef.current) return;
-      event.preventDefault();
-      event.stopPropagation();
-      suppressClickRef.current = false;
-    };
-
-    const onContextMenu = (event: Event) => {
-      if (!enablePressRef.current) return;
-      event.preventDefault();
-    };
-
-    const onTouchEnd = () => {
-      endPress();
-    };
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (!enabledRef.current || !enablePressRef.current) return;
-      if (event.touches.length !== 1) return;
-      unlockLiveVideo(videoRef.current, videoSrcRef.current);
-      const touch = event.touches[0];
-      beginPress(touch.identifier, touch.clientX, touch.clientY);
-    };
-
-    const onTouchMove = (event: TouchEvent) => {
-      const point = pressPointRef.current;
-      if (!point || event.touches.length === 0) return;
-      const touch = event.touches[0];
-      if (performance.now() - point.startedAt < 80) {
-        point.x = touch.clientX;
-        point.y = touch.clientY;
-        return;
-      }
-      const dx = touch.clientX - point.x;
-      const dy = touch.clientY - point.y;
-      if (Math.hypot(dx, dy) < LIVE_PHOTO_MOVE_CANCEL_PX) return;
-      endPress();
-    };
-
     root.addEventListener("mouseenter", onMouseEnter);
     root.addEventListener("mouseleave", onMouseLeave);
-    root.addEventListener("pointerdown", onPointerDown);
-    root.addEventListener("pointermove", onPointerMove);
-    root.addEventListener("pointerup", onPointerEnd);
-    root.addEventListener("pointercancel", onPointerEnd);
-    root.addEventListener("lostpointercapture", onPointerEnd);
-    root.addEventListener("touchstart", onTouchStart, { passive: true });
-    root.addEventListener("touchmove", onTouchMove, { passive: true });
-    root.addEventListener("click", onClickCapture, true);
-    root.addEventListener("contextmenu", onContextMenu);
-    window.addEventListener("pointerup", onPointerEnd);
-    window.addEventListener("pointercancel", onPointerEnd);
-    window.addEventListener("touchend", onTouchEnd);
-    window.addEventListener("touchcancel", onTouchEnd);
-    window.addEventListener("blur", onTouchEnd);
-
     return () => {
-      clearPressTimer();
       root.removeEventListener("mouseenter", onMouseEnter);
       root.removeEventListener("mouseleave", onMouseLeave);
-      root.removeEventListener("pointerdown", onPointerDown);
-      root.removeEventListener("pointermove", onPointerMove);
-      root.removeEventListener("pointerup", onPointerEnd);
-      root.removeEventListener("pointercancel", onPointerEnd);
-      root.removeEventListener("lostpointercapture", onPointerEnd);
-      root.removeEventListener("touchstart", onTouchStart);
-      root.removeEventListener("touchmove", onTouchMove);
-      root.removeEventListener("click", onClickCapture, true);
-      root.removeEventListener("contextmenu", onContextMenu);
-      window.removeEventListener("pointerup", onPointerEnd);
-      window.removeEventListener("pointercancel", onPointerEnd);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("touchcancel", onTouchEnd);
-      window.removeEventListener("blur", onTouchEnd);
     };
-  }, [root, videoRef]);
-}
-
-function LivePhotoOverlays({
-  videoRef,
-  objectFit,
-  badgeSize,
-  badgeStyle,
-}: {
-  videoRef: RefObject<HTMLVideoElement>;
-  objectFit: "cover" | "contain";
-  badgeSize: "sm" | "md";
-  badgeStyle?: CSSProperties;
-}) {
-  return (
-    <>
-      <video
-        ref={videoRef}
-        className={`live-photo-video is-${objectFit}`}
-        muted
-        loop
-        playsInline
-        preload="auto"
-        disablePictureInPicture
-        controls={false}
-        aria-hidden="true"
-      />
-      <span className="live-photo-badge-anchor" style={badgeStyle}>
-        <LivePhotoBadge size={badgeSize} />
-      </span>
-    </>
-  );
+  }, [root]);
 }
 
 function containedBadgeStyle(
@@ -384,32 +229,52 @@ function containedBadgeStyle(
   };
 }
 
+function LivePhotoVideo({
+  videoRef,
+  objectFit,
+  loop,
+}: {
+  videoRef: RefObject<HTMLVideoElement>;
+  objectFit: "cover" | "contain";
+  loop: boolean;
+}) {
+  return (
+    <video
+      ref={videoRef}
+      className={`live-photo-video is-${objectFit}`}
+      muted
+      loop={loop}
+      playsInline
+      preload="auto"
+      disablePictureInPicture
+      controls={false}
+      aria-hidden="true"
+    />
+  );
+}
+
 interface LivePhotoProps {
-  videoSrc: string;
   children: ReactNode;
   className?: string;
   badgeSize?: "sm" | "md";
   fill?: boolean;
   objectFit?: "cover" | "contain";
-  enableHover?: boolean;
-  enablePress?: boolean;
-  enabled?: boolean;
-  playing?: boolean;
+  videoSrc?: string;
+  playOnce?: boolean;
+  hoverLoop?: boolean;
   naturalWidth?: number;
   naturalHeight?: number;
 }
 
 export default function LivePhoto({
-  videoSrc,
   children,
   className,
   badgeSize = "md",
   fill = false,
   objectFit = "cover",
-  enableHover = true,
-  enablePress = true,
-  enabled = true,
-  playing = false,
+  videoSrc,
+  playOnce = false,
+  hoverLoop = true,
   naturalWidth,
   naturalHeight,
 }: LivePhotoProps) {
@@ -417,15 +282,17 @@ export default function LivePhoto({
   const videoRef = useRef<HTMLVideoElement>(null);
   const containBadge = objectFit === "contain";
   const [badgeStyle, setBadgeStyle] = useState<CSSProperties | undefined>();
+  const media = useLivePhotoMedia();
+  const allowHover = Boolean(videoSrc && hoverLoop && media?.hover && !media.reduced);
+  const allowOnce = Boolean(videoSrc && playOnce && media && !media.hover && !media.reduced);
+  const mountVideo = allowHover || allowOnce;
 
   useLivePhotoPlayback({
     root,
     videoRef,
     videoSrc,
-    enableHover,
-    enablePress,
-    enabled,
-    playing,
+    hoverLoop: allowHover,
+    playOnce: allowOnce,
   });
 
   useEffect(() => {
@@ -449,12 +316,10 @@ export default function LivePhoto({
       data-live-src={videoSrc}
     >
       {children}
-      <LivePhotoOverlays
-        videoRef={videoRef}
-        objectFit={objectFit}
-        badgeSize={badgeSize}
-        badgeStyle={containBadge ? badgeStyle : undefined}
-      />
+      {mountVideo && <LivePhotoVideo videoRef={videoRef} objectFit={objectFit} loop={allowHover} />}
+      <span className="live-photo-badge-anchor" style={containBadge ? badgeStyle : undefined}>
+        <LivePhotoBadge size={badgeSize} />
+      </span>
     </span>
   );
 }
@@ -467,18 +332,18 @@ export function AttachedLivePhoto({
   videoSrc: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const media = useLivePhotoMedia();
+  const allowHover = Boolean(media?.hover && !media.reduced);
 
   useLivePhotoPlayback({
     root,
     videoRef,
     videoSrc,
-    enableHover: true,
-    enablePress: true,
-    enabled: true,
+    hoverLoop: allowHover,
+    playOnce: false,
   });
 
-  return createPortal(
-    <LivePhotoOverlays videoRef={videoRef} objectFit="cover" badgeSize="md" />,
-    root,
-  );
+  if (!allowHover) return null;
+
+  return createPortal(<LivePhotoVideo videoRef={videoRef} objectFit="cover" loop />, root);
 }
