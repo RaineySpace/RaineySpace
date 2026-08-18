@@ -28,6 +28,18 @@ interface MarkdownContentProps {
 
 const EMPTY_IMAGES: ArticleImageMeta[] = [];
 
+function previewImageFromEvent(target: EventTarget | null): HTMLImageElement | null {
+  if (!(target instanceof Element)) return null;
+  if (target instanceof HTMLImageElement && target.dataset.imagePreview === "true") {
+    return target;
+  }
+  const wrapped = target.closest(".live-photo")?.querySelector("img");
+  if (wrapped instanceof HTMLImageElement && wrapped.dataset.imagePreview === "true") {
+    return wrapped;
+  }
+  return null;
+}
+
 function previewFieldsFromPostImage(
   image: ArticleImageMeta | undefined,
   location?: string,
@@ -161,17 +173,20 @@ export default function MarkdownContent({
         className="markdown-content"
         dangerouslySetInnerHTML={{ __html: html }}
         onClick={(event) => {
-          const target = event.target;
-          if (target instanceof HTMLImageElement && target.dataset.imagePreview === "true") {
-            openImage(target);
-          }
+          const image = previewImageFromEvent(event.target);
+          if (image) openImage(image);
         }}
         onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
-          const target = event.target;
-          if (target instanceof HTMLImageElement && target.dataset.imagePreview === "true") {
+          const image = previewImageFromEvent(event.target);
+          if (image) {
             event.preventDefault();
-            openImage(target);
+            openImage(image);
+          }
+        }}
+        onContextMenu={(event) => {
+          if (event.target instanceof Element && event.target.closest(".live-photo")) {
+            event.preventDefault();
           }
         }}
       />

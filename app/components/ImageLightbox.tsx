@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 import { useSheetGestures } from "@/app/components/useSheetGestures";
-import LivePhoto from "@/app/components/LivePhoto";
+import LivePhoto, { unlockLiveVideo } from "@/app/components/LivePhoto";
 
 export interface PreviewImage {
   id: string;
@@ -387,6 +387,7 @@ export default function ImageLightbox({
     activeIndex,
     hasMultipleImages,
     canLivePhoto: Boolean(activeImage?.liveVideoSrc),
+    liveVideoSrc: activeImage?.liveVideoSrc,
     stageRef,
     trackRef,
     shellRef,
@@ -525,6 +526,16 @@ export default function ImageLightbox({
             onPointerMove={gestureHandlers.onPointerMove}
             onPointerUp={gestureHandlers.onPointerUp}
             onPointerCancel={gestureHandlers.onPointerCancel}
+            onContextMenu={(event) => {
+              if (activeImage?.liveVideoSrc) event.preventDefault();
+            }}
+            onTouchStart={() => {
+              if (!activeImage?.liveVideoSrc) return;
+              const video = stageRef.current?.querySelector<HTMLVideoElement>(
+                '.image-lightbox-slide:not([aria-hidden="true"]) video.live-photo-video',
+              );
+              unlockLiveVideo(video, activeImage.liveVideoSrc);
+            }}
           >
             <div ref={trackRef} className="image-lightbox-track">
               {slides.map(({ image, role }) => (
