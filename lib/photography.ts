@@ -19,6 +19,7 @@ export interface Photo {
   focalLength35mm?: string;
   sourceSlug: string;
   sourceTitle: string;
+  liveVideoSrc?: string;
 }
 
 export interface PhotographyAlbum {
@@ -49,6 +50,7 @@ function toPhoto(image: PostImage, post: Post): Photo {
     focalLength35mm: image.focalLength35mm,
     sourceSlug: post.slug,
     sourceTitle: post.title,
+    liveVideoSrc: image.liveVideoSrc,
   };
 }
 

@@ -87,6 +87,94 @@ button {
   box-shadow: 0 0 0 2px var(--lightLink), 0 4px 14px rgb(0 0 0 / 0.12);
 }
 
+.live-photo {
+  position: relative;
+  display: block;
+  isolation: isolate;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.live-photo-fill {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.live-photo-video {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity 0.18s ease;
+}
+
+.live-photo-video.is-cover {
+  object-fit: cover;
+}
+
+.live-photo-video.is-contain {
+  object-fit: contain;
+}
+
+.live-photo.is-playing .live-photo-video {
+  opacity: 1;
+}
+
+.live-photo-badge-anchor {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.live-photo-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.18rem 0.42rem 0.18rem 0.32rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.52);
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+}
+
+.live-photo-badge.is-sm {
+  top: 0.35rem;
+  left: 0.35rem;
+  gap: 0.18rem;
+  padding: 0.12rem 0.32rem 0.12rem 0.22rem;
+  font-size: 0.5rem;
+}
+
+.live-photo-badge-icon {
+  width: 0.78rem;
+  height: 0.78rem;
+}
+
+.live-photo-badge.is-sm .live-photo-badge-icon {
+  width: 0.62rem;
+  height: 0.62rem;
+}
+
+.live-photo-badge-label {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
 .image-lightbox,
 .image-lightbox[open] {
   position: fixed;
@@ -193,6 +281,18 @@ button {
 
 .image-lightbox-slide img.is-ready {
   opacity: 1;
+}
+
+.image-lightbox-slide .live-photo {
+  position: absolute;
+  inset: 0;
+}
+
+.image-lightbox-slide .live-photo-video {
+  border-radius: 0.75rem;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 40px rgb(0 0 0 / 0.45));
+  z-index: 2;
 }
 
 .image-lightbox-spinner {
