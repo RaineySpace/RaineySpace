@@ -11,7 +11,7 @@ import {
 import { createPortal } from "react-dom";
 
 export const LIVE_PHOTO_LONG_PRESS_MS = 280;
-export const LIVE_PHOTO_MOVE_CANCEL_PX = 8;
+export const LIVE_PHOTO_MOVE_CANCEL_PX = 24;
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -19,6 +19,43 @@ function prefersReducedMotion() {
 
 function canHoverPlay() {
   return window.matchMedia("(hover: hover) and (pointer: fine)").matches && !prefersReducedMotion();
+}
+
+function prepareLiveVideo(video: HTMLVideoElement) {
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  video.setAttribute("playsinline", "");
+  video.setAttribute("webkit-playsinline", "");
+}
+
+function armLiveVideo(video: HTMLVideoElement, src: string) {
+  prepareLiveVideo(video);
+  if (video.getAttribute("data-live-src") === src && video.getAttribute("src")) return;
+  video.src = src;
+  video.setAttribute("data-live-src", src);
+}
+
+function resetLiveVideo(video: HTMLVideoElement) {
+  video.pause();
+  try {
+    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      video.currentTime = 0;
+    }
+  } catch {
+    /* ignore unset media */
+  }
+}
+
+export function unlockLiveVideo(video: HTMLVideoElement | null, src?: string) {
+  if (!video) return;
+  if (src) armLiveVideo(video, src);
+  else prepareLiveVideo(video);
+  if (!video.getAttribute("src") && !src) return;
+  const playPromise = video.play();
+  playPromise?.catch(() => {
+    /* Safari may reject until the media is armed; the reveal path retries. */
+  });
 }
 
 function LivePhotoBadge({ size = "md" }: { size?: "sm" | "md" }) {
@@ -58,7 +95,7 @@ function useLivePhotoPlayback({
   const playTokenRef = useRef(0);
   const suppressClickRef = useRef(false);
   const pressTimerRef = useRef<number | null>(null);
-  const pressPointRef = useRef<{ id: number; x: number; y: number } | null>(null);
+  const pressPointRef = useRef<{ id: number; x: number; y: number; startedAt: number } | null>(null);
   const enabledRef = useRef(enabled);
   const enableHoverRef = useRef(enableHover);
   const enablePressRef = useRef(enablePress);
@@ -87,37 +124,38 @@ function useLivePhotoPlayback({
       playTokenRef.current += 1;
       playingRef.current = false;
       root?.classList.remove("is-playing");
-      if (video) {
-        video.pause();
-        try {
-          video.currentTime = 0;
-        } catch {
-          /* ignore unset media */
-        }
-      }
+      if (video) resetLiveVideo(video);
       return;
     }
 
     if (!video) return;
 
-    if (!armedRef.current || video.getAttribute("data-live-src") !== videoSrcRef.current) {
-      armedRef.current = true;
-      video.src = videoSrcRef.current;
-      video.setAttribute("data-live-src", videoSrcRef.current);
-      video.load();
-    }
+    armedRef.current = true;
+    armLiveVideo(video, videoSrcRef.current);
 
     const token = ++playTokenRef.current;
     playingRef.current = true;
     root?.classList.add("is-playing");
     try {
-      video.currentTime = 0;
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        video.currentTime = 0;
+      }
     } catch {
       /* ignore unset media */
     }
     const playPromise = video.play();
-    playPromise?.catch(() => {
+    playPromise?.catch((error: unknown) => {
       if (token !== playTokenRef.current) return;
+      const name = error && typeof error === "object" && "name" in error ? String((error as { name?: string }).name) : "";
+      if (name === "AbortError" || name === "NotAllowedError") {
+        const retry = video.play();
+        retry?.catch(() => {
+          if (token !== playTokenRef.current) return;
+          playingRef.current = false;
+          root?.classList.remove("is-playing");
+        });
+        return;
+      }
       playingRef.current = false;
       root?.classList.remove("is-playing");
     });
@@ -148,7 +186,21 @@ function useLivePhotoPlayback({
   }, [enabled, playingProp, root]);
 
   useEffect(() => {
+    const video = videoRef.current;
+    if (video) prepareLiveVideo(video);
+  }, [root, videoRef]);
+
+  useEffect(() => {
     if (!root) return;
+
+    const endPress = () => {
+      const hadPress = pressRef.current || pressPointRef.current != null || pressTimerRef.current != null;
+      clearPressTimer();
+      pressPointRef.current = null;
+      if (!hadPress) return;
+      pressRef.current = false;
+      syncPlaybackRef.current();
+    };
 
     const onMouseEnter = () => {
       if (!enabledRef.current || !enableHoverRef.current || !canHoverPlay()) return;
@@ -162,13 +214,12 @@ function useLivePhotoPlayback({
       syncPlaybackRef.current();
     };
 
-    const onPointerDown = (event: PointerEvent) => {
+    const beginPress = (pointerId: number, x: number, y: number) => {
       if (!enabledRef.current || !enablePressRef.current) return;
-      if (event.pointerType !== "touch" && event.pointerType !== "pen" && canHoverPlay()) return;
-      if (event.button !== 0) return;
       if (pressPointRef.current) return;
 
-      pressPointRef.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      pressPointRef.current = { id: pointerId, x, y, startedAt: performance.now() };
+      unlockLiveVideo(videoRef.current, videoSrcRef.current);
       clearPressTimer();
       pressTimerRef.current = window.setTimeout(() => {
         pressTimerRef.current = null;
@@ -179,28 +230,29 @@ function useLivePhotoPlayback({
       }, LIVE_PHOTO_LONG_PRESS_MS);
     };
 
+    const onPointerDown = (event: PointerEvent) => {
+      if (!enabledRef.current || !enablePressRef.current) return;
+      if (event.pointerType !== "touch" && event.pointerType !== "pen" && canHoverPlay()) return;
+      if (event.pointerType !== "touch" && event.button !== 0) return;
+      beginPress(event.pointerId, event.clientX, event.clientY);
+    };
+
     const onPointerMove = (event: PointerEvent) => {
       const point = pressPointRef.current;
-      if (!point || event.pointerId !== point.id) return;
+      if (!point) return;
+      if (performance.now() - point.startedAt < 80) {
+        point.x = event.clientX;
+        point.y = event.clientY;
+        return;
+      }
       const dx = event.clientX - point.x;
       const dy = event.clientY - point.y;
       if (Math.hypot(dx, dy) < LIVE_PHOTO_MOVE_CANCEL_PX) return;
-      clearPressTimer();
-      pressPointRef.current = null;
-      if (pressRef.current) {
-        pressRef.current = false;
-        syncPlaybackRef.current();
-      }
+      endPress();
     };
 
-    const onPointerEnd = (event: PointerEvent) => {
-      const point = pressPointRef.current;
-      if (point && event.pointerId !== point.id) return;
-      clearPressTimer();
-      pressPointRef.current = null;
-      if (!pressRef.current) return;
-      pressRef.current = false;
-      syncPlaybackRef.current();
+    const onPointerEnd = () => {
+      endPress();
     };
 
     const onClickCapture = (event: MouseEvent) => {
@@ -212,7 +264,34 @@ function useLivePhotoPlayback({
 
     const onContextMenu = (event: Event) => {
       if (!enablePressRef.current) return;
-      if (pressRef.current || pressPointRef.current) event.preventDefault();
+      event.preventDefault();
+    };
+
+    const onTouchEnd = () => {
+      endPress();
+    };
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (!enabledRef.current || !enablePressRef.current) return;
+      if (event.touches.length !== 1) return;
+      unlockLiveVideo(videoRef.current, videoSrcRef.current);
+      const touch = event.touches[0];
+      beginPress(touch.identifier, touch.clientX, touch.clientY);
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      const point = pressPointRef.current;
+      if (!point || event.touches.length === 0) return;
+      const touch = event.touches[0];
+      if (performance.now() - point.startedAt < 80) {
+        point.x = touch.clientX;
+        point.y = touch.clientY;
+        return;
+      }
+      const dx = touch.clientX - point.x;
+      const dy = touch.clientY - point.y;
+      if (Math.hypot(dx, dy) < LIVE_PHOTO_MOVE_CANCEL_PX) return;
+      endPress();
     };
 
     root.addEventListener("mouseenter", onMouseEnter);
@@ -221,8 +300,16 @@ function useLivePhotoPlayback({
     root.addEventListener("pointermove", onPointerMove);
     root.addEventListener("pointerup", onPointerEnd);
     root.addEventListener("pointercancel", onPointerEnd);
+    root.addEventListener("lostpointercapture", onPointerEnd);
+    root.addEventListener("touchstart", onTouchStart, { passive: true });
+    root.addEventListener("touchmove", onTouchMove, { passive: true });
     root.addEventListener("click", onClickCapture, true);
     root.addEventListener("contextmenu", onContextMenu);
+    window.addEventListener("pointerup", onPointerEnd);
+    window.addEventListener("pointercancel", onPointerEnd);
+    window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("touchcancel", onTouchEnd);
+    window.addEventListener("blur", onTouchEnd);
 
     return () => {
       clearPressTimer();
@@ -232,10 +319,18 @@ function useLivePhotoPlayback({
       root.removeEventListener("pointermove", onPointerMove);
       root.removeEventListener("pointerup", onPointerEnd);
       root.removeEventListener("pointercancel", onPointerEnd);
+      root.removeEventListener("lostpointercapture", onPointerEnd);
+      root.removeEventListener("touchstart", onTouchStart);
+      root.removeEventListener("touchmove", onTouchMove);
       root.removeEventListener("click", onClickCapture, true);
       root.removeEventListener("contextmenu", onContextMenu);
+      window.removeEventListener("pointerup", onPointerEnd);
+      window.removeEventListener("pointercancel", onPointerEnd);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+      window.removeEventListener("blur", onTouchEnd);
     };
-  }, [root]);
+  }, [root, videoRef]);
 }
 
 function LivePhotoOverlays({
@@ -257,7 +352,7 @@ function LivePhotoOverlays({
         muted
         loop
         playsInline
-        preload="none"
+        preload="auto"
         disablePictureInPicture
         controls={false}
         aria-hidden="true"

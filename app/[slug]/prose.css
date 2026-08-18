@@ -196,6 +196,11 @@ body {
 
 .markdown .live-photo img {
   margin: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 .markdown img[data-image-preview="true"] {

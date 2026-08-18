@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import { LIVE_PHOTO_LONG_PRESS_MS, LIVE_PHOTO_MOVE_CANCEL_PX, unlockLiveVideo } from "@/app/components/LivePhoto";
 
 const AXIS_LOCK_PX = 8;
 const HORIZONTAL_DISTANCE_RATIO = 0.2;
@@ -17,6 +18,7 @@ interface GestureSession {
   startX: number;
   startY: number;
   startTime: number;
+  startedAt: number;
   axis: GestureAxis;
 }
 
@@ -42,9 +44,8 @@ interface UseLightboxGesturesOptions {
   onClose: () => void;
   onLivePhotoHoldStart?: () => void;
   onLivePhotoHoldEnd?: () => void;
+  liveVideoSrc?: string;
 }
-
-const LIVE_PRESS_MS = 280;
 
 export function useLightboxGestures({
   isOpen,
@@ -59,6 +60,7 @@ export function useLightboxGestures({
   onClose,
   onLivePhotoHoldStart,
   onLivePhotoHoldEnd,
+  liveVideoSrc,
 }: UseLightboxGesturesOptions) {
   const gestureRef = useRef<GestureSession | null>(null);
   const settleTokenRef = useRef(0);
@@ -72,6 +74,7 @@ export function useLightboxGestures({
   const onCloseRef = useRef(onClose);
   const onLivePhotoHoldStartRef = useRef(onLivePhotoHoldStart);
   const onLivePhotoHoldEndRef = useRef(onLivePhotoHoldEnd);
+  const liveVideoSrcRef = useRef(liveVideoSrc);
 
   hasMultipleRef.current = hasMultipleImages;
   canLivePhotoRef.current = canLivePhoto;
@@ -80,6 +83,7 @@ export function useLightboxGestures({
   onCloseRef.current = onClose;
   onLivePhotoHoldStartRef.current = onLivePhotoHoldStart;
   onLivePhotoHoldEndRef.current = onLivePhotoHoldEnd;
+  liveVideoSrcRef.current = liveVideoSrc;
 
   const resetTrack = useCallback((withTransition = false) => {
     const track = trackRef.current;
@@ -126,12 +130,28 @@ export function useLightboxGestures({
     liveTimerRef.current = null;
   }, []);
 
+  const pauseActiveLiveVideo = useCallback(() => {
+    const video = stageRef.current?.querySelector<HTMLVideoElement>(
+      '.image-lightbox-slide:not([aria-hidden="true"]) video.live-photo-video',
+    ) ?? null;
+    if (!video) return;
+    video.pause();
+    try {
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) video.currentTime = 0;
+    } catch {
+      /* ignore unset media */
+    }
+  }, [stageRef]);
+
   const endLiveHold = useCallback(() => {
     clearLiveTimer();
-    if (!liveHoldingRef.current) return;
-    liveHoldingRef.current = false;
-    onLivePhotoHoldEndRef.current?.();
-  }, [clearLiveTimer]);
+    if (liveHoldingRef.current) {
+      liveHoldingRef.current = false;
+      onLivePhotoHoldEndRef.current?.();
+      return;
+    }
+    pauseActiveLiveVideo();
+  }, [clearLiveTimer, pauseActiveLiveVideo]);
 
   useLayoutEffect(() => {
     endLiveHold();
@@ -287,20 +307,27 @@ export function useLightboxGestures({
   }, [endLiveHold, settleHorizontal, settleVertical, stageRef]);
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0) return;
+    if (event.pointerType !== "touch" && event.button !== 0) return;
     if (gestureRef.current) return;
     if ((event.target as HTMLElement | null)?.closest("button, a")) return;
 
-    event.currentTarget.setPointerCapture(event.pointerId);
     gestureRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       startTime: event.timeStamp,
+      startedAt: performance.now(),
       axis: "undecided",
     };
 
-    if (!canLivePhotoRef.current) return;
+    if (!canLivePhotoRef.current) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
+    }
+    const video = stageRef.current?.querySelector<HTMLVideoElement>(
+      '.image-lightbox-slide:not([aria-hidden="true"]) video.live-photo-video',
+    ) ?? null;
+    unlockLiveVideo(video, liveVideoSrcRef.current);
     clearLiveTimer();
     liveTimerRef.current = window.setTimeout(() => {
       liveTimerRef.current = null;
@@ -309,24 +336,38 @@ export function useLightboxGestures({
       if (gesture.axis !== "undecided") return;
       liveHoldingRef.current = true;
       onLivePhotoHoldStartRef.current?.();
-    }, LIVE_PRESS_MS);
-  }, [clearLiveTimer]);
+    }, LIVE_PHOTO_LONG_PRESS_MS);
+  }, [clearLiveTimer, stageRef]);
 
   const onPointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     const gesture = gestureRef.current;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     if (liveHoldingRef.current) return;
 
+    if (performance.now() - gesture.startedAt < 80 && gesture.axis === "undecided") {
+      gesture.startX = event.clientX;
+      gesture.startY = event.clientY;
+      gesture.startTime = event.timeStamp;
+      return;
+    }
+
     const dx = event.clientX - gesture.startX;
     const dy = event.clientY - gesture.startY;
 
     if (gesture.axis === "undecided") {
-      if (Math.abs(dx) < AXIS_LOCK_PX && Math.abs(dy) < AXIS_LOCK_PX) return;
+      const distance = Math.hypot(dx, dy);
+      const livePending = liveTimerRef.current != null || liveHoldingRef.current;
+      const lockPx = livePending ? LIVE_PHOTO_MOVE_CANCEL_PX : AXIS_LOCK_PX;
+      if (distance < lockPx) return;
       clearLiveTimer();
+      pauseActiveLiveVideo();
       if (Math.abs(dx) > Math.abs(dy) && hasMultipleRef.current) {
         gesture.axis = "horizontal";
       } else {
         gesture.axis = "vertical";
+      }
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.setPointerCapture(event.pointerId);
       }
     }
 
@@ -334,7 +375,7 @@ export function useLightboxGestures({
 
     if (gesture.axis === "horizontal") applyHorizontal(dx);
     else if (gesture.axis === "vertical") applyVertical(dy);
-  }, [applyHorizontal, applyVertical, clearLiveTimer]);
+  }, [applyHorizontal, applyVertical, clearLiveTimer, pauseActiveLiveVideo]);
 
   const onPointerUp = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     endGesture(event);
