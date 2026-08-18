@@ -44,7 +44,7 @@ function useLivePhotoPlayback({
   playing: playingProp = false,
 }: {
   root: HTMLElement | null;
-  videoRef: RefObject<HTMLVideoElement | null>;
+  videoRef: RefObject<HTMLVideoElement>;
   videoSrc: string;
   enableHover?: boolean;
   enablePress?: boolean;
@@ -122,6 +122,8 @@ function useLivePhotoPlayback({
       root?.classList.remove("is-playing");
     });
   };
+  const syncPlaybackRef = useRef(syncPlayback);
+  syncPlaybackRef.current = syncPlayback;
 
   useEffect(() => {
     hoverRef.current = false;
@@ -130,7 +132,7 @@ function useLivePhotoPlayback({
     if (root && enabledRef.current && enableHoverRef.current && canHoverPlay() && root.matches(":hover")) {
       hoverRef.current = true;
     }
-    syncPlayback();
+    syncPlaybackRef.current();
   }, [root, videoSrc]);
 
   useEffect(() => {
@@ -142,7 +144,7 @@ function useLivePhotoPlayback({
     } else if (root && enableHoverRef.current && canHoverPlay() && root.matches(":hover")) {
       hoverRef.current = true;
     }
-    syncPlayback();
+    syncPlaybackRef.current();
   }, [enabled, playingProp, root]);
 
   useEffect(() => {
@@ -151,13 +153,13 @@ function useLivePhotoPlayback({
     const onMouseEnter = () => {
       if (!enabledRef.current || !enableHoverRef.current || !canHoverPlay()) return;
       hoverRef.current = true;
-      syncPlayback();
+      syncPlaybackRef.current();
     };
 
     const onMouseLeave = () => {
       if (!hoverRef.current) return;
       hoverRef.current = false;
-      syncPlayback();
+      syncPlaybackRef.current();
     };
 
     const onPointerDown = (event: PointerEvent) => {
@@ -173,7 +175,7 @@ function useLivePhotoPlayback({
         if (!pressPointRef.current) return;
         pressRef.current = true;
         suppressClickRef.current = true;
-        syncPlayback();
+        syncPlaybackRef.current();
       }, LIVE_PHOTO_LONG_PRESS_MS);
     };
 
@@ -187,7 +189,7 @@ function useLivePhotoPlayback({
       pressPointRef.current = null;
       if (pressRef.current) {
         pressRef.current = false;
-        syncPlayback();
+        syncPlaybackRef.current();
       }
     };
 
@@ -198,7 +200,7 @@ function useLivePhotoPlayback({
       pressPointRef.current = null;
       if (!pressRef.current) return;
       pressRef.current = false;
-      syncPlayback();
+      syncPlaybackRef.current();
     };
 
     const onClickCapture = (event: MouseEvent) => {
@@ -242,7 +244,7 @@ function LivePhotoOverlays({
   badgeSize,
   badgeStyle,
 }: {
-  videoRef: RefObject<HTMLVideoElement | null>;
+  videoRef: RefObject<HTMLVideoElement>;
   objectFit: "cover" | "contain";
   badgeSize: "sm" | "md";
   badgeStyle?: CSSProperties;
