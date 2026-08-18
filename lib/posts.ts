@@ -58,6 +58,9 @@ export interface Heading {
   level: 2 | 3;
 }
 
+const LIVE_PHOTO_BADGE_HTML =
+  '<span class="live-photo-badge-anchor"><span class="live-photo-badge" aria-hidden="true"><svg viewBox="0 0 24 24" class="live-photo-badge-icon" fill="none"><circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.6" /><circle cx="12" cy="12" r="3.1" fill="currentColor" /></svg><span class="live-photo-badge-label">LIVE</span></span></span>';
+
 function normalizeList(value: unknown): string[] {
   if (!value) return [];
   if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);
@@ -263,7 +266,7 @@ function renderMarkdown(
     const liveAttr = liveVideoSrc ? ` data-live-src="${escapeHtml(liveVideoSrc)}"` : "";
     const image = `<img src="${escapeHtml(displaySrc)}" alt="${alt}"${titleAttr} loading="lazy" data-full-src="${escapeHtml(originalSrc)}"${liveAttr}>`;
     if (!liveVideoSrc) return image;
-    return `<span class="live-photo" data-live-src="${escapeHtml(liveVideoSrc)}">${image}</span>`;
+    return `<span class="live-photo" data-live-src="${escapeHtml(liveVideoSrc)}">${image}${LIVE_PHOTO_BADGE_HTML}</span>`;
   };
 
   const html = marked.parse(content, { renderer }) as string;

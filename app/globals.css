@@ -91,20 +91,6 @@ button {
   position: relative;
   display: block;
   isolation: isolate;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-user-drag: none;
-}
-
-.live-photo img,
-.live-photo video {
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-user-drag: none;
 }
 
 .live-photo-fill {
