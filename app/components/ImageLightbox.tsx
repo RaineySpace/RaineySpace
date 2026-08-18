@@ -533,7 +533,7 @@ export default function ImageLightbox({
               if (!activeImage?.liveVideoSrc) return;
               const video = stageRef.current?.querySelector<HTMLVideoElement>(
                 '.image-lightbox-slide:not([aria-hidden="true"]) video.live-photo-video',
-              );
+              ) ?? null;
               unlockLiveVideo(video, activeImage.liveVideoSrc);
             }}
           >

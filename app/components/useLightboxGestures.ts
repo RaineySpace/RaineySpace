@@ -133,7 +133,7 @@ export function useLightboxGestures({
   const pauseActiveLiveVideo = useCallback(() => {
     const video = stageRef.current?.querySelector<HTMLVideoElement>(
       '.image-lightbox-slide:not([aria-hidden="true"]) video.live-photo-video',
-    );
+    ) ?? null;
     if (!video) return;
     video.pause();
     try {
@@ -326,7 +326,7 @@ export function useLightboxGestures({
     }
     const video = stageRef.current?.querySelector<HTMLVideoElement>(
       '.image-lightbox-slide:not([aria-hidden="true"]) video.live-photo-video',
-    );
+    ) ?? null;
     unlockLiveVideo(video, liveVideoSrcRef.current);
     clearLiveTimer();
     liveTimerRef.current = window.setTimeout(() => {

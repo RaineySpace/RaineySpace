@@ -163,15 +163,6 @@ function useLivePhotoPlayback({
   const syncPlaybackRef = useRef(syncPlayback);
   syncPlaybackRef.current = syncPlayback;
 
-  const endPress = () => {
-    const hadPress = pressRef.current || pressPointRef.current != null || pressTimerRef.current != null;
-    clearPressTimer();
-    pressPointRef.current = null;
-    if (!hadPress) return;
-    pressRef.current = false;
-    syncPlaybackRef.current();
-  };
-
   useEffect(() => {
     hoverRef.current = false;
     pressRef.current = false;
@@ -201,6 +192,15 @@ function useLivePhotoPlayback({
 
   useEffect(() => {
     if (!root) return;
+
+    const endPress = () => {
+      const hadPress = pressRef.current || pressPointRef.current != null || pressTimerRef.current != null;
+      clearPressTimer();
+      pressPointRef.current = null;
+      if (!hadPress) return;
+      pressRef.current = false;
+      syncPlaybackRef.current();
+    };
 
     const onMouseEnter = () => {
       if (!enabledRef.current || !enableHoverRef.current || !canHoverPlay()) return;
@@ -350,7 +350,6 @@ function LivePhotoOverlays({
         ref={videoRef}
         className={`live-photo-video is-${objectFit}`}
         muted
-        defaultMuted
         loop
         playsInline
         preload="auto"
