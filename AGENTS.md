@@ -47,6 +47,7 @@ Project posts reference a key from `content/projects.json` through `projectId`. 
 
 Local assets referenced by a post should live in the same post directory. Prefer relative paths such as `./image.png`.
 Photography images must use relative Markdown image paths with non-empty alt text.
+A sibling `.mov` / `.MOV` with the same filename as a still image enables Live Photo playback; Markdown should still reference only the still.
 
 ## Implementation Rules
 

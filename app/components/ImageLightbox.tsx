@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 import { useSheetGestures } from "@/app/components/useSheetGestures";
+import LivePhoto from "@/app/components/LivePhoto";
 
 export interface PreviewImage {
   id: string;
@@ -26,6 +27,7 @@ export interface PreviewImage {
   sourceHref?: string;
   sourceLabel?: string;
   sourceTitle?: string;
+  liveVideoSrc?: string;
 }
 
 interface ImageLightboxProps {
@@ -196,10 +198,12 @@ type SlideRole = "previous" | "current" | "next";
 function LightboxSlide({
   image,
   isActive,
+  livePlaying = false,
   onActiveSettled,
 }: {
   image: PreviewImage;
   isActive: boolean;
+  livePlaying?: boolean;
   onActiveSettled?: (src: string) => void;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
@@ -208,15 +212,24 @@ function LightboxSlide({
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [previewReady, setPreviewReady] = useState(false);
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | undefined>();
   const isReady = loadedSrc === image.src;
   const isError = failedSrc === image.src;
   const showSpinner = !isReady && !isError && !previewReady;
 
+  const markReady = (img: HTMLImageElement) => {
+    setLoadedSrc(image.src);
+    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+      setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
+    }
+  };
+
   useLayoutEffect(() => {
+    setNaturalSize(undefined);
     const img = imgRef.current;
     if (!img) return;
     if (img.complete && img.naturalWidth > 0) {
-      setLoadedSrc(image.src);
+      markReady(img);
       return;
     }
     if (img.complete) {
@@ -235,8 +248,8 @@ function LightboxSlide({
     if (isActive && (isReady || isError)) onActiveSettled?.(image.src);
   }, [image.src, isActive, isError, isReady, onActiveSettled]);
 
-  return (
-    <div className="image-lightbox-slide" aria-hidden={isActive ? undefined : true}>
+  const media = (
+    <>
       {showSpinner && <div className="image-lightbox-spinner" aria-hidden="true" />}
       {isError && <p className="image-lightbox-error">图片加载失败</p>}
       {previewSrc && (
@@ -258,9 +271,30 @@ function LightboxSlide({
         decoding="async"
         fetchPriority={isActive ? "high" : "low"}
         className={`is-full ${isReady ? "is-ready" : ""}`}
-        onLoad={() => setLoadedSrc(image.src)}
+        onLoad={(event) => markReady(event.currentTarget)}
         onError={() => setFailedSrc(image.src)}
       />
+    </>
+  );
+
+  return (
+    <div className="image-lightbox-slide" aria-hidden={isActive ? undefined : true}>
+      {image.liveVideoSrc ? (
+        <LivePhoto
+          videoSrc={image.liveVideoSrc}
+          fill
+          objectFit="contain"
+          enablePress={false}
+          enabled={isActive}
+          playing={isActive && livePlaying}
+          naturalWidth={naturalSize?.width}
+          naturalHeight={naturalSize?.height}
+        >
+          {media}
+        </LivePhoto>
+      ) : (
+        media
+      )}
     </div>
   );
 }
@@ -282,6 +316,7 @@ export default function ImageLightbox({
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [settledSrc, setSettledSrc] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [liveHold, setLiveHold] = useState(false);
   const isOpen = activeIndex !== null;
   const activeImage = activeIndex === null ? null : images[activeIndex];
   const hasMultipleImages = images.length > 1;
@@ -350,12 +385,15 @@ export default function ImageLightbox({
     isOpen,
     activeIndex,
     hasMultipleImages,
+    canLivePhoto: Boolean(activeImage?.liveVideoSrc),
     stageRef,
     trackRef,
     shellRef,
     onPrevious: showPrevious,
     onNext: showNext,
     onClose: closeLightbox,
+    onLivePhotoHoldStart: () => setLiveHold(true),
+    onLivePhotoHoldEnd: () => setLiveHold(false),
   });
 
   const sheetGestureHandlers = useSheetGestures({
@@ -493,6 +531,7 @@ export default function ImageLightbox({
                   key={duplicateAdjacent && role !== "current" ? `${image.id}-${role}` : image.id}
                   image={image}
                   isActive={role === "current"}
+                  livePlaying={role === "current" && liveHold}
                   onActiveSettled={role === "current" ? setSettledSrc : undefined}
                 />
               ))}

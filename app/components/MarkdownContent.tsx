@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import ImageLightbox, { type PreviewImage } from "@/app/components/ImageLightbox";
+import { AttachedLivePhoto } from "@/app/components/LivePhoto";
 
 interface ArticleImageMeta {
   src: string;
@@ -15,6 +16,7 @@ interface ArticleImageMeta {
   iso?: string;
   focalLength?: string;
   focalLength35mm?: string;
+  liveVideoSrc?: string;
 }
 
 interface MarkdownContentProps {
@@ -44,6 +46,7 @@ function previewFieldsFromPostImage(
   | "iso"
   | "focalLength"
   | "focalLength35mm"
+  | "liveVideoSrc"
 > {
   return {
     capturedAt: image?.capturedAt,
@@ -58,6 +61,7 @@ function previewFieldsFromPostImage(
     iso: image?.iso,
     focalLength: image?.focalLength,
     focalLength35mm: image?.focalLength35mm,
+    liveVideoSrc: image?.liveVideoSrc,
   };
 }
 
@@ -71,6 +75,13 @@ export default function MarkdownContent({
   const returnFocusIndexRef = useRef<number | null>(null);
   const [images, setImages] = useState<PreviewImage[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [livePhotos, setLivePhotos] = useState<Array<{ root: HTMLElement; videoSrc: string }>>([]);
+  const [livePhotoHtml, setLivePhotoHtml] = useState(html);
+
+  if (html !== livePhotoHtml) {
+    setLivePhotoHtml(html);
+    setLivePhotos([]);
+  }
 
   useLayoutEffect(() => {
     const content = contentRef.current;
@@ -87,17 +98,28 @@ export default function MarkdownContent({
       const alt = image.alt.trim() || `文章图片 ${index + 1}`;
       const displaySrc = image.currentSrc || image.getAttribute("src") || "";
       const fullSrc = image.getAttribute("data-full-src") || displaySrc;
+      const extras = extrasBySrc.get(fullSrc);
+      const liveVideoSrc = extras?.liveVideoSrc || image.getAttribute("data-live-src") || undefined;
       previewImages.push({
         id: `article-image-${index}-${fullSrc || "unknown"}`,
         src: fullSrc,
         displaySrc,
         alt,
-        ...previewFieldsFromPostImage(extrasBySrc.get(fullSrc), location, date),
+        ...previewFieldsFromPostImage(extras, location, date),
+        liveVideoSrc,
       });
     });
 
     setImages(previewImages.filter((image) => image.src));
     setActiveIndex(null);
+    setLivePhotos(
+      Array.from(content.querySelectorAll<HTMLElement>(".live-photo"))
+        .map((root) => ({
+          root,
+          videoSrc: root.dataset.liveSrc || root.querySelector("img")?.dataset.liveSrc || "",
+        }))
+        .filter((item) => item.videoSrc),
+    );
   }, [date, html, location, postImages]);
 
   useEffect(() => {
@@ -153,6 +175,9 @@ export default function MarkdownContent({
           }
         }}
       />
+      {livePhotos.map((item, index) => (
+        <AttachedLivePhoto key={`${item.videoSrc}-${index}`} root={item.root} videoSrc={item.videoSrc} />
+      ))}
       <ImageLightbox
         images={images}
         activeIndex={activeIndex}

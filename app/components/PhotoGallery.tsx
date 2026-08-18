@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
 import ImageLightbox, { type PreviewImage } from "@/app/components/ImageLightbox";
+import LivePhoto from "@/app/components/LivePhoto";
 import type { Photo } from "@/lib/photography";
 
 interface PhotoGalleryProps {
@@ -33,6 +34,7 @@ function toPreviewImage(photo: Photo): PreviewImage {
     sourceHref: `/${photo.sourceSlug}/`,
     sourceLabel: `查看图集《${photo.sourceTitle}》`,
     sourceTitle: photo.sourceTitle,
+    liveVideoSrc: photo.liveVideoSrc,
   };
 }
 
@@ -67,13 +69,30 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
               }
               aria-label={`查看大图：${photo.alt}`}
             >
-              <Image
-                src={photo.displaySrc}
-                alt={photo.alt}
-                fill
-                sizes={variant === "strip" ? "120px" : "(min-width: 640px) 200px, 50vw"}
-                className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-              />
+              {photo.liveVideoSrc ? (
+                <LivePhoto
+                  videoSrc={photo.liveVideoSrc}
+                  fill
+                  badgeSize="sm"
+                  className="transition-transform duration-200 group-hover:scale-[1.02]"
+                >
+                  <Image
+                    src={photo.displaySrc}
+                    alt={photo.alt}
+                    fill
+                    sizes={variant === "strip" ? "120px" : "(min-width: 640px) 200px, 50vw"}
+                    className="object-cover"
+                  />
+                </LivePhoto>
+              ) : (
+                <Image
+                  src={photo.displaySrc}
+                  alt={photo.alt}
+                  fill
+                  sizes={variant === "strip" ? "120px" : "(min-width: 640px) 200px, 50vw"}
+                  className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                />
+              )}
               {variant === "grid" && (
                 <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2 pb-2 pt-8 text-left text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
                   <span className="line-clamp-1 text-xs font-medium">{photo.alt}</span>

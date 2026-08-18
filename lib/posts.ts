@@ -49,6 +49,7 @@ export interface PostImage extends ImageExif {
   src: string;
   displaySrc: string;
   alt: string;
+  liveVideoSrc?: string;
 }
 
 export interface Heading {
@@ -119,12 +120,48 @@ function normalizeRelativeImagePath(value: string): string | null {
   return normalized;
 }
 
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function resolveLiveVideoSrc(
+  slug: string,
+  relativePath: string,
+): Promise<string | undefined> {
+  const parsed = path.posix.parse(relativePath);
+  const directory = path.join(process.cwd(), "public", slug, parsed.dir);
+  const seen = new Set<string>();
+
+  for (const extension of [".mov", ".MOV"]) {
+    const fileName = `${parsed.name}${extension}`;
+    if (seen.has(fileName)) continue;
+    seen.add(fileName);
+
+    if (await fileExists(path.join(directory, fileName))) {
+      const relativeVideo = parsed.dir ? path.posix.join(parsed.dir, fileName) : fileName;
+      return toOriginalSrc(slug, relativeVideo);
+    }
+  }
+
+  return undefined;
+}
+
 async function extractMarkdownImages(
   content: string,
   slug: string,
-): Promise<{ images: PostImage[]; displaySrcByRelativePath: Map<string, string> }> {
+): Promise<{
+  images: PostImage[];
+  displaySrcByRelativePath: Map<string, string>;
+  liveVideoSrcByRelativePath: Map<string, string>;
+}> {
   const images: PostImage[] = [];
   const displaySrcByRelativePath = new Map<string, string>();
+  const liveVideoSrcByRelativePath = new Map<string, string>();
   const seen = new Set<string>();
   const relativePaths: string[] = [];
   const alts = new Map<string, string>();
@@ -157,18 +194,21 @@ async function extractMarkdownImages(
   for (const relativePath of relativePaths) {
     const src = toOriginalSrc(slug, relativePath);
     const displaySrc = await resolveDisplaySrc(slug, relativePath);
+    const liveVideoSrc = await resolveLiveVideoSrc(slug, relativePath);
     const filePath = path.join(process.cwd(), 'public', slug, relativePath);
     displaySrcByRelativePath.set(relativePath, displaySrc);
+    if (liveVideoSrc) liveVideoSrcByRelativePath.set(relativePath, liveVideoSrc);
     images.push({
       id: `${slug}/${relativePath}`,
       src,
       displaySrc,
       alt: alts.get(relativePath) || '',
+      ...(liveVideoSrc ? { liveVideoSrc } : {}),
       ...(await readImageExif(filePath)),
     });
   }
 
-  return { images, displaySrcByRelativePath };
+  return { images, displaySrcByRelativePath, liveVideoSrcByRelativePath };
 }
 
 function createHeadingId(text: string, counts: Map<string, number>): string {
@@ -187,7 +227,11 @@ function createHeadingId(text: string, counts: Map<string, number>): string {
 
 function renderMarkdown(
   content: string,
-  options?: { slug: string; displaySrcByRelativePath: Map<string, string> },
+  options?: {
+    slug: string;
+    displaySrcByRelativePath: Map<string, string>;
+    liveVideoSrcByRelativePath?: Map<string, string>;
+  },
 ): { html: string; headings: Heading[] } {
   const headings: Heading[] = [];
   const counts = new Map<string, number>();
@@ -215,7 +259,11 @@ function renderMarkdown(
 
     const originalSrc = toOriginalSrc(options.slug, relativePath);
     const displaySrc = options.displaySrcByRelativePath.get(relativePath) || originalSrc;
-    return `<img src="${escapeHtml(displaySrc)}" alt="${alt}"${titleAttr} loading="lazy" data-full-src="${escapeHtml(originalSrc)}">`;
+    const liveVideoSrc = options.liveVideoSrcByRelativePath?.get(relativePath);
+    const liveAttr = liveVideoSrc ? ` data-live-src="${escapeHtml(liveVideoSrc)}"` : "";
+    const image = `<img src="${escapeHtml(displaySrc)}" alt="${alt}"${titleAttr} loading="lazy" data-full-src="${escapeHtml(originalSrc)}"${liveAttr}>`;
+    if (!liveVideoSrc) return image;
+    return `<span class="live-photo" data-live-src="${escapeHtml(liveVideoSrc)}">${image}</span>`;
   };
 
   const html = marked.parse(content, { renderer }) as string;
@@ -231,8 +279,11 @@ export async function getPostBySlug(slug: string): Promise<Post> {
   const fileContents = await fs.readFile(`./public/${slug}/index.md`, 'utf8');
   const { data, content } = matter(fileContents);
   const date = normalizeDate(data.date);
-  const { images, displaySrcByRelativePath } = await extractMarkdownImages(content, slug);
-  const rendered = renderMarkdown(content, { slug, displaySrcByRelativePath });
+  const { images, displaySrcByRelativePath, liveVideoSrcByRelativePath } = await extractMarkdownImages(
+    content,
+    slug,
+  );
+  const rendered = renderMarkdown(content, { slug, displaySrcByRelativePath, liveVideoSrcByRelativePath });
 
   return {
     title: data.title ? String(data.title) : slug,

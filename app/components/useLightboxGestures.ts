@@ -33,37 +33,53 @@ interface UseLightboxGesturesOptions {
   isOpen: boolean;
   activeIndex: number | null;
   hasMultipleImages: boolean;
+  canLivePhoto?: boolean;
   stageRef: RefObject<HTMLDivElement>;
   trackRef: RefObject<HTMLDivElement>;
   shellRef: RefObject<HTMLDivElement>;
   onPrevious: () => void;
   onNext: () => void;
   onClose: () => void;
+  onLivePhotoHoldStart?: () => void;
+  onLivePhotoHoldEnd?: () => void;
 }
+
+const LIVE_PRESS_MS = 280;
 
 export function useLightboxGestures({
   isOpen,
   activeIndex,
   hasMultipleImages,
+  canLivePhoto = false,
   stageRef,
   trackRef,
   shellRef,
   onPrevious,
   onNext,
   onClose,
+  onLivePhotoHoldStart,
+  onLivePhotoHoldEnd,
 }: UseLightboxGesturesOptions) {
   const gestureRef = useRef<GestureSession | null>(null);
   const settleTokenRef = useRef(0);
   const settlingRef = useRef(false);
+  const liveTimerRef = useRef<number | null>(null);
+  const liveHoldingRef = useRef(false);
   const hasMultipleRef = useRef(hasMultipleImages);
+  const canLivePhotoRef = useRef(canLivePhoto);
   const onPreviousRef = useRef(onPrevious);
   const onNextRef = useRef(onNext);
   const onCloseRef = useRef(onClose);
+  const onLivePhotoHoldStartRef = useRef(onLivePhotoHoldStart);
+  const onLivePhotoHoldEndRef = useRef(onLivePhotoHoldEnd);
 
   hasMultipleRef.current = hasMultipleImages;
+  canLivePhotoRef.current = canLivePhoto;
   onPreviousRef.current = onPrevious;
   onNextRef.current = onNext;
   onCloseRef.current = onClose;
+  onLivePhotoHoldStartRef.current = onLivePhotoHoldStart;
+  onLivePhotoHoldEndRef.current = onLivePhotoHoldEnd;
 
   const resetTrack = useCallback((withTransition = false) => {
     const track = trackRef.current;
@@ -104,37 +120,56 @@ export function useLightboxGestures({
     shell.style.opacity = String(Math.max(0.4, 1 - y / 420));
   }, [shellRef]);
 
+  const clearLiveTimer = useCallback(() => {
+    if (liveTimerRef.current == null) return;
+    window.clearTimeout(liveTimerRef.current);
+    liveTimerRef.current = null;
+  }, []);
+
+  const endLiveHold = useCallback(() => {
+    clearLiveTimer();
+    if (!liveHoldingRef.current) return;
+    liveHoldingRef.current = false;
+    onLivePhotoHoldEndRef.current?.();
+  }, [clearLiveTimer]);
+
   useLayoutEffect(() => {
+    endLiveHold();
     if (!isOpen) return;
     settleTokenRef.current += 1;
     settlingRef.current = false;
     resetTrack();
     resetShell();
-  }, [activeIndex, isOpen, resetShell, resetTrack]);
+  }, [activeIndex, endLiveHold, isOpen, resetShell, resetTrack]);
 
   useEffect(() => {
     if (!isOpen) {
       settleTokenRef.current += 1;
       settlingRef.current = false;
       gestureRef.current = null;
+      endLiveHold();
       return;
     }
     const stage = stageRef.current;
     const frame = requestAnimationFrame(() => resetTrack());
     if (!stage || typeof ResizeObserver === "undefined") {
-      return () => cancelAnimationFrame(frame);
+      return () => {
+        cancelAnimationFrame(frame);
+        endLiveHold();
+      };
     }
 
     const observer = new ResizeObserver(() => {
-      if (gestureRef.current || settlingRef.current) return;
+      if (gestureRef.current || settlingRef.current || liveHoldingRef.current) return;
       resetTrack();
     });
     observer.observe(stage);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      endLiveHold();
     };
-  }, [isOpen, resetTrack, stageRef]);
+  }, [endLiveHold, isOpen, resetTrack, stageRef]);
 
   const settleHorizontal = useCallback((direction: -1 | 0 | 1) => {
     const track = trackRef.current;
@@ -224,6 +259,10 @@ export function useLightboxGestures({
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
+    const wasLiveHold = liveHoldingRef.current;
+    endLiveHold();
+    if (wasLiveHold) return;
+
     const dx = event.clientX - gesture.startX;
     const dy = event.clientY - gesture.startY;
     const duration = Math.max(event.timeStamp - gesture.startTime, 1);
@@ -245,7 +284,7 @@ export function useLightboxGestures({
       const flicked = dy > VERTICAL_FLICK_PX && velocityY > VELOCITY_PX_MS;
       settleVertical(passedDistance || flicked);
     }
-  }, [settleHorizontal, settleVertical, stageRef]);
+  }, [endLiveHold, settleHorizontal, settleVertical, stageRef]);
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
@@ -260,17 +299,30 @@ export function useLightboxGestures({
       startTime: event.timeStamp,
       axis: "undecided",
     };
-  }, []);
+
+    if (!canLivePhotoRef.current) return;
+    clearLiveTimer();
+    liveTimerRef.current = window.setTimeout(() => {
+      liveTimerRef.current = null;
+      const gesture = gestureRef.current;
+      if (!gesture || event.pointerId !== gesture.pointerId) return;
+      if (gesture.axis !== "undecided") return;
+      liveHoldingRef.current = true;
+      onLivePhotoHoldStartRef.current?.();
+    }, LIVE_PRESS_MS);
+  }, [clearLiveTimer]);
 
   const onPointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     const gesture = gestureRef.current;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
+    if (liveHoldingRef.current) return;
 
     const dx = event.clientX - gesture.startX;
     const dy = event.clientY - gesture.startY;
 
     if (gesture.axis === "undecided") {
       if (Math.abs(dx) < AXIS_LOCK_PX && Math.abs(dy) < AXIS_LOCK_PX) return;
+      clearLiveTimer();
       if (Math.abs(dx) > Math.abs(dy) && hasMultipleRef.current) {
         gesture.axis = "horizontal";
       } else {
@@ -282,7 +334,7 @@ export function useLightboxGestures({
 
     if (gesture.axis === "horizontal") applyHorizontal(dx);
     else if (gesture.axis === "vertical") applyVertical(dy);
-  }, [applyHorizontal, applyVertical]);
+  }, [applyHorizontal, applyVertical, clearLiveTimer]);
 
   const onPointerUp = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     endGesture(event);
@@ -292,12 +344,13 @@ export function useLightboxGestures({
     const gesture = gestureRef.current;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     gestureRef.current = null;
+    endLiveHold();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
     resetTrack(true);
     resetShell(true);
-  }, [resetShell, resetTrack]);
+  }, [endLiveHold, resetShell, resetTrack]);
 
   return {
     onPointerDown,

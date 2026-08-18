@@ -186,6 +186,18 @@ body {
   background: var(--color-surface-muted);
 }
 
+.markdown .live-photo {
+  width: fit-content;
+  max-width: 100%;
+  margin: 18px auto;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.markdown .live-photo img {
+  margin: 0;
+}
+
 .markdown img[data-image-preview="true"] {
   cursor: pointer;
 }

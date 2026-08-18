@@ -132,6 +132,29 @@ function extractImageTokens(content) {
   return images;
 }
 
+function assetStem(relativePath) {
+  const parsed = path.posix.parse(relativePath);
+  return path.posix.join(parsed.dir, parsed.name).replace(/^\//, "");
+}
+
+async function collectMovFiles(dir, base = "") {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    if (entry.name.startsWith(".")) continue;
+    if (entry.isDirectory()) {
+      files.push(...(await collectMovFiles(path.join(dir, entry.name), path.posix.join(base, entry.name))));
+      continue;
+    }
+    if (entry.isFile() && path.extname(entry.name).toLowerCase() === ".mov") {
+      files.push(base ? path.posix.join(base, entry.name) : entry.name);
+    }
+  }
+
+  return files;
+}
+
 async function exists(filePath) {
   try {
     await fs.access(filePath);
@@ -306,6 +329,7 @@ async function main() {
     const imageTokens = extractImageTokens(content);
     const validPhotographyImages = [];
     const seenPhotographyImages = new Set();
+    const imageStems = new Set();
 
     for (const image of imageTokens) {
       const relativePath = normalizeRelativeImagePath(image.href);
@@ -317,6 +341,7 @@ async function main() {
       }
 
       const imagePath = path.join(postDir, relativePath);
+      imageStems.add(assetStem(relativePath));
       const imageExists = await exists(imagePath);
       if (!imageExists) {
         const message = `${slug}: missing image asset ${image.href}`;
@@ -333,6 +358,12 @@ async function main() {
         if (exifExtensions.has(extension) && !(await hasCaptureTime(imagePath))) {
           warnings.push(`${slug}: photography image is missing EXIF capture time: ${image.href}`);
         }
+      }
+    }
+
+    for (const mov of await collectMovFiles(postDir)) {
+      if (!imageStems.has(assetStem(mov))) {
+        warnings.push(`${slug}: Live Photo video has no matching Markdown image: ${mov}`);
       }
     }
 
