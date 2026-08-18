@@ -229,7 +229,8 @@ function LightboxSlide({
     const img = imgRef.current;
     if (!img) return;
     if (img.complete && img.naturalWidth > 0) {
-      markReady(img);
+      setLoadedSrc(image.src);
+      setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
       return;
     }
     if (img.complete) {
