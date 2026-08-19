@@ -284,7 +284,6 @@ function LightboxSlide({
           fill
           objectFit="contain"
           playOnce={isActive}
-          hoverLoop={isActive}
           naturalWidth={naturalSize?.width}
           naturalHeight={naturalSize?.height}
         >
