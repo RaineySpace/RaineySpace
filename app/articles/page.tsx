@@ -15,7 +15,7 @@ export default async function ArticlesPage() {
       <header className="mb-8">
         <h1 className="text-[28px] font-black leading-none text-[--title]">文章</h1>
         <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-          共 {posts.length} 篇，按日期从新到旧排列。
+          记录一些生活日常与技术分享或者一些不成熟的想法。
         </p>
       </header>
       <div className="flex flex-col gap-8">
