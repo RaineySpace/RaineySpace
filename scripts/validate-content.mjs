@@ -16,7 +16,6 @@ const deprecatedProjectFields = [
   "projectName",
   "projectDescription",
   "projectCover",
-  "sourceUrl",
 ];
 const allowedProjectFields = new Set([
   "name",
@@ -24,7 +23,6 @@ const allowedProjectFields = new Set([
   "date",
   "description",
   "cover",
-  "sourceUrl",
   "pinned",
 ]);
 
@@ -226,13 +224,11 @@ async function validateProjectRegistry(errors) {
       }
     }
 
-    for (const field of ["description", "sourceUrl"]) {
-      if (definition[field] !== undefined && (typeof definition[field] !== "string" || !definition[field].trim())) {
-        errors.push(`${prefix}: "${field}" must be a non-empty string when provided`);
-      }
-    }
-    if (definition.sourceUrl !== undefined && !isHttpUrl(definition.sourceUrl)) {
-      errors.push(`${prefix}: invalid sourceUrl "${definition.sourceUrl}"`);
+    if (
+      definition.description !== undefined &&
+      (typeof definition.description !== "string" || !definition.description.trim())
+    ) {
+      errors.push(`${prefix}: "description" must be a non-empty string when provided`);
     }
 
     if (definition.cover !== undefined) {

@@ -15,7 +15,7 @@ The GitHub profile `README.md` is not project documentation. Do not edit `README
 - `app/sitemap.xml/route.ts` and `app/robots.txt/route.ts` generate SEO metadata files.
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
 - `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, public-post filtering, and feed data behavior centralized there.
-- `content/projects.json` is the canonical registry for project names, links, dates, descriptions, covers, source links, and pinning.
+- `content/projects.json` is the canonical registry for project names, links, dates, descriptions, covers, and pinning.
 - `public/<slug>/index.md` is the source format for posts.
 - `scripts/` contains local maintenance scripts.
 

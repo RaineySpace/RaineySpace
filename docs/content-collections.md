@@ -54,14 +54,13 @@ projectId: example-project
     "date": "2026-08-13",
     "description": "项目解决的问题或用途",
     "cover": "/assets/projects/example-project.webp",
-    "sourceUrl": "https://github.com/example/repo",
     "pinned": false
   }
 }
 ```
 
 - `name`、`url`、`date` 必填。`date` 是项目自身日期，格式为 `YYYY-MM-DD`，与关联文章日期相互独立。
-- `description`、`cover`、`sourceUrl`、`pinned` 可省略。
+- `description`、`cover`、`pinned` 可省略。
 - `cover` 可以是 HTTPS 图片，也可以是指向 `public/` 中文件的站点绝对路径。未设置时卡片使用项目名称首字符生成渐变字标。
 - 每个注册项目至少需要被一篇文章引用；规范化后相同的项目网址不能注册为多个项目。
 

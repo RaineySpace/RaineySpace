@@ -7,7 +7,6 @@ interface ProjectDefinition {
   date: string;
   description?: string;
   cover?: string;
-  sourceUrl?: string;
   pinned?: boolean;
 }
 
@@ -19,7 +18,6 @@ export interface Project {
   url: string;
   description?: string;
   cover?: string;
-  sourceUrl?: string;
   pinned: boolean;
   date: Date | null;
   dateText: string;
@@ -39,7 +37,6 @@ function toProject(id: string, definition: ProjectDefinition): Project {
     url: definition.url,
     description: definition.description || undefined,
     cover: definition.cover || undefined,
-    sourceUrl: definition.sourceUrl || undefined,
     pinned: definition.pinned || false,
     date,
     dateText: formatDate(date),
