@@ -15,7 +15,7 @@ export default function ProjectCard({
 }: ProjectCardProps) {
   const Heading = headingLevel;
   return (
-    <article className="group relative cursor-pointer rounded-lg border border-gray-200 px-3 py-3 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.04]">
+    <article className="group relative cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-3 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:bg-white dark:hover:bg-gray-50">
       <a
         href={project.url}
         target="_blank"
