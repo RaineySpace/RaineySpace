@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --bg: white;
+  --bg: #FCFAF8;
   --text: black;
   --title: black;
   --lightLink: lab(63 59.3 -1.5);
@@ -23,6 +23,7 @@
 html {
   scroll-behavior: smooth;
   color-scheme: light dark;
+  background-color: var(--bg);
 }
 
 body {
