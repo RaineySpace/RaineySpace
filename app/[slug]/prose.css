@@ -256,22 +256,14 @@ body {
   text-underline-offset: 0.18em;
 }
 
-/* 文字链接后显示斜向上箭头，提示可点击；图片链接不加图标。 */
-.markdown a:not(:has(img))::after {
-  content: "";
-  display: inline-block;
-  width: 0.72em;
-  height: 0.72em;
-  margin-left: 0.18em;
-  vertical-align: 0.16em;
-  background-color: currentColor;
-  pointer-events: none;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M4.5 11.5 11.5 4.5M7 4.5h4.5V9'/%3E%3C/svg%3E");
-  mask-repeat: no-repeat;
-  mask-size: contain;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M4.5 11.5 11.5 4.5M7 4.5h4.5V9'/%3E%3C/svg%3E");
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
+/*
+ * 文字链接后显示斜向上箭头。箭头作为字符排进正文，
+ * 紧挨文字、使用正常字距；若链接包在 strong 高亮里，则画在高亮背景内。
+ * 图片链接不加图标。
+ */
+.markdown a:not(:has(img)):not(:has(> strong:last-child))::after,
+.markdown a:not(:has(img)) > strong:last-child::after {
+  content: "↗";
 }
 
 .markdown a img {
