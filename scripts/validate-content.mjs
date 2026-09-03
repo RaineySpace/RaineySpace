@@ -317,9 +317,13 @@ async function main() {
     if (data.location !== undefined && typeof data.location !== "string") {
       errors.push(`${slug}: frontmatter "location" must be a string`);
     }
-    if (data.cover && isLocalReference(String(data.cover))) {
-      const coverPath = path.resolve(postDir, String(data.cover));
-      if (!(await exists(coverPath))) warnings.push(`${slug}: missing cover asset ${data.cover}`);
+    if (data.cover !== undefined) {
+      if (typeof data.cover !== "string" || !data.cover.trim()) {
+        errors.push(`${slug}: frontmatter "cover" must be a non-empty string when provided`);
+      } else if (isLocalReference(data.cover)) {
+        const coverPath = path.resolve(postDir, data.cover);
+        if (!(await exists(coverPath))) warnings.push(`${slug}: missing cover asset ${data.cover}`);
+      }
     }
 
     const imageTokens = extractImageTokens(content);

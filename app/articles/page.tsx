@@ -18,7 +18,7 @@ export default async function ArticlesPage() {
           记录一些生活日常与技术分享或者一些不成熟的想法。
         </p>
       </header>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
         {posts.map((post) => (
           <PostCard key={post.slug} post={post} />
         ))}

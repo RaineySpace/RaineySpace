@@ -90,10 +90,12 @@ async function collectPostImages() {
     if (!(await exists(markdownPath))) continue;
 
     const fileContents = await fs.readFile(markdownPath, "utf8");
-    const { content } = matter(fileContents);
+    const { data, content } = matter(fileContents);
     const seen = new Set();
+    const hrefs = extractImageTokens(content);
+    if (data.cover) hrefs.unshift(String(data.cover));
 
-    for (const href of extractImageTokens(content)) {
+    for (const href of hrefs) {
       const relativePath = normalizeRelativeImagePath(href);
       if (!relativePath || seen.has(relativePath) || !isRasterImagePath(relativePath)) continue;
       seen.add(relativePath);
