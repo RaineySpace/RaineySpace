@@ -42,7 +42,7 @@ projectId: example-project
 cover: ./cover.webp
 ```
 
-`cover` is optional. Prefer a local file in the post directory with a relative path such as `./cover.webp`. Posts without `cover` keep the original title-first layout. When present, the cover renders above the title on article pages and article cards.
+`cover` is optional. Prefer a local file in the post directory with a relative path such as `./cover.webp`. When present, the cover renders above the title on the article page only; article lists never show covers. Posts without `cover` keep the original title-first layout and must not use body images as a fallback cover.
 
 Use `hidden: true` for pages that should remain directly accessible but excluded from article listings, feeds, and sitemap. It does not hide content marked for photography or associated with a registered project.
 

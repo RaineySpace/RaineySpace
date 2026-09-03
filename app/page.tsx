@@ -22,7 +22,7 @@ export default async function Home() {
       </section>
 
       <HomeSection id="articles" title="文章" href="/articles" linkLabel="全部文章">
-        <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-8">
           {posts.slice(0, 3).map((post) => (
             <PostCard key={post.slug} post={post} />
           ))}

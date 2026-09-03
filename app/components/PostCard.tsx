@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Post } from "@/lib/posts";
-import PostCover from "./PostCover";
 
 interface PostCardProps {
   post: Post;
@@ -10,14 +9,11 @@ export default function PostCard({ post }: PostCardProps) {
   return (
     <Link
       href={`/${post.slug}`}
-      className="block scale-100 py-1 will-change-transform hover:scale-[1.005] active:scale-100"
+      className="block scale-100 py-4 will-change-transform hover:scale-[1.005] active:scale-100"
       style={{ opacity: 1, transition: "transform 0.2s ease-in-out, opacity 0.2s 0.4s linear" }}
     >
       <article>
-        {post.coverDisplaySrc ? (
-          <PostCover src={post.coverDisplaySrc} className="mb-4" />
-        ) : null}
-        <h2 className="mb-2 text-[26px] font-black leading-[1.22] text-[--lightLink] dark:text-[--darkLink]">
+        <h2 className="mb-2 text-[28px] font-black leading-[1.22] text-[--lightLink] dark:text-[--darkLink]">
           {post.title}
         </h2>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-gray-700 dark:text-gray-300">

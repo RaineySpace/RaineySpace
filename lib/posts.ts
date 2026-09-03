@@ -144,6 +144,7 @@ async function resolveCover(
   slug: string,
   raw: unknown,
 ): Promise<{ cover: string; coverDisplaySrc: string }> {
+  // Cover comes only from explicit frontmatter. Never fall back to body images.
   const value = raw ? String(raw).trim() : "";
   if (!value) return { cover: "", coverDisplaySrc: "" };
 
