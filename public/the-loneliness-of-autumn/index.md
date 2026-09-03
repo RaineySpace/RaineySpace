@@ -2,6 +2,7 @@
 title: 孤独的秋天
 date: 2020-02-09
 summary: 在与冬天的相遇中，完成从告别到共同走向希望与新生的过渡
+cover: ./cover.webp
 tags:
   - 诗歌
 ---

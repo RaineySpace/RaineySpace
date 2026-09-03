@@ -5,6 +5,7 @@ import "highlight.js/styles/github-dark.css";
 import * as config from '@/lib/config';
 import TableOfContents from './TableOfContents';
 import MarkdownContent from '@/app/components/MarkdownContent';
+import PostCover from '@/app/components/PostCover';
 import ProjectCard from '@/app/components/ProjectCard';
 import { getProjectById } from '@/lib/projects';
 
@@ -31,6 +32,7 @@ export async function generateMetadata({
       publishedTime: post.date?.toISOString(),
       authors: [config.author],
       tags: post.tags,
+      images: post.cover || config.avatar,
     },
     twitter: {
       card: "summary_large_image",
@@ -58,11 +60,14 @@ export default async function PostPage({
     <div className="relative">
       <TableOfContents headings={post.headings} />
       <article className="markdown">
-        {(post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary) && (
-          <header>
+        {(post.coverDisplaySrc || post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary) && (
+          <header className="article-header">
+            {post.coverDisplaySrc ? (
+              <PostCover src={post.coverDisplaySrc} priority className="article-cover" />
+            ) : null}
             {post.showTitle && <h1>{post.title}</h1>}
             {(post.date || post.location || post.tags.length > 0) && (
-              <div className="flex items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300">
+              <div className="article-meta flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-gray-700 dark:text-gray-300">
                 {post.date && <time dateTime={post.date.toISOString()}>{post.dateText}</time>}
                 {post.location && <span>{post.location}</span>}
                 {post.tags.map((tag) => (
@@ -73,7 +78,7 @@ export default async function PostPage({
               </div>
             )}
             {post.summary && (
-              <p className="rounded-md bg-gray-100 px-4 py-2 text-[13px] text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              <p className="article-summary">
                 {post.summary}
               </p>
             )}

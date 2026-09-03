@@ -15,6 +15,7 @@ hidden: false
 pinned: false
 photography: false
 projectId: example-project
+cover: ./cover.webp
 ---
 ```
 
@@ -22,6 +23,7 @@ projectId: example-project
 - `pinned: true` 会在文章和摄影列表中置顶；项目是否置顶由项目注册表控制。
 - `hidden: true` 只从首页文章、文章列表、RSS/Atom 和 sitemap 隐藏，详情页仍可访问。
 - `photography: true` 和 `projectId` 不受 `hidden` 影响，可以同时使用。
+- `cover` 可选。建议使用文章目录内的相对路径，例如 `./cover.webp`。有封面时只在文章详情页显示在标题上方，文章列表不展示封面。没有 `cover` 时保持原来的标题开头排版，不会用正文图片递补为封面。
 
 ## 添加摄影图集
 

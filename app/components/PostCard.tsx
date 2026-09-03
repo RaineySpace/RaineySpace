@@ -13,12 +13,10 @@ export default function PostCard({ post }: PostCardProps) {
       style={{ opacity: 1, transition: "transform 0.2s ease-in-out, opacity 0.2s 0.4s linear" }}
     >
       <article>
-        <h2
-          className="mb-2 text-[28px] font-black leading-none text-[--lightLink] dark:text-[--darkLink]"
-        >
+        <h2 className="mb-2 text-[28px] font-black leading-[1.22] text-[--lightLink] dark:text-[--darkLink]">
           {post.title}
         </h2>
-        <div className="flex flex-wrap items-center gap-2 text-[13px] text-gray-700 dark:text-gray-300">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-gray-700 dark:text-gray-300">
           {post.date && <time dateTime={post.date.toISOString()}>{post.dateText}</time>}
           {post.tags.map((tag) => (
             <span
@@ -29,7 +27,11 @@ export default function PostCard({ post }: PostCardProps) {
             </span>
           ))}
         </div>
-        <p className="mt-1 text-gray-700 dark:text-gray-300">{post.summary}</p>
+        {post.summary ? (
+          <p className="mt-2 text-[15px] leading-relaxed text-gray-700 dark:text-gray-300">
+            {post.summary}
+          </p>
+        ) : null}
       </article>
     </Link>
   );

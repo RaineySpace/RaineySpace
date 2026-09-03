@@ -32,6 +32,7 @@ export interface Post {
   summary: string;
   slug: string;
   cover: string;
+  coverDisplaySrc: string;
   tags: string[];
   keywords: string[];
   location: string;
@@ -130,6 +131,44 @@ async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export function toAbsoluteUrl(src: string): string {
+  if (!src) return "";
+  if (/^https?:\/\//i.test(src)) return src;
+  const pathname = src.startsWith("/") ? src : `/${src}`;
+  return `${config.siteUrl}${pathname}`;
+}
+
+async function resolveCover(
+  slug: string,
+  raw: unknown,
+): Promise<{ cover: string; coverDisplaySrc: string }> {
+  // Cover comes only from explicit frontmatter. Never fall back to body images.
+  const value = raw ? String(raw).trim() : "";
+  if (!value) return { cover: "", coverDisplaySrc: "" };
+
+  if (/^https?:\/\//i.test(value)) {
+    return { cover: value, coverDisplaySrc: value };
+  }
+
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    return { cover: value, coverDisplaySrc: value };
+  }
+
+  const relativePath = normalizeRelativeImagePath(value);
+  if (!relativePath) return { cover: "", coverDisplaySrc: "" };
+
+  const filePath = path.join(process.cwd(), "public", slug, relativePath);
+  if (!(await fileExists(filePath))) {
+    return { cover: "", coverDisplaySrc: "" };
+  }
+
+  const cover = toOriginalSrc(slug, relativePath);
+  return {
+    cover,
+    coverDisplaySrc: await resolveDisplaySrc(slug, relativePath),
+  };
 }
 
 export async function resolveLiveVideoSrc(
@@ -287,6 +326,7 @@ export async function getPostBySlug(slug: string): Promise<Post> {
     slug,
   );
   const rendered = renderMarkdown(content, { slug, displaySrcByRelativePath, liveVideoSrcByRelativePath });
+  const { cover, coverDisplaySrc } = await resolveCover(slug, data.cover);
 
   return {
     title: data.title ? String(data.title) : slug,
@@ -295,7 +335,8 @@ export async function getPostBySlug(slug: string): Promise<Post> {
     dateText: formatDate(date),
     summary: data.summary ? String(data.summary) : '',
     slug,
-    cover: data.cover ? String(data.cover) : '',
+    cover,
+    coverDisplaySrc,
     tags: normalizeList(data.tags),
     keywords: normalizeList(data.keywords),
     location: data.location ? String(data.location) : '',
@@ -363,6 +404,7 @@ export async function generateFeed() {
       description: post.summary || stripHtml(post.content).substring(0, 200) + '...',
       content: post.content,
       id: `${config.siteUrl}/${post.slug}/`,
+      image: post.cover ? toAbsoluteUrl(post.cover) : undefined,
       link: `${config.siteUrl}/${post.slug}/`,
       title: post.title,
     });
