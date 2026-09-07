@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import PostCard from "@/app/components/PostCard";
-import { getPublicPosts } from "@/lib/posts";
+import { getPostTagCounts, getPublicPosts } from "@/lib/posts";
+import ArticleList, { ArticleListContent } from "./ArticleList";
 
 export const metadata: Metadata = {
   title: "文章 - Rainey's Blog",
@@ -9,6 +11,12 @@ export const metadata: Metadata = {
 
 export default async function ArticlesPage() {
   const posts = await getPublicPosts();
+  const tagCounts = getPostTagCounts(posts);
+  const articles = posts.map((post) => ({
+    slug: post.slug,
+    tags: post.tags,
+    card: <PostCard post={post} />,
+  }));
 
   return (
     <div className="relative -top-2.5">
@@ -18,11 +26,9 @@ export default async function ArticlesPage() {
           记录一些生活日常与技术分享或者一些不成熟的想法。
         </p>
       </header>
-      <div className="flex flex-col gap-8">
-        {posts.map((post) => (
-          <PostCard key={post.slug} post={post} />
-        ))}
-      </div>
+      <Suspense fallback={<ArticleListContent posts={articles} tagCounts={tagCounts} />}>
+        <ArticleList posts={articles} tagCounts={tagCounts} />
+      </Suspense>
     </div>
   );
 }

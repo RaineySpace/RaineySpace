@@ -45,6 +45,11 @@ export interface Post {
   headings: Heading[];
 }
 
+export interface PostTagCount {
+  tag: string;
+  count: number;
+}
+
 export interface PostImage extends ImageExif {
   id: string;
   src: string;
@@ -374,6 +379,21 @@ export async function getPosts(): Promise<Post[]> {
 
 export async function getPublicPosts(): Promise<Post[]> {
   return (await getPosts()).filter((post) => !post.hidden);
+}
+
+export function getPostTagCounts(posts: readonly Pick<Post, 'tags' | 'hidden'>[]): PostTagCount[] {
+  const counts = new Map<string, number>();
+
+  for (const post of posts) {
+    if (post.hidden) continue;
+    for (const tag of new Set(post.tags)) {
+      counts.set(tag, (counts.get(tag) || 0) + 1);
+    }
+  }
+
+  return Array.from(counts, ([tag, count]) => ({ tag, count })).sort(
+    (a, b) => b.count - a.count || a.tag.localeCompare(b.tag, 'zh-CN'),
+  );
 }
 
 export async function generateFeed() {
