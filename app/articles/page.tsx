@@ -19,10 +19,10 @@ export default async function ArticlesPage() {
   }));
 
   return (
-    <div className="relative -top-2.5">
-      <header className="mb-8">
-        <h1 className="text-[28px] font-black leading-none text-[--title]">文章</h1>
-        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+    <div className="page-content">
+      <header className="mb-3">
+        <h1 className="page-title">文章</h1>
+        <p className="page-description">
           记录一些生活日常与技术分享或者一些不成熟的想法。
         </p>
       </header>

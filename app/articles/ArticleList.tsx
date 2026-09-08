@@ -15,10 +15,10 @@ interface ArticleListContentProps extends ArticleListProps {
 }
 
 function tagButtonClassName(active: boolean) {
-  return `inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--lightLink] dark:focus-visible:outline-[--darkLink] ${
+  return `inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--lightLink] dark:focus-visible:outline-[--darkLink] ${
     active
-      ? "border-[--lightLink] bg-pink-50 font-medium text-[--lightLink] dark:border-[--darkLink] dark:bg-pink-950 dark:text-[--darkLink]"
-      : "border-transparent bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+      ? "border-[--title] bg-[--surface-muted] font-medium text-[--title]"
+      : "border-transparent bg-[--surface-muted] text-[--secondary] hover:border-[--border]"
   }`;
 }
 
@@ -108,7 +108,7 @@ function ArticleTagFilter({
         ))}
         <span className={tagButtonClassName(false)}><ToggleTagsIcon /></span>
       </div>
-      <div className={`flex gap-2 ${expanded ? "flex-wrap" : `h-9 ${visibleCount === null ? "overflow-hidden" : ""}`}`}>
+      <div className={`flex gap-2 ${expanded ? "flex-wrap" : `h-7 ${visibleCount === null ? "overflow-hidden" : ""}`}`}>
         {visibleTags.map(({ tag, count }) => (
           <button
             key={tag}

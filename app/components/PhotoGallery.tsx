@@ -65,7 +65,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
               className={
                 variant === "strip"
                   ? `group photo-strip-item cursor-pointer ${rotations[index % rotations.length]}`
-                  : "group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-md bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--lightLink] dark:bg-gray-800 dark:focus-visible:ring-[--darkLink]"
+                  : "group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-lg bg-[--surface-muted] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--lightLink] dark:focus-visible:ring-[--darkLink]"
               }
               aria-label={`查看大图：${photo.alt}`}
             >
@@ -96,7 +96,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
                 <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2 pb-2 pt-8 text-left text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
                   <span className="line-clamp-1 text-xs font-medium">{photo.alt}</span>
                   {overlayMeta && (
-                    <span className="mt-0.5 block line-clamp-1 text-[11px] text-white/80">{overlayMeta}</span>
+                    <span className="mt-0.5 block line-clamp-1 text-xs text-white/80">{overlayMeta}</span>
                   )}
                 </span>
               )}

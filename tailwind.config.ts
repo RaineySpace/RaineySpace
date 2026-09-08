@@ -7,10 +7,6 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      colors: {
-        'lab-light': 'lab(63.003 59.322 -1.465)',
-        'lab-dark': 'lab(81 32.361 -7.017)',
-      },
       typography: {
         DEFAULT: {
           css: {

@@ -11,10 +11,10 @@ export default async function ProjectsPage() {
   const projects = await getProjects();
 
   return (
-    <div className="relative -top-2.5">
-      <header className="mb-8">
-        <h1 className="text-[28px] font-black leading-none text-[--title]">项目</h1>
-        <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+    <div className="page-content">
+      <header className="mb-3">
+        <h1 className="page-title">项目</h1>
+        <p className="page-description">
           做过的一些产品、工具与个人实验。
         </p>
       </header>

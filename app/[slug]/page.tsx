@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getPostBySlug, getPosts } from '@/lib/posts';
 import "./prose.css";
-import "highlight.js/styles/github-dark.css";
+import "./syntax.css";
 import * as config from '@/lib/config';
 import TableOfContents from './TableOfContents';
 import MarkdownContent from '@/app/components/MarkdownContent';
@@ -62,16 +62,13 @@ export default async function PostPage({
       <article className="markdown">
         {(post.coverDisplaySrc || post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary) && (
           <header className="article-header">
-            {post.coverDisplaySrc ? (
-              <PostCover src={post.coverDisplaySrc} priority className="article-cover" />
-            ) : null}
             {post.showTitle && <h1>{post.title}</h1>}
             {(post.date || post.location || post.tags.length > 0) && (
-              <div className="article-meta flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-gray-700 dark:text-gray-300">
+              <div className="article-meta flex flex-wrap items-center gap-x-2 gap-y-1 meta">
                 {post.date && <time dateTime={post.date.toISOString()}>{post.dateText}</time>}
                 {post.location && <span>{post.location}</span>}
                 {post.tags.map((tag) => (
-                  <span key={tag} className="inline-block rounded-md bg-gray-100 px-2 py-1 text-[10px] text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                  <span key={tag} className="tag">
                     {tag}
                   </span>
                 ))}
@@ -82,6 +79,9 @@ export default async function PostPage({
                 {post.summary}
               </p>
             )}
+            {post.coverDisplaySrc ? (
+              <PostCover src={post.coverDisplaySrc} priority className="article-cover" />
+            ) : null}
           </header>
         )}
         <MarkdownContent

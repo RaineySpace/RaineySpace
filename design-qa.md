@@ -1,54 +1,39 @@
-# Design QA
+# UI 样式验收
 
-## Evidence
+本次以 DESIGN.md 和现有页面结构为依据；此前生成稿不作为尺寸和布局基准。
 
-- Source visual truth: `/var/folders/cb/pydfwcws19v_y48f_nskvl_m0000gn/T/codex-clipboard-4ece07ae-11d2-4ec7-9104-dec628d623fc.png`
-- Implementation screenshots:
-  - `/private/tmp/rainey-home-static-desktop.png`
-  - `/private/tmp/rainey-home-mobile-viewport.png`
-  - `/private/tmp/rainey-photography-mobile.png`
-  - `/private/tmp/rainey-home-dark-mobile.png`
-  - `/private/tmp/rainey-image-lightbox.png`
-- Combined comparison: `/private/tmp/rainey-design-comparison.png`
-- Source pixels: 1878 × 2000.
-- Desktop implementation: 1280 × 1782 full-page capture at a 1280 × 900 CSS viewport and device scale factor 1.
-- Mobile implementation: 375 × 812 viewport captures at device scale factor 1.
-- State: homepage light desktop, homepage light/dark mobile, photography grid light mobile, shared image lightbox from gallery and article content.
-- Density normalization: images were scaled proportionally into the combined comparison; the reference is used for grouping and whitespace, not pixel-identical visual styling.
+## 实现
 
-## Comparison
+- 全站系统字体，标题 16px、正文 16px、摘要 14px、辅助信息 12px；共享中性灰主题变量。
+- 保留首页顺序、介绍框、叠放照片、项目卡片、摄影网格、目录与灯箱。
+- Markdown 粗体为 600，无彩色背景；删除线不模糊；文字链接仅一个箭头，图片链接无箭头。
+- 语法高亮根据系统主题切换；灯箱仍为深色观图表面。
 
-### Full view
+## 实际验证
 
-- Information architecture matches the intended reference rhythm: clearly separated sections, compact metadata, and a photographic strip while preserving the existing 632 px content column.
-- The implementation intentionally retains RaineySpace's Trade Winds gradient logo, pink article links, gray metadata chips, and system body font instead of adopting the reference site's neutral visual identity.
-- The desktop and 375 px layouts have no document-level horizontal overflow.
+- pnpm validate:content：36 篇文章、9 个摄影记录（70 张）、2 个项目通过；my-programmer-growth-journey 原有附件缺失警告仍存在。
+- pnpm build：静态导出、类型检查通过。
+- 静态产物通过 localhost:4180 预览。检查 375、768、1280px 的实际 innerWidth，以及浅色/深色，共 42 组：首页、文章列表、文章详情、关于、摄影、项目、Markdown 测试页。无整页横向溢出，标题计算字号均为 16px 或 14px。
+- 粗体计算样式：背景透明、字重 600；删除线 filter 为 none。首页粗体链接只有 a::after 箭头，strong::after 为 none。
+- AI 标签筛选返回两篇文章并更新 URL；宽屏目录点击更新 hash。
+- 摄影灯箱正常打开，下一张计数由 1/6 更新到 2/6，Escape 关闭并恢复摄影按钮焦点。
+- 图集正文图片可用 Enter 打开灯箱。
+- 象山 Live Photo 打开后视频 src 为 /xiangshan-2024/IMG_3758.mov，paused=false；未逐个验证全部视频文件。
 
-### Focused regions
+## 本地证据
 
-- Homepage article region: exactly three existing full article cards; long Chinese titles wrap without collision at 375 px.
-- Homepage photography region: six real raster placeholder assets form a horizontally scrollable, overlapping strip; focus and hover lift a photo without changing surrounding layout.
-- Photography list: six images form a two-column mobile and three-column desktop grid with consistent cropping.
-- Lightbox: opens as a modal dialog, uses overlaid icon navigation, loops with ArrowLeft/ArrowRight, provides a five-image thumbnail viewport with active-item centering and edge gradients, closes with Escape, unlocks body scrolling, and restores focus to the triggering gallery or article image.
-- Article content: all non-linked images receive button semantics and keyboard activation without changing Markdown layout; linked images retain their original navigation behavior.
-- Dark mode: existing background, text, tag, link, and new photography-border tokens remain coherent.
+- /tmp/rainey-ui-matrix.json：42 组真实视口检查。
+- /tmp/rainey-ui-desktop.png：浅色桌面截图。
+- /tmp/rainey-ui-dark-mobile.png：深色移动端截图。
 
-## Findings
+截图仅为本次本地验收证据。未部署、未提交；未修改内容或 README.md。测试页自带远程占位图片，其可用性不作为样式验收依据。
 
-- No actionable P0, P1, or P2 findings remain.
-- P3: the placeholder photo captions and project names deliberately include `（占位）`; remove those markers when real content is supplied.
+## 区块标题行更新
 
-## Browser verification
+首页文章、摄影、项目改为“下划线标题 + 灰色说明 + 右侧箭头”的整行链接。375px/1280px 实测无横向溢出，标题 16px、说明 14px，标题行宽度分别为 335px/632px；点击摄影标题行正确进入 /photography/。内容校验及构建通过。
 
-- Primary interactions tested: photography and article modal open, previous/next buttons and keyboard loops, thumbnail selection and auto-scroll, Escape close, body unlock, focus restoration, linked-image exclusion, and single-image navigation hiding.
-- Responsive states tested: 1280 × 900 desktop and 375 × 812 mobile.
-- Themes tested: light and emulated dark color scheme.
-- Browser console errors: none on the final static homepage.
+区块标题后续按用户指定样式改为 #858892、14px/400、行高 1.55，保留标题行说明与箭头；此前 16px 的标题行记录为历史验收值。
 
-## Comparison history
+## 返回跳过锚点
 
-- Initial implementation passed the main visual comparison without P0/P1/P2 differences.
-- A later unstyled screenshot was traced to running `next build` beside an existing development server, which invalidated the dev server's `.next` CSS paths. Final evidence was recaptured from the generated static `out/` artifact and shows the intended styled page with no console errors.
-- Shared-lightbox iteration fixed three interaction issues found during browser verification: explicit Escape handling, article image attributes being replaced by React rerenders, and focus restoration after article image nodes were recreated. Post-fix evidence confirms all three behaviors.
-
-final result: passed
+在 localhost:3000 浏览器实测：从文章列表进入 Arc 文章，连续点击“介绍”和“待续”后，点击返回直接到 /articles/；新标签直接打开文章并连续点击同样的目录项后，返回到首页。TypeScript 检查和 git diff --check 通过。本次未运行构建，避免干扰正在使用的开发服务。

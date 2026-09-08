@@ -16,12 +16,12 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="relative -top-2.5 flex flex-col gap-10">
-      <section id="about" aria-label="关于我" className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+    <div className="flex flex-col gap-10">
+      <section id="about" aria-label="关于我" className="home-intro">
         <div className="markdown" dangerouslySetInnerHTML={{ __html: aboutContent }} />
       </section>
 
-      <HomeSection id="articles" title="文章" href="/articles" linkLabel="全部文章">
+      <HomeSection id="articles" title="文章" href="/articles" linkLabel="全部文章" description="记录生活、技术与一些想法">
         <div className="flex flex-col gap-8">
           {posts.slice(0, 3).map((post) => (
             <PostCard key={post.slug} post={post} />
@@ -29,11 +29,11 @@ export default async function Home() {
         </div>
       </HomeSection>
 
-      <HomeSection id="photography" title="摄影" href="/photography" linkLabel="全部摄影">
+      <HomeSection id="photography" title="摄影" href="/photography" linkLabel="全部摄影" description="留下日常里偶然遇见的光">
         <PhotoGallery photos={featuredPhotos} variant="strip" />
       </HomeSection>
 
-      <HomeSection id="projects" title="项目" href="/projects" linkLabel="全部项目">
+      <HomeSection id="projects" title="项目" href="/projects" linkLabel="全部项目" description="做过的产品、工具与个人实验">
         <ProjectList projects={featuredProjects} />
       </HomeSection>
     </div>

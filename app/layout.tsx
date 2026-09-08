@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import * as config from "@/lib/config";
-import HomeLink from "./components/HomeLink";
-import AboutLink from "./components/AboutLink";
+import SiteHeader from "./components/SiteHeader";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -44,13 +43,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className="mx-auto max-w-2xl bg-[--bg] px-5 py-12 text-[--text]">
-        <header className="mb-14 flex flex-row items-center justify-between">
-          <HomeLink />
-          <nav className="flex items-center gap-4">
-            <AboutLink/>
-          </nav>
-        </header>
+      <body className="mx-auto max-w-2xl bg-[--bg] px-5 py-8 sm:py-12 text-[--text]">
+        <SiteHeader />
         <main>
         {children}
         </main>

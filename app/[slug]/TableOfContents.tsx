@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import BackButton from "@/app/components/BackButton";
 import type { Heading } from "@/lib/posts";
 
 interface TableOfContentsProps {
@@ -75,11 +76,11 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
     };
   }, [headings]);
 
-  if (headings.length === 0) return null;
-
   return (
-    <aside className="fixed left-[calc(50%+24rem)] top-28 hidden w-44 xl:block">
-      <nav className="flex max-h-[calc(100vh-8rem)] flex-col gap-2 overflow-y-auto border-l border-gray-200 pl-4 text-xs leading-relaxed text-gray-500 dark:border-gray-800 dark:text-gray-400">
+    <aside className="fixed right-[calc(50%+24rem)] top-12 hidden w-44 xl:block">
+      <div className="mb-6"><BackButton /></div>
+      {headings.length > 0 && (
+      <nav className="flex max-h-[calc(100dvh-10rem)] flex-col gap-2 overflow-y-auto text-xs leading-relaxed text-[--muted]">
         {headings.map((heading) => {
           const isActive = heading.id === activeId;
           return (
@@ -88,11 +89,11 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
               href={`#${heading.id}`}
               aria-current={isActive ? "true" : undefined}
               className={[
-                "border-l-2 py-0.5 pl-2 transition-colors",
+                "py-0.5 transition-colors",
                 heading.level === 3 ? "ml-3" : "",
                 isActive
-                  ? "border-[var(--color-primary)] font-medium text-gray-950 dark:text-white"
-                  : "border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100",
+                  ? "font-medium text-[--title]"
+                  : "text-[--muted] hover:text-[--title]",
               ].join(" ")}
             >
               {heading.text}
@@ -100,6 +101,7 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
           );
         })}
       </nav>
+      )}
     </aside>
   );
 }

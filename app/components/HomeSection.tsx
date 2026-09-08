@@ -6,6 +6,7 @@ interface HomeSectionProps {
   title: string;
   href?: string;
   linkLabel?: string;
+  description?: string;
   children: ReactNode;
 }
 
@@ -14,23 +15,25 @@ export default function HomeSection({
   title,
   href,
   linkLabel,
+  description,
   children,
 }: HomeSectionProps) {
   const headingId = `${id}-heading`;
 
   return (
     <section id={id} aria-labelledby={headingId} className="scroll-mt-8">
-      <header className="mb-5 flex items-baseline justify-between gap-4">
-        <h2 id={headingId} className="text-lg font-semibold tracking-tight text-[--title]">
-          {title}
-        </h2>
-        {href && linkLabel && (
-          <Link
-            href={href}
-            className="shrink-0 text-xs text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-          >
-            {linkLabel}
+      <header className="mb-4">
+        {href ? (
+          <Link href={href} aria-label={linkLabel || title} className="section-heading-row">
+            <h2 id={headingId} className="section-title section-heading-title">{title}</h2>
+            {description && <p className="section-heading-description">{description}</p>}
+            <span aria-hidden="true" className="section-heading-arrow">↗</span>
           </Link>
+        ) : (
+          <div className="section-heading-row">
+            <h2 id={headingId} className="section-title section-heading-title">{title}</h2>
+            {description && <p className="section-heading-description">{description}</p>}
+          </div>
         )}
       </header>
       {children}
