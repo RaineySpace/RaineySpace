@@ -4,6 +4,7 @@ import { Fragment, useLayoutEffect, useRef, useState, type ReactNode } from "rea
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { PostTagCount } from "@/lib/posts";
 import { READING_SETTINGS_CHANGE_EVENT } from "@/lib/reading-settings";
+import HoverCardList from "@/app/components/HoverCardList";
 
 interface ArticleListProps {
   posts: { slug: string; tags: string[]; card: ReactNode }[];
@@ -166,11 +167,11 @@ export function ArticleListContent({
   return (
     <div>
       <ArticleTagFilter tagCounts={tagCounts} selectedTag={selectedTag} onSelectTag={onSelectTag} />
-      <div className="flex flex-col gap-8">
+      <HoverCardList>
         {visiblePosts.map((post) => (
           <Fragment key={post.slug}>{post.card}</Fragment>
         ))}
-      </div>
+      </HoverCardList>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import HomeSection from '@/app/components/HomeSection';
+import HoverCardList from '@/app/components/HoverCardList';
 import PhotoGallery from '@/app/components/PhotoGallery';
 import PostCard from '@/app/components/PostCard';
 import ProjectList from '@/app/components/ProjectList';
@@ -22,11 +23,11 @@ export default async function Home() {
       </section>
 
       <HomeSection id="articles" title="文章" href="/articles" linkLabel="全部文章" description="记录生活、技术与一些想法">
-        <div className="flex flex-col gap-8">
+        <HoverCardList>
           {posts.slice(0, 3).map((post) => (
             <PostCard key={post.slug} post={post} />
           ))}
-        </div>
+        </HoverCardList>
       </HomeSection>
 
       <HomeSection id="photography" title="摄影" href="/photography" linkLabel="全部摄影" description="留下日常里偶然遇见的光">

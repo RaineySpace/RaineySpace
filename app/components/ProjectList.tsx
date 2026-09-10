@@ -1,5 +1,6 @@
 import type { Project } from "@/lib/projects";
 import ProjectCard from "@/app/components/ProjectCard";
+import HoverCardList from "@/app/components/HoverCardList";
 
 interface ProjectListProps {
   projects: Project[];
@@ -14,7 +15,7 @@ export default function ProjectList({
 }: ProjectListProps) {
   return (
     <div>
-      <div className="flex flex-col gap-3">
+      <HoverCardList>
         {projects.map((project) => (
           <ProjectCard
             key={project.id}
@@ -22,7 +23,7 @@ export default function ProjectList({
             headingLevel={headingLevel}
           />
         ))}
-      </div>
+      </HoverCardList>
       {showCount && (
         <p className="mt-6 text-right text-xs text-[--muted]">
           {`${projects.length} 个项目`}

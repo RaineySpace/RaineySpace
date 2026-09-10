@@ -9,7 +9,8 @@ export default function PostCard({ post }: PostCardProps) {
   return (
     <Link
       href={`/${post.slug}`}
-      className="block"
+      data-hover-card
+      className="post-card -mx-3 block rounded-xl p-3"
     >
       <article>
         <h2 className="mb-2 text-base font-normal leading-[1.6] text-[--title]">

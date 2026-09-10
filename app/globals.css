@@ -818,12 +818,14 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
 a.section-heading-row:hover .section-heading-title { text-decoration-color: var(--title); }
 a.section-heading-row:hover .section-heading-arrow { color: var(--title); }
 
-/* Quiet project rows; hover/focus highlight the entire clickable surface. */
-.project-card { background: transparent; transition: background-color 200ms; }
-@media (hover: hover) {
-  .project-card:hover { background: var(--surface-muted); }
+/* Each list owns one background that follows the active card. */
+.hover-card-highlight {
+  transition-duration: 220ms;
+  transition-timing-function: ease;
 }
-.project-card:has(a:focus-visible), .project-card:active { background: var(--surface-muted); }
+@media (hover: none) {
+  .project-card:active, .post-card:active { background: var(--surface-muted); }
+}
 
 a.section-heading-row:hover .section-heading-arrow,
 a.section-heading-row:focus-visible .section-heading-arrow { transform: translate(0.1em, -0.1em); }

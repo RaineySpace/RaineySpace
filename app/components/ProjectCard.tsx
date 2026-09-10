@@ -15,7 +15,7 @@ export default function ProjectCard({
 }: ProjectCardProps) {
   const Heading = headingLevel;
   return (
-    <article className="project-card group relative -mx-3 cursor-pointer rounded-xl p-3">
+    <article data-hover-card className="project-card group relative -mx-3 cursor-pointer rounded-xl p-3">
       <a
         href={project.url}
         target="_blank"
