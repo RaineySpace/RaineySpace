@@ -25,9 +25,10 @@ export default function HomeSection({
       <header className="mb-4">
         {href ? (
           <Link href={href} aria-label={linkLabel || title} className="section-heading-row">
-            <h2 id={headingId} className="section-title section-heading-title">{title}</h2>
+            <h2 id={headingId} className="section-title section-heading-title">
+              {title}<span aria-hidden="true" className="section-heading-arrow">↗</span>
+            </h2>
             {description && <p className="section-heading-description">{description}</p>}
-            <span aria-hidden="true" className="section-heading-arrow">↗</span>
           </Link>
         ) : (
           <div className="section-heading-row">

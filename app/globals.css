@@ -810,13 +810,14 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
   }
 }
 
-/* Linked section headings: title, supporting copy, trailing arrow. */
+/* Linked section headings mirror Markdown links, with the arrow inside the line. */
 .section-heading-row { display: flex; align-items: baseline; gap: 16px; min-width: 0; }
-.section-heading-title { flex-shrink: 0; text-decoration: underline; text-decoration-color: var(--border); text-decoration-thickness: 1px; text-underline-offset: 6px; }
+.section-heading-title { flex-shrink: 0; }
+a.section-heading-row .section-heading-title { border-bottom: 1px solid var(--border); padding-bottom: 2px; transition: border-color 200ms; }
 .section-heading-description { min-width: 0; margin: 0; color: var(--secondary); font-size: var(--fs-xs); line-height: 1.75; }
-.section-heading-arrow { flex-shrink: 0; margin-left: auto; color: var(--secondary); font-size: var(--fs-md); line-height: 1.6; transition: transform 200ms ease; }
-a.section-heading-row:hover .section-heading-title { text-decoration-color: var(--title); }
-a.section-heading-row:hover .section-heading-arrow { color: var(--title); }
+.section-heading-arrow { display: inline-block; padding-left: 4px; transition: transform 200ms ease; }
+a.section-heading-row:hover .section-heading-title,
+a.section-heading-row:focus-visible .section-heading-title { border-bottom-color: var(--title); }
 
 /* Each list owns one background that follows the active card. */
 .hover-card-highlight {
