@@ -913,14 +913,34 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
 }
 .reading-settings-segment:focus-visible { outline-offset: -2px; }
 
-.reading-settings-sheet-layer {
+.reading-settings-sheet-layer,
+.reading-settings-sheet-layer[open] {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
   z-index: 60;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100lvh;
+  height: calc(100dvh + var(--sheet-chrome-inset, 0px));
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overscroll-behavior: none;
+  transform: none;
 }
+.reading-settings-sheet-layer:not([open]) { display: none; }
+.reading-settings-sheet-layer::backdrop { background: transparent; }
 .reading-settings-sheet-backdrop {
   position: absolute;
   inset: 0;
@@ -932,6 +952,8 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
   position: relative;
   z-index: 1;
   padding: 0.45rem 1.25rem max(1.25rem, env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(max(1.25rem, env(safe-area-inset-bottom, 0px)) + var(--sheet-chrome-inset, 0px));
+  padding-bottom: calc(max(1.25rem, env(safe-area-inset-bottom, 0px)) + max(var(--sheet-chrome-inset, 0px), 100lvh - 100dvh));
   border-radius: 1.25rem 1.25rem 0 0;
   background: var(--surface);
   color: var(--text);
