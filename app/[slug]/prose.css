@@ -7,7 +7,7 @@
 
 .markdown {
   font-size: var(--fs-md);
-  line-height: 1.8;
+  line-height: var(--lh-prose);
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -97,7 +97,7 @@
   border-radius: 12px;
   background: var(--surface-muted);
   font-size: var(--fs-sm);
-  line-height: 1.75;
+  line-height: var(--lh-body);
   color: var(--color-text-secondary);
 }
 
@@ -426,8 +426,6 @@
 
 .markdown blockquote, .markdown pre, .markdown table { margin-top: 24px; margin-bottom: 24px; }
 .markdown pre, .markdown code, .markdown kbd, .markdown samp { font-size: var(--fs-code); line-height: 1.7; }
-html.senior-mode .markdown { line-height: 1.9; }
-html.senior-mode .markdown .article-summary { line-height: 1.85; }
 .markdown pre code { padding: 0; background: transparent; color: inherit; }
 .markdown del, .markdown s { color: inherit; background: none; filter: none; }
 .markdown mark { background: var(--surface-muted); color: inherit; }

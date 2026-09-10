@@ -3,7 +3,7 @@
 import { Fragment, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { PostTagCount } from "@/lib/posts";
-import { SENIOR_MODE_CHANGE_EVENT } from "@/lib/senior-mode";
+import { READING_SETTINGS_CHANGE_EVENT } from "@/lib/reading-settings";
 
 interface ArticleListProps {
   posts: { slug: string; tags: string[]; card: ReactNode }[];
@@ -83,11 +83,11 @@ function ArticleTagFilter({
     const observer = new ResizeObserver(measure);
     observer.observe(container);
     void document.fonts.ready.then(measure);
-    window.addEventListener(SENIOR_MODE_CHANGE_EVENT, measure);
+    window.addEventListener(READING_SETTINGS_CHANGE_EVENT, measure);
     return () => {
       disposed = true;
       observer.disconnect();
-      window.removeEventListener(SENIOR_MODE_CHANGE_EVENT, measure);
+      window.removeEventListener(READING_SETTINGS_CHANGE_EVENT, measure);
     };
   }, [tagCounts, selectedTag]);
 

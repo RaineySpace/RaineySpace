@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import BackButton from "@/app/components/BackButton";
-import SeniorModeToggle from "@/app/components/SeniorModeToggle";
+import ReadingSettings from "@/app/components/ReadingSettings";
 import type { Heading } from "@/lib/posts";
 
 interface TableOfContentsProps {
@@ -81,7 +81,7 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
     <aside className="fixed right-[calc(50%+24rem)] top-12 hidden w-44 xl:block">
       <div className="mb-6 flex items-center justify-between gap-2">
         <BackButton />
-        <SeniorModeToggle />
+        <ReadingSettings align="start" />
       </div>
       {headings.length > 0 && (
       <nav className="flex max-h-[calc(100dvh-10rem)] flex-col gap-2 overflow-y-auto text-xs leading-relaxed text-[--muted]">

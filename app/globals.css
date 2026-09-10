@@ -27,12 +27,29 @@
   --fs-sm: 14px;
   --fs-md: 16px;
   --fs-code: 14px;
+  --lh-body: 1.75;
+  --lh-prose: 1.8;
 }
-html.senior-mode {
+/* Reader typography presets; toggled from the Aa reading settings. */
+html[data-text-size="sm"] {
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-code: 13px;
+}
+html[data-text-size="lg"] {
   --fs-xs: 15px;
   --fs-sm: 18px;
   --fs-md: 20px;
   --fs-code: 16px;
+}
+html[data-leading="tight"] {
+  --lh-body: 1.6;
+  --lh-prose: 1.65;
+}
+html[data-leading="loose"] {
+  --lh-body: 1.9;
+  --lh-prose: 2;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -47,7 +64,7 @@ html.senior-mode {
   }
 }
 html { scroll-behavior: smooth; color-scheme: light dark; background: var(--bg); font-family: var(--font-sans); font-size: 16px; }
-body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-height: var(--lh-body); -webkit-font-smoothing: antialiased; }
 a { color: var(--title); text-decoration: none; transition: color 200ms, background-color 200ms; }
 button { color: inherit; }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline-offset: 3px; }
@@ -64,11 +81,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
   text-transform: lowercase;
 }
 .section-title a { color: inherit; }
-.page-description { margin-top: 12px; color: var(--secondary); font-size: var(--fs-sm); line-height: 1.75; }
+.page-description { margin-top: 12px; color: var(--secondary); font-size: var(--fs-sm); line-height: var(--lh-body); }
 .meta { color: var(--muted); font-size: var(--fs-xs); line-height: 1.6; }
 .tag { display: inline-block; border-radius: 6px; background: var(--surface-muted); padding: 4px 8px; font-size: var(--fs-xs); line-height: 1.6; color: var(--secondary); }
 .home-intro { padding: 16px; border-radius: 12px; background: var(--surface-muted); }
-.home-intro .markdown { font-size: var(--fs-sm); line-height: 1.75; }
+.home-intro .markdown { font-size: var(--fs-sm); line-height: var(--lh-body); }
 @media (min-width: 640px) { .site-header { margin-bottom: 40px; } }
 
 .photo-strip {
@@ -790,10 +807,135 @@ a.section-heading-row:focus-visible .section-heading-arrow { transform: translat
 
 .site-header.article-back-header { margin-bottom: 24px; }
 
-html.senior-mode body { line-height: 1.85; }
-html.senior-mode .home-intro .markdown,
-html.senior-mode .page-description { line-height: 1.85; }
-html.senior-mode .article-tag-filter .h-7 {
+html[data-text-size="lg"] .article-tag-filter .h-7 {
   height: auto;
   min-height: 1.75rem;
+}
+
+/* Reading settings: quiet Aa trigger, desktop popover, mobile bottom sheet. */
+.reading-settings { position: relative; display: inline-flex; }
+.reading-settings-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  transition: color 200ms, background-color 200ms;
+}
+.reading-settings-trigger:hover,
+.reading-settings-trigger:focus-visible,
+.reading-settings-trigger[aria-expanded="true"] { color: var(--title); background: var(--surface-muted); }
+.reading-settings-trigger:focus-visible { outline-offset: 2px; }
+
+.reading-settings-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 40;
+  width: 176px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+  animation: reading-settings-in 160ms ease;
+}
+.reading-settings-popover.is-align-end { right: 0; }
+.reading-settings-popover.is-align-start { left: 0; }
+
+.reading-settings-title {
+  margin: 0 0 10px;
+  color: var(--title);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.reading-settings-group + .reading-settings-group { margin-top: 10px; }
+.reading-settings-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.reading-settings-segments {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+.reading-settings-segment {
+  height: 28px;
+  border-radius: 6px;
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 1;
+  transition: color 200ms, background-color 200ms;
+}
+.reading-settings-segment:hover { color: var(--title); }
+.reading-settings-segment[aria-checked="true"] {
+  background: var(--surface-muted);
+  color: var(--title);
+  font-weight: 500;
+}
+.reading-settings-segment:focus-visible { outline-offset: -2px; }
+
+.reading-settings-sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.reading-settings-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(0 0 0 / 0.35);
+  cursor: pointer;
+}
+.reading-settings-sheet {
+  position: relative;
+  z-index: 1;
+  padding: 0.45rem 1.25rem max(1.25rem, env(safe-area-inset-bottom, 0px));
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 -12px 40px rgb(0 0 0 / 0.18);
+  animation: image-lightbox-sheet-in 0.28s ease;
+  touch-action: pan-y;
+}
+.reading-settings-sheet.is-dragging { animation: none; touch-action: none; user-select: none; }
+.reading-settings-sheet-backdrop.is-dragging { pointer-events: none; }
+.reading-settings-sheet-grab { touch-action: none; cursor: grab; }
+.reading-settings-sheet-handle {
+  display: block;
+  width: 2.5rem;
+  height: 0.28rem;
+  margin: 0.2rem auto 0.9rem;
+  border-radius: 999px;
+  background: var(--border);
+}
+.reading-settings-sheet .reading-settings-title { font-size: 14px; margin-bottom: 14px; }
+.reading-settings-sheet .reading-settings-group + .reading-settings-group { margin-top: 14px; }
+.reading-settings-sheet .reading-settings-label { font-size: 12px; }
+.reading-settings-sheet .reading-settings-segments { gap: 6px; }
+.reading-settings-sheet .reading-settings-segment { height: 40px; font-size: 14px; background: var(--surface-muted); color: var(--secondary); }
+.reading-settings-sheet .reading-settings-segment[aria-checked="true"] {
+  background: var(--title);
+  color: var(--bg);
+}
+
+@keyframes reading-settings-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-settings-popover,
+  .reading-settings-sheet { animation: none; }
 }
