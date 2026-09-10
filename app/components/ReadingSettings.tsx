@@ -10,8 +10,10 @@ import {
   READING_SETTINGS_CHANGE_EVENT,
   READING_SETTINGS_STORAGE_KEY,
   TEXT_SIZE_OPTIONS,
+  THEME_OPTIONS,
   readReadingSettings,
   saveReadingSettings,
+  subscribeSystemTheme,
   syncReadingSettingsFromStorage,
   type ReadingSettings as ReadingSettingsValue,
 } from "@/lib/reading-settings";
@@ -90,6 +92,12 @@ function ReadingSettingsPanel({
         value={settings.leading}
         onChange={(leading) => onChange({ leading })}
       />
+      <SegmentGroup
+        label="外观"
+        options={THEME_OPTIONS}
+        value={settings.theme}
+        onChange={(theme) => onChange({ theme })}
+      />
     </>
   );
 }
@@ -114,9 +122,11 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
     sync();
     window.addEventListener(READING_SETTINGS_CHANGE_EVENT, sync);
     window.addEventListener("storage", onStorage);
+    const unsubscribeSystemTheme = subscribeSystemTheme();
     return () => {
       window.removeEventListener(READING_SETTINGS_CHANGE_EVENT, sync);
       window.removeEventListener("storage", onStorage);
+      unsubscribeSystemTheme();
     };
   }, []);
 

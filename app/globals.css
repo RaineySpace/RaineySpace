@@ -51,16 +51,54 @@ html[data-leading="loose"] {
   --lh-body: 1.9;
   --lh-prose: 2;
 }
+/*
+ * Colour theme. The <head> bootstrap resolves the saved preference (system /
+ * light / dark) into html[data-theme]; the media query only covers no-JS.
+ */
+:root {
+  --photo-frame: #ffffff;
+  --photo-frame-bg: var(--surface-muted);
+  --photo-shadow: 0 3px 10px rgb(0 0 0 / 0.08);
+  --photo-focus-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+  --dark-bg: #151618;
+  --dark-title: #ecedef;
+  --dark-text: #d5d7dc;
+  --dark-surface: #1d1f22;
+  --dark-surface-muted: #25272b;
+  --dark-secondary: #a8adb7;
+  --dark-muted: #989eaa;
+  --dark-border: #35383e;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: var(--dark-bg);
+  --title: var(--dark-title);
+  --text: var(--dark-text);
+  --surface: var(--dark-surface);
+  --surface-muted: var(--dark-surface-muted);
+  --secondary: var(--dark-secondary);
+  --muted: var(--dark-muted);
+  --border: var(--dark-border);
+  --photo-frame: #27272a;
+  --photo-frame-bg: #1f2937;
+  --photo-shadow: 0 3px 10px rgb(0 0 0 / 0.24);
+  --photo-focus-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+}
+html[data-theme="light"] { color-scheme: light; }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #151618;
-    --title: #ecedef;
-    --text: #d5d7dc;
-    --surface: #1d1f22;
-    --surface-muted: #25272b;
-    --secondary: #a8adb7;
-    --muted: #989eaa;
-    --border: #35383e;
+  html:not([data-theme]) {
+    --bg: var(--dark-bg);
+    --title: var(--dark-title);
+    --text: var(--dark-text);
+    --surface: var(--dark-surface);
+    --surface-muted: var(--dark-surface-muted);
+    --secondary: var(--dark-secondary);
+    --muted: var(--dark-muted);
+    --border: var(--dark-border);
+    --photo-frame: #27272a;
+    --photo-frame-bg: #1f2937;
+    --photo-shadow: 0 3px 10px rgb(0 0 0 / 0.24);
+    --photo-focus-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
   }
 }
 html { scroll-behavior: smooth; color-scheme: light dark; background: var(--bg); font-family: var(--font-sans); font-size: 16px; }
@@ -105,10 +143,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
   flex: 0 0 7rem;
   aspect-ratio: 3 / 4;
   overflow: hidden;
-  border: 3px solid white;
+  border: 3px solid var(--photo-frame);
   border-radius: 0.5rem;
-  background: var(--surface-muted);
-  box-shadow: 0 3px 10px rgb(0 0 0 / 0.08);
+  background: var(--photo-frame-bg);
+  box-shadow: var(--photo-shadow);
   transition: transform 0.2s ease-in-out, z-index 0s;
 }
 
@@ -124,7 +162,7 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
 }
 
 .photo-strip-item:focus-visible {
-  box-shadow: 0 0 0 2px var(--lightLink), 0 4px 14px rgb(0 0 0 / 0.12);
+  box-shadow: 0 0 0 2px var(--lightLink), var(--photo-focus-shadow);
 }
 
 .live-photo {
@@ -755,18 +793,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
 
   .image-lightbox-sheet-layer {
     display: none;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .photo-strip-item {
-    border-color: #27272a;
-    background: #1f2937;
-    box-shadow: 0 3px 10px rgb(0 0 0 / 0.24);
-  }
-
-  .photo-strip-item:focus-visible {
-    box-shadow: 0 0 0 2px var(--darkLink), 0 4px 16px rgb(0 0 0 / 0.5);
   }
 }
 
