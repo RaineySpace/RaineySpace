@@ -7,6 +7,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontSize: {
+        xs: ["var(--fs-xs)", { lineHeight: "1.6" }],
+        sm: ["var(--fs-sm)", { lineHeight: "1.75" }],
+        base: ["var(--fs-md)", { lineHeight: "1.6" }],
+      },
       typography: {
         DEFAULT: {
           css: {

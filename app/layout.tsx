@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import * as config from "@/lib/config";
+import { SENIOR_MODE_BOOTSTRAP_SCRIPT } from "@/lib/senior-mode";
 import SiteHeader from "./components/SiteHeader";
 
 export const viewport: Viewport = {
@@ -42,8 +44,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className="mx-auto max-w-2xl bg-[--bg] px-5 py-8 sm:py-12 text-[--text]">
+        <Script id="senior-mode" strategy="beforeInteractive">
+          {SENIOR_MODE_BOOTSTRAP_SCRIPT}
+        </Script>
         <SiteHeader />
         <main>
         {children}

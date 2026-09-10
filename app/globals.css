@@ -23,6 +23,16 @@
   --color-bg-code: var(--surface-muted);
   --lightLink: var(--title);
   --darkLink: var(--title);
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-md: 16px;
+  --fs-code: 14px;
+}
+html.senior-mode {
+  --fs-xs: 15px;
+  --fs-sm: 18px;
+  --fs-md: 20px;
+  --fs-code: 16px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -37,16 +47,16 @@
   }
 }
 html { scroll-behavior: smooth; color-scheme: light dark; background: var(--bg); font-family: var(--font-sans); font-size: 16px; }
-body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-height: 1.75; -webkit-font-smoothing: antialiased; }
 a { color: var(--title); text-decoration: none; transition: color 200ms, background-color 200ms; }
 button { color: inherit; }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline-offset: 3px; }
 .site-header { margin-bottom: 32px; }
-.page-title { color: var(--title); font-size: 16px; font-weight: 600; line-height: 1.6; }
+.page-title { color: var(--title); font-size: var(--fs-md); font-weight: 600; line-height: 1.6; }
 .section-title {
   margin: 0;
   color: #858892;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   font-style: normal;
   font-weight: 400;
   line-height: 1.55;
@@ -54,11 +64,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
   text-transform: lowercase;
 }
 .section-title a { color: inherit; }
-.page-description { margin-top: 12px; color: var(--secondary); font-size: 14px; line-height: 1.75; }
-.meta { color: var(--muted); font-size: 12px; line-height: 1.6; }
-.tag { display: inline-block; border-radius: 6px; background: var(--surface-muted); padding: 4px 8px; font-size: 12px; line-height: 1.6; color: var(--secondary); }
+.page-description { margin-top: 12px; color: var(--secondary); font-size: var(--fs-sm); line-height: 1.75; }
+.meta { color: var(--muted); font-size: var(--fs-xs); line-height: 1.6; }
+.tag { display: inline-block; border-radius: 6px; background: var(--surface-muted); padding: 4px 8px; font-size: var(--fs-xs); line-height: 1.6; color: var(--secondary); }
 .home-intro { padding: 16px; border-radius: 12px; background: var(--surface-muted); }
-.home-intro .markdown { font-size: 14px; line-height: 1.75; }
+.home-intro .markdown { font-size: var(--fs-sm); line-height: 1.75; }
 @media (min-width: 640px) { .site-header { margin-bottom: 40px; } }
 
 .photo-strip {
@@ -760,8 +770,8 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
 /* Linked section headings: title, supporting copy, trailing arrow. */
 .section-heading-row { display: flex; align-items: baseline; gap: 16px; min-width: 0; }
 .section-heading-title { flex-shrink: 0; text-decoration: underline; text-decoration-color: var(--border); text-decoration-thickness: 1px; text-underline-offset: 6px; }
-.section-heading-description { min-width: 0; margin: 0; color: var(--secondary); font-size: 12px; line-height: 1.75; }
-.section-heading-arrow { flex-shrink: 0; margin-left: auto; color: var(--secondary); font-size: 16px; line-height: 1.6; transition: transform 200ms ease; }
+.section-heading-description { min-width: 0; margin: 0; color: var(--secondary); font-size: var(--fs-xs); line-height: 1.75; }
+.section-heading-arrow { flex-shrink: 0; margin-left: auto; color: var(--secondary); font-size: var(--fs-md); line-height: 1.6; transition: transform 200ms ease; }
 a.section-heading-row:hover .section-heading-title { text-decoration-color: var(--title); }
 a.section-heading-row:hover .section-heading-arrow { color: var(--title); }
 
@@ -779,3 +789,11 @@ a.section-heading-row:focus-visible .section-heading-arrow { transform: translat
 }
 
 .site-header.article-back-header { margin-bottom: 24px; }
+
+html.senior-mode body { line-height: 1.85; }
+html.senior-mode .home-intro .markdown,
+html.senior-mode .page-description { line-height: 1.85; }
+html.senior-mode .article-tag-filter .h-7 {
+  height: auto;
+  min-height: 1.75rem;
+}
