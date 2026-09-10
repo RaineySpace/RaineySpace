@@ -47,5 +47,3 @@ tags:
 大概陆陆续续写了三天，每天大概花费十几二十分钟，梳理整个我成为程序员的经历。回想在宁波的那个寒假真的很冷，盖着两床棉被都能感觉到冬天的敌意。也想起，刚来杭州的时候，那个潮湿的网吧单间。
 
 生活还是要继续，Keep alive & Do better
-
-![](./attachments/bafybeie6xzabiit4b5t4x526f42276l3igxczrfuom2egfbj23qp2ujz2a)
