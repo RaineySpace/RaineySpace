@@ -3,6 +3,7 @@
 import { Fragment, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { PostTagCount } from "@/lib/posts";
+import { READING_SETTINGS_CHANGE_EVENT } from "@/lib/reading-settings";
 
 interface ArticleListProps {
   posts: { slug: string; tags: string[]; card: ReactNode }[];
@@ -82,9 +83,11 @@ function ArticleTagFilter({
     const observer = new ResizeObserver(measure);
     observer.observe(container);
     void document.fonts.ready.then(measure);
+    window.addEventListener(READING_SETTINGS_CHANGE_EVENT, measure);
     return () => {
       disposed = true;
       observer.disconnect();
+      window.removeEventListener(READING_SETTINGS_CHANGE_EVENT, measure);
     };
   }, [tagCounts, selectedTag]);
 
@@ -94,7 +97,7 @@ function ArticleTagFilter({
   if (!tagCounts.length) return null;
 
   return (
-    <div ref={containerRef} role="group" aria-label="按标签筛选文章" className="relative mb-8">
+    <div ref={containerRef} role="group" aria-label="按标签筛选文章" className="article-tag-filter relative mb-8">
       <div
         ref={measurementRef}
         aria-hidden="true"
@@ -108,7 +111,7 @@ function ArticleTagFilter({
         ))}
         <span className={tagButtonClassName(false)}><ToggleTagsIcon /></span>
       </div>
-      <div className={`flex gap-2 ${expanded ? "flex-wrap" : `h-7 ${visibleCount === null ? "overflow-hidden" : ""}`}`}>
+      <div className={`flex gap-2 ${expanded ? "flex-wrap" : visibleCount === null ? "h-7 overflow-hidden" : "min-h-7"}`}>
         {visibleTags.map(({ tag, count }) => (
           <button
             key={tag}

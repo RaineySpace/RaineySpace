@@ -6,8 +6,8 @@
  */
 
 .markdown {
-  font-size: 16px;
-  line-height: 1.8;
+  font-size: var(--fs-md);
+  line-height: var(--lh-prose);
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -63,7 +63,7 @@
 }
 
 .markdown h1 {
-  font-size: 16px;
+  font-size: var(--fs-md);
   margin-top: 32px;
 }
 
@@ -80,7 +80,7 @@
 }
 
 .markdown .article-header h1 {
-  font-size: 16px;
+  font-size: var(--fs-md);
   line-height: 1.6;
   font-weight: 600;
   letter-spacing: normal;
@@ -96,29 +96,29 @@
   padding: 16px;
   border-radius: 12px;
   background: var(--surface-muted);
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
   color: var(--color-text-secondary);
 }
 
 .markdown h2 {
-  font-size: 16px;
+  font-size: var(--fs-md);
   margin-top: 32px;
 }
 
 .markdown h3 {
-  font-size: 16px;
+  font-size: var(--fs-md);
   margin-top: 32px;
 }
 
 .markdown h4 {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   margin-top: 24px;
 }
 
 .markdown h5,
 .markdown h6 {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   margin-top: 24px;
 }
 
@@ -425,7 +425,7 @@
 .markdown .task-list-item input { appearance: auto; margin: 0 8px 0 -22px !important; width: 14px; height: 14px; }
 
 .markdown blockquote, .markdown pre, .markdown table { margin-top: 24px; margin-bottom: 24px; }
-.markdown pre, .markdown code, .markdown kbd, .markdown samp { font-size: 14px; line-height: 1.7; }
+.markdown pre, .markdown code, .markdown kbd, .markdown samp { font-size: var(--fs-code); line-height: 1.7; }
 .markdown pre code { padding: 0; background: transparent; color: inherit; }
 .markdown del, .markdown s { color: inherit; background: none; filter: none; }
 .markdown mark { background: var(--surface-muted); color: inherit; }
