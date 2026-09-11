@@ -274,6 +274,7 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
                 <span className="reading-settings-sheet-handle" aria-hidden="true" />
               </div>
               <ReadingSettingsPanel settings={settings} onChange={update} />
+              <div className="reading-settings-sheet-bleed" aria-hidden="true" />
             </div>
           </dialog>,
           document.body,
