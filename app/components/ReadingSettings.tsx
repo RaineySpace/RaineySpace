@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { useSheetGestures } from "@/app/components/useSheetGestures";
@@ -109,6 +109,7 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
   const [isDesktop, setIsDesktop] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
@@ -190,6 +191,30 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
 
   const showSheet = open && !isDesktop && typeof document !== "undefined";
 
+  useLayoutEffect(() => {
+    if (!showSheet) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+
+    const syncChromeInset = () => {
+      const viewport = window.visualViewport;
+      const visibleBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+      const bottomGap = Math.max(0, Math.round(window.innerHeight - visibleBottom));
+      dialog.style.setProperty("--sheet-chrome-inset", `${bottomGap}px`);
+    };
+
+    syncChromeInset();
+    window.visualViewport?.addEventListener("resize", syncChromeInset);
+    window.visualViewport?.addEventListener("scroll", syncChromeInset);
+    window.addEventListener("resize", syncChromeInset);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", syncChromeInset);
+      window.visualViewport?.removeEventListener("scroll", syncChromeInset);
+      window.removeEventListener("resize", syncChromeInset);
+    };
+  }, [showSheet]);
+
   return (
     <div ref={containerRef} className="reading-settings">
       <button
@@ -219,7 +244,17 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
 
       {showSheet &&
         createPortal(
-          <div className="reading-settings-sheet-layer">
+          <dialog
+            ref={dialogRef}
+            id={panelId}
+            aria-label="阅读设置"
+            className="reading-settings-sheet-layer"
+            onClose={() => close(false)}
+            onCancel={(event) => {
+              event.preventDefault();
+              close();
+            }}
+          >
             <button
               ref={backdropRef}
               type="button"
@@ -228,11 +263,7 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
               onClick={() => close()}
             />
             <div
-              id={panelId}
               ref={sheetRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label="阅读设置"
               className="reading-settings-sheet"
               onPointerDown={sheetGestures.onPointerDown}
               onPointerMove={sheetGestures.onPointerMove}
@@ -244,7 +275,7 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
               </div>
               <ReadingSettingsPanel settings={settings} onChange={update} />
             </div>
-          </div>,
+          </dialog>,
           document.body,
         )}
     </div>
