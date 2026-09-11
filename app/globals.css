@@ -409,10 +409,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
     display: none;
   }
 
-  .image-lightbox-sheet-grab,
-  .image-lightbox-sheet-grab:active {
-    cursor: default;
-  }
 }
 
 .image-lightbox-caption {
@@ -540,63 +536,20 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
   outline: none;
 }
 
-.image-lightbox-sheet-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-.image-lightbox-sheet-backdrop {
-  position: absolute;
-  inset: 0;
-  border: 0;
+.image-lightbox-sheet .sheet-backdrop {
   background: rgb(0 0 0 / 0.45);
-  cursor: pointer;
 }
 
-.image-lightbox-sheet {
-  position: relative;
-  z-index: 1;
+.image-lightbox-sheet .sheet-panel {
   max-height: min(78dvh, 36rem);
-  overflow-y: auto;
-  overscroll-behavior: none;
   padding: 0.45rem 1rem max(1.1rem, env(safe-area-inset-bottom, 0px));
-  border-radius: 1.25rem 1.25rem 0 0;
   background: #1a1a1a;
+  color: #fff;
   box-shadow: 0 -12px 40px rgb(0 0 0 / 0.35);
-  animation: image-lightbox-sheet-in 0.28s ease;
-  touch-action: pan-y;
 }
 
-.image-lightbox-sheet.is-dragging {
-  overflow: hidden;
-  animation: none;
-  touch-action: none;
-  user-select: none;
-}
-
-.image-lightbox-sheet-backdrop.is-dragging {
-  pointer-events: none;
-}
-
-.image-lightbox-sheet-grab {
-  touch-action: none;
-  cursor: grab;
-}
-
-.image-lightbox-sheet-grab:active {
-  cursor: grabbing;
-}
-
-.image-lightbox-sheet-handle {
-  display: block;
-  width: 2.5rem;
-  height: 0.28rem;
-  margin: 0.2rem auto 0.55rem;
-  border-radius: 999px;
+.image-lightbox-sheet .sheet-handle {
+  margin-bottom: 0.55rem;
   background: rgb(255 255 255 / 0.28);
 }
 
@@ -683,15 +636,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
 .image-lightbox-sheet-card-icon svg {
   width: 1.25rem;
   height: 1.25rem;
-}
-
-@keyframes image-lightbox-sheet-in {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
 }
 
 .image-lightbox-count {
@@ -791,9 +735,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
     display: flex;
   }
 
-  .image-lightbox-sheet-layer {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -913,22 +854,19 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
 }
 .reading-settings-segment:focus-visible { outline-offset: -2px; }
 
-.reading-settings-sheet-layer,
-.reading-settings-sheet-layer[open],
-.reading-settings-sheet-layer:modal {
+/* Shared mobile Sheet: keep the panel itself fixed for Safari toolbar coloring. */
+.sheet-layer,
+.sheet-layer[open],
+.sheet-layer:modal {
   position: fixed;
   inset: 0;
   z-index: 60;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: stretch;
+  display: block;
   width: 100vw;
   max-width: none;
   height: 100vh;
   height: 100dvh;
-  min-height: 100lvh;
-  height: calc(100dvh + var(--sheet-chrome-inset, 0px));
+  min-height: 0;
   max-height: none;
   margin: 0;
   padding: 0;
@@ -939,52 +877,42 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
   overscroll-behavior: none;
   transform: none;
 }
-.reading-settings-sheet-layer:not([open]) { display: none; }
-.reading-settings-sheet-layer::backdrop {
-  background-color: rgb(0 0 0 / 0.35);
-  background-image: linear-gradient(
-    to bottom,
-    rgb(0 0 0 / 0.35) 0,
-    rgb(0 0 0 / 0.35) 100dvh,
-    var(--surface) 100dvh,
-    var(--surface) 100%
-  );
-}
-.reading-settings-sheet-backdrop {
+.sheet-layer:not([open]) { display: none; }
+.sheet-layer::backdrop { background: transparent; }
+.sheet-backdrop {
   position: absolute;
   inset: 0;
   border: 0;
   background: rgb(0 0 0 / 0.35);
   cursor: pointer;
+  animation: sheet-backdrop-in 0.28s ease-out;
 }
-.reading-settings-sheet {
-  position: relative;
+.sheet-panel {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
+  max-height: 100dvh;
   padding: 0.45rem 1.25rem max(1.25rem, env(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(max(1.25rem, env(safe-area-inset-bottom, 0px)) + var(--sheet-chrome-inset, 0px));
-  padding-bottom: calc(max(1.25rem, env(safe-area-inset-bottom, 0px)) + max(var(--sheet-chrome-inset, 0px), 100lvh - 100dvh));
-  overflow: visible;
+  overflow-y: auto;
+  overscroll-behavior: none;
   border-radius: 1.25rem 1.25rem 0 0;
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 -12px 40px rgb(0 0 0 / 0.18);
-  animation: image-lightbox-sheet-in 0.28s ease;
+  animation: sheet-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   touch-action: pan-y;
 }
-.reading-settings-sheet-bleed {
-  position: absolute;
-  top: calc(100% - 1px);
-  right: 0;
-  left: 0;
-  height: 100vh;
-  height: 100lvh;
-  background: var(--surface);
-  pointer-events: none;
+.sheet-panel.is-dragging { overflow: hidden; animation: none; touch-action: none; user-select: none; }
+.sheet-backdrop.is-dragging { pointer-events: none; }
+.sheet-grab { touch-action: none; cursor: grab; }
+.sheet-grab:active { cursor: grabbing; }
+@media (pointer: coarse) {
+  .sheet-grab,
+  .sheet-grab:active { cursor: default; }
 }
-.reading-settings-sheet.is-dragging { animation: none; touch-action: none; user-select: none; }
-.reading-settings-sheet-backdrop.is-dragging { pointer-events: none; }
-.reading-settings-sheet-grab { touch-action: none; cursor: grab; }
-.reading-settings-sheet-handle {
+.sheet-handle {
   display: block;
   width: 2.5rem;
   height: 0.28rem;
@@ -1006,7 +934,16 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes sheet-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 @media (prefers-reduced-motion: reduce) {
   .reading-settings-popover,
-  .reading-settings-sheet { animation: none; }
+  .sheet-backdrop,
+  .sheet-panel { animation: none; }
 }

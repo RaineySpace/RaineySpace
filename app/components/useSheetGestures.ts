@@ -7,6 +7,7 @@ const VERTICAL_DISTANCE_PX = 96;
 const VERTICAL_FLICK_PX = 64;
 const VELOCITY_PX_MS = 0.55;
 const SETTLE_MS = 250;
+const CLOSE_MS = 220;
 
 interface GestureSession {
   pointerId: number;
@@ -42,6 +43,7 @@ export function useSheetGestures({
   const gestureRef = useRef<GestureSession | null>(null);
   const settleTokenRef = useRef(0);
   const settlingRef = useRef(false);
+  const settleCleanupRef = useRef<(() => void) | null>(null);
   const onCloseRef = useRef(onClose);
 
   onCloseRef.current = onClose;
@@ -81,6 +83,7 @@ export function useSheetGestures({
     sheet.classList.add("is-dragging");
     backdrop?.classList.add("is-dragging");
     sheet.style.animation = "none";
+    if (backdrop) backdrop.style.animation = "none";
     setTransition(sheet, "none");
     setTransition(backdrop, "none");
   }, [backdropRef, sheetRef]);
@@ -95,11 +98,13 @@ export function useSheetGestures({
   }, [backdropRef, sheetRef]);
 
   useEffect(() => {
-    if (!isOpen) {
+    return () => {
       settleTokenRef.current += 1;
+      settleCleanupRef.current?.();
+      settleCleanupRef.current = null;
       settlingRef.current = false;
       gestureRef.current = null;
-    }
+    };
   }, [isOpen]);
 
   const settle = useCallback((shouldClose: boolean) => {
@@ -111,6 +116,8 @@ export function useSheetGestures({
       return;
     }
 
+    if (!isOpen || settlingRef.current) return;
+
     if (!sheet || prefersReducedMotion()) {
       onCloseRef.current();
       return;
@@ -118,29 +125,55 @@ export function useSheetGestures({
 
     const token = ++settleTokenRef.current;
     settlingRef.current = true;
+    const gesture = gestureRef.current;
+    gestureRef.current = null;
+    if (gesture && sheet.hasPointerCapture(gesture.pointerId)) {
+      sheet.releasePointerCapture(gesture.pointerId);
+    }
+
+    // Start from the visible position, including an interrupted entrance animation.
+    const transform = getComputedStyle(sheet).transform;
+    const backdropOpacity = backdrop ? getComputedStyle(backdrop).opacity : "1";
+    sheet.style.animation = "none";
+    setTransition(sheet, "none");
+    sheet.style.transform = transform;
+    if (backdrop) {
+      backdrop.style.animation = "none";
+      setTransition(backdrop, "none");
+      backdrop.style.opacity = backdropOpacity;
+    }
     sheet.classList.remove("is-dragging");
     backdrop?.classList.remove("is-dragging");
-    setTransition(sheet, `transform 200ms ease-in`);
-    setTransition(backdrop, `opacity 200ms ease-in`);
+
+    // Commit the starting styles before transitioning to the closed position.
+    void sheet.offsetHeight;
+    setTransition(sheet, `transform ${CLOSE_MS}ms ease-in`);
+    setTransition(backdrop, `opacity ${CLOSE_MS}ms ease-in`);
     sheet.style.transform = `translate3d(0, ${sheet.offsetHeight}px, 0)`;
     if (backdrop) backdrop.style.opacity = "0";
 
     const finish = () => {
       if (token !== settleTokenRef.current) return;
       settleTokenRef.current += 1;
+      settleCleanupRef.current?.();
+      settleCleanupRef.current = null;
       settlingRef.current = false;
       onCloseRef.current();
     };
 
-    const timeout = window.setTimeout(finish, 240);
+    const timeout = window.setTimeout(finish, CLOSE_MS + 80);
     const handleEnd = (event: TransitionEvent) => {
       if (event.target !== sheet || event.propertyName !== "transform") return;
-      window.clearTimeout(timeout);
-      sheet.removeEventListener("transitionend", handleEnd);
       finish();
     };
     sheet.addEventListener("transitionend", handleEnd);
-  }, [backdropRef, resetSheet, sheetRef]);
+    settleCleanupRef.current = () => {
+      window.clearTimeout(timeout);
+      sheet.removeEventListener("transitionend", handleEnd);
+    };
+  }, [backdropRef, isOpen, resetSheet, sheetRef]);
+
+  const close = useCallback(() => settle(true), [settle]);
 
   const endGesture = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     const gesture = gestureRef.current;
@@ -228,6 +261,7 @@ export function useSheetGestures({
   }, [resetSheet]);
 
   return {
+    close,
     onPointerDown,
     onPointerMove,
     onPointerUp,

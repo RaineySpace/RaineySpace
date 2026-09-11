@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
-import { useSheetGestures } from "@/app/components/useSheetGestures";
+import Sheet from "@/app/components/Sheet";
 import LivePhoto from "@/app/components/LivePhoto";
 
 export interface PreviewImage {
@@ -307,8 +307,7 @@ export default function ImageLightbox({
   const shellRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const sheetBackdropRef = useRef<HTMLButtonElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
   const thumbnailTrackRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [settledSrc, setSettledSrc] = useState<string | null>(null);
@@ -389,13 +388,6 @@ export default function ImageLightbox({
     onClose: closeLightbox,
   });
 
-  const sheetGestureHandlers = useSheetGestures({
-    isOpen: sheetOpen,
-    sheetRef,
-    backdropRef: sheetBackdropRef,
-    onClose: closeSheet,
-  });
-
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!isOpen) {
@@ -416,16 +408,12 @@ export default function ImageLightbox({
     if (!isOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (sheetOpen) return;
       if (event.key === "Escape") {
         event.preventDefault();
-        if (sheetOpen) {
-          closeSheet();
-          return;
-        }
         closeLightbox();
         return;
       }
-      if (sheetOpen) return;
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         showPrevious();
@@ -438,7 +426,7 @@ export default function ImageLightbox({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeLightbox, closeSheet, isOpen, sheetOpen, showNext, showPrevious]);
+  }, [closeLightbox, isOpen, sheetOpen, showNext, showPrevious]);
 
   useEffect(() => {
     if (activeIndex === null || !hasOverflowingThumbnails) return;
@@ -474,10 +462,7 @@ export default function ImageLightbox({
       onClose={handleClosed}
       onCancel={(event) => {
         event.preventDefault();
-        if (sheetOpen) {
-          closeSheet();
-          return;
-        }
+        if (sheetOpen) return;
         closeLightbox();
       }}
       onClick={(event) => {
@@ -578,8 +563,11 @@ export default function ImageLightbox({
                 {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
                 {showMore && (
                   <button
+                    ref={moreButtonRef}
                     type="button"
                     className="image-lightbox-more"
+                    aria-haspopup="dialog"
+                    aria-expanded={sheetOpen}
                     onClick={() => setSheetOpen(true)}
                   >
                     更多
@@ -659,74 +647,62 @@ export default function ImageLightbox({
           )}
         </div>
       )}
-      {activeImage && sheetOpen && (
-        <div className="image-lightbox-sheet-layer">
-          <button
-            ref={sheetBackdropRef}
-            type="button"
-            className="image-lightbox-sheet-backdrop"
-            aria-label="关闭详情"
-            onClick={closeSheet}
-          />
-          <div
-            ref={sheetRef}
-            className="image-lightbox-sheet"
-            role="dialog"
-            aria-label={titleText || "图片详情"}
-            onPointerDown={sheetGestureHandlers.onPointerDown}
-            onPointerMove={sheetGestureHandlers.onPointerMove}
-            onPointerUp={sheetGestureHandlers.onPointerUp}
-            onPointerCancel={sheetGestureHandlers.onPointerCancel}
-          >
-            <div className="image-lightbox-sheet-grab" data-sheet-handle>
-              <span className="image-lightbox-sheet-handle" aria-hidden="true" />
-              <div className="image-lightbox-sheet-header">
-                <span className="image-lightbox-sheet-title">{titleText || "图片详情"}</span>
-                <button
-                  type="button"
-                  className="image-lightbox-sheet-close"
-                  aria-label="关闭详情"
-                  onClick={closeSheet}
-                >
-                  <CloseIcon />
-                </button>
-              </div>
+      {activeImage && (
+        <Sheet
+          open={sheetOpen}
+          onClose={closeSheet}
+          label={titleText || "图片详情"}
+          closeLabel="关闭详情"
+          className="image-lightbox-sheet"
+          returnFocusRef={moreButtonRef}
+          renderHeader={(close) => (
+            <div className="image-lightbox-sheet-header">
+              <span className="image-lightbox-sheet-title">{titleText || "图片详情"}</span>
+              <button
+                type="button"
+                className="image-lightbox-sheet-close"
+                aria-label="关闭详情"
+                onClick={close}
+              >
+                <CloseIcon />
+              </button>
             </div>
-            <div className="image-lightbox-sheet-grid">
-              {locationText && (
-                <SheetCard label="地点">
-                  {hasGps(activeImage) ? (
-                    <a
-                      href={mapUrl(activeImage.latitude, activeImage.longitude)}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="image-lightbox-sheet-card-value image-lightbox-meta-link"
-                    >
-                      {locationText}
-                    </a>
-                  ) : (
-                    <span className="image-lightbox-sheet-card-value">{locationText}</span>
-                  )}
-                </SheetCard>
-              )}
-              {dateText && (
-                <SheetCard label="拍摄于" value={dateText} detail={capturedTime} />
-              )}
-              {activeImage.camera && <SheetCard label="相机" value={activeImage.camera} />}
-              {activeImage.lens && <SheetCard label="镜头" value={activeImage.lens} />}
-              {activeImage.aperture && (
-                <SheetCard label="光圈" value={activeImage.aperture} icon={<ApertureIcon />} />
-              )}
-              {activeImage.shutter && (
-                <SheetCard label="快门" value={activeImage.shutter} icon={<ShutterIcon />} />
-              )}
-              {focalText && <SheetCard label="焦距" value={focalText} icon={<FocalIcon />} />}
-              {activeImage.iso && (
-                <SheetCard label="感光度" value={activeImage.iso} icon={<IsoIcon />} />
-              )}
-            </div>
+          )}
+        >
+          <div className="image-lightbox-sheet-grid">
+            {locationText && (
+              <SheetCard label="地点">
+                {hasGps(activeImage) ? (
+                  <a
+                    href={mapUrl(activeImage.latitude, activeImage.longitude)}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="image-lightbox-sheet-card-value image-lightbox-meta-link"
+                  >
+                    {locationText}
+                  </a>
+                ) : (
+                  <span className="image-lightbox-sheet-card-value">{locationText}</span>
+                )}
+              </SheetCard>
+            )}
+            {dateText && (
+              <SheetCard label="拍摄于" value={dateText} detail={capturedTime} />
+            )}
+            {activeImage.camera && <SheetCard label="相机" value={activeImage.camera} />}
+            {activeImage.lens && <SheetCard label="镜头" value={activeImage.lens} />}
+            {activeImage.aperture && (
+              <SheetCard label="光圈" value={activeImage.aperture} icon={<ApertureIcon />} />
+            )}
+            {activeImage.shutter && (
+              <SheetCard label="快门" value={activeImage.shutter} icon={<ShutterIcon />} />
+            )}
+            {focalText && <SheetCard label="焦距" value={focalText} icon={<FocalIcon />} />}
+            {activeImage.iso && (
+              <SheetCard label="感光度" value={activeImage.iso} icon={<IsoIcon />} />
+            )}
           </div>
-        </div>
+        </Sheet>
       )}
     </dialog>
   );

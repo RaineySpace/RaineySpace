@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useSheetGestures } from "@/app/components/useSheetGestures";
+import Sheet from "@/app/components/Sheet";
 import {
   DEFAULT_READING_SETTINGS,
   LEADING_OPTIONS,
@@ -109,9 +108,6 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
   const [isDesktop, setIsDesktop] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
 
   useEffect(() => {
@@ -149,7 +145,7 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
   }, [pathname]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !isDesktop) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -157,7 +153,6 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
       }
     };
     const onPointerDown = (event: PointerEvent) => {
-      if (!isDesktop) return;
       if (containerRef.current?.contains(event.target as Node)) return;
       close(false);
     };
@@ -169,51 +164,9 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
     };
   }, [close, isDesktop, open]);
 
-  useEffect(() => {
-    if (!open || isDesktop) return;
-    const { overflow } = document.body.style;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = overflow;
-    };
-  }, [isDesktop, open]);
-
-  const sheetGestures = useSheetGestures({
-    isOpen: open && !isDesktop,
-    sheetRef,
-    backdropRef,
-    onClose: () => close(),
-  });
-
   const update = useCallback((patch: Partial<ReadingSettingsValue>) => {
     setSettings(saveReadingSettings(patch));
   }, []);
-
-  const showSheet = open && !isDesktop && typeof document !== "undefined";
-
-  useLayoutEffect(() => {
-    if (!showSheet) return;
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (!dialog.open) dialog.showModal();
-
-    const syncChromeInset = () => {
-      const viewport = window.visualViewport;
-      const visibleBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
-      const bottomGap = Math.max(0, Math.round(window.innerHeight - visibleBottom));
-      dialog.style.setProperty("--sheet-chrome-inset", `${bottomGap}px`);
-    };
-
-    syncChromeInset();
-    window.visualViewport?.addEventListener("resize", syncChromeInset);
-    window.visualViewport?.addEventListener("scroll", syncChromeInset);
-    window.addEventListener("resize", syncChromeInset);
-    return () => {
-      window.visualViewport?.removeEventListener("resize", syncChromeInset);
-      window.visualViewport?.removeEventListener("scroll", syncChromeInset);
-      window.removeEventListener("resize", syncChromeInset);
-    };
-  }, [showSheet]);
 
   return (
     <div ref={containerRef} className="reading-settings">
@@ -242,43 +195,17 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
         </div>
       )}
 
-      {showSheet &&
-        createPortal(
-          <dialog
-            ref={dialogRef}
-            id={panelId}
-            aria-label="阅读设置"
-            className="reading-settings-sheet-layer"
-            onClose={() => close(false)}
-            onCancel={(event) => {
-              event.preventDefault();
-              close();
-            }}
-          >
-            <button
-              ref={backdropRef}
-              type="button"
-              className="reading-settings-sheet-backdrop"
-              aria-label="关闭阅读设置"
-              onClick={() => close()}
-            />
-            <div
-              ref={sheetRef}
-              className="reading-settings-sheet"
-              onPointerDown={sheetGestures.onPointerDown}
-              onPointerMove={sheetGestures.onPointerMove}
-              onPointerUp={sheetGestures.onPointerUp}
-              onPointerCancel={sheetGestures.onPointerCancel}
-            >
-              <div className="reading-settings-sheet-grab" data-sheet-handle>
-                <span className="reading-settings-sheet-handle" aria-hidden="true" />
-              </div>
-              <ReadingSettingsPanel settings={settings} onChange={update} />
-              <div className="reading-settings-sheet-bleed" aria-hidden="true" />
-            </div>
-          </dialog>,
-          document.body,
-        )}
+      <Sheet
+        open={open && !isDesktop}
+        onClose={() => setOpen(false)}
+        id={panelId}
+        label="阅读设置"
+        closeLabel="关闭阅读设置"
+        className="reading-settings-sheet"
+        returnFocusRef={triggerRef}
+      >
+        <ReadingSettingsPanel settings={settings} onChange={update} />
+      </Sheet>
     </div>
   );
 }

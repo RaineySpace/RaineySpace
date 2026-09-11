@@ -105,6 +105,8 @@ pnpm install
 pnpm dev
 ```
 
+开发服务默认使用 [http://localhost:6660/](http://localhost:6660/)，避免与其他项目常用的 `3000` 端口冲突。
+
 如果本地 `next dev` 遇到文件监听数量限制，可以先用静态构建验收：
 
 ```bash
