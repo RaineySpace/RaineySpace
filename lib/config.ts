@@ -32,6 +32,12 @@ export const avatar = `${siteUrl}/me.jpg`;
 
 
 /**
+ * 站点默认 Open Graph / Twitter 卡片图
+ */
+export const ogImage = `${siteUrl}/og.jpg`;
+
+
+/**
  * 描述信息
  */
 export const description = "A blog by Rainey";

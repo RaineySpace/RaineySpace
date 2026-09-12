@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: config.title,
     description: config.description,
-    images: config.avatar,
+    images: config.ogImage,
     url: config.siteUrl,
     siteName: config.title,
     locale: "zh-CN",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: config.author,
     creator: config.author,
-    images: config.avatar,
+    images: config.ogImage,
   },
 };
 

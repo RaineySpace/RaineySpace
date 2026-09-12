@@ -32,13 +32,13 @@ export async function generateMetadata({
       publishedTime: post.date?.toISOString(),
       authors: [config.author],
       tags: post.tags,
-      images: post.cover || config.avatar,
+      images: post.cover || config.ogImage,
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.summary || config.description,
-      images: post.cover || config.avatar,
+      images: post.cover || config.ogImage,
     },
   };
 }
