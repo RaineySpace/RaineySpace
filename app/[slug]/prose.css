@@ -243,9 +243,66 @@
   border: none;
 }
 
-.markdown b,
+.markdown b {
+  font-weight: 600;
+}
+
+/* 彩色高亮强调 */
 .markdown strong {
   font-weight: 600;
+  padding: 0 0.5rem;
+  margin: 0 0.2rem;
+  border-radius: 0.5rem;
+  border-bottom-left-radius: 0.125rem;
+  background: #d9d9d9;
+  color: #1f1f1f;
+}
+
+.markdown strong:nth-of-type(5n + 2) {
+  background: #91caff;
+}
+
+.markdown strong:nth-of-type(5n + 3) {
+  background: #ffccc7;
+}
+
+.markdown strong:nth-of-type(5n + 4) {
+  background: #faebdd;
+}
+
+.markdown strong:nth-of-type(5n) {
+  background: #efdbff;
+}
+
+/* 链接会为 strong 创建独立父元素，按同级链接位置单独轮换颜色。 */
+.markdown a:nth-of-type(5n + 1) strong {
+  background: #91caff;
+}
+
+.markdown a:nth-of-type(5n + 2) strong {
+  background: #ffccc7;
+}
+
+.markdown a:nth-of-type(5n + 3) strong {
+  background: #faebdd;
+}
+
+.markdown a:nth-of-type(5n + 4) strong {
+  background: #efdbff;
+}
+
+.markdown a:nth-of-type(5n) strong {
+  background: #fff1b8;
+}
+
+html[data-theme="dark"] .markdown strong {
+  color: #161616;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) .markdown strong {
+    color: #161616;
+  }
 }
 
 .markdown i,
@@ -272,6 +329,16 @@
 .markdown del,
 .markdown s {
   color: inherit;
+}
+
+/* 删除线模糊效果 */
+.markdown del {
+  filter: blur(8px);
+  transition: filter 0.5s;
+}
+
+.markdown del:hover {
+  filter: blur(0);
 }
 
 .markdown :not(pre) > code {
@@ -427,6 +494,6 @@
 .markdown blockquote, .markdown pre, .markdown table { margin-top: 24px; margin-bottom: 24px; }
 .markdown pre, .markdown code, .markdown kbd, .markdown samp { font-size: var(--fs-code); line-height: 1.7; }
 .markdown pre code { padding: 0; background: transparent; color: inherit; }
-.markdown del, .markdown s { color: inherit; background: none; filter: none; }
+.markdown del, .markdown s { color: inherit; background: none; }
 .markdown mark { background: var(--surface-muted); color: inherit; }
 .markdown input[type="checkbox"] { accent-color: var(--title); }
