@@ -37,10 +37,16 @@ async function main() {
     process.exit(1);
   }
 
-  const postDir = path.join(process.cwd(), "public", slug);
-  const filePath = path.join(postDir, "index.md");
+  const filePath = path.join(process.cwd(), "public", `${slug}.md`);
 
-  await fs.mkdir(postDir, { recursive: false });
+  try {
+    await fs.access(filePath);
+    console.error("Post already exists.");
+    process.exit(1);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+
   await fs.writeFile(filePath, `---
 title: ${rawTitle}
 date: ${today()}
@@ -55,10 +61,6 @@ tags: []
 }
 
 main().catch((error) => {
-  if (error.code === "EEXIST") {
-    console.error("Post already exists.");
-    process.exit(1);
-  }
   console.error(error);
   process.exit(1);
 });

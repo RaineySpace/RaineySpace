@@ -112,7 +112,7 @@ async function main() {
       assert.equal(data[0].image, post.cover ? new URL(post.cover, config.siteUrl).href : undefined);
       assert.ok(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '').includes(post.content), `${post.slug}: body missing from static HTML`);
     }
-    assert.equal(await read(`${post.slug}/index.md`), await fs.readFile(`public/${post.slug}/index.md`, 'utf8'));
+    assert.equal(await read(`${post.slug}.md`), await fs.readFile(`public/${post.slug}.md`, 'utf8'));
   }
 
   const sitemap = await read('sitemap.xml');
@@ -129,7 +129,7 @@ async function main() {
   const llms = await read('llms.txt');
   const links = [];
   marked.walkTokens(marked.lexer(llms), (token) => { if (token.type === 'link') links.push(token.href); });
-  assert.deepEqual(links.filter((href) => href.endsWith('/index.md')).sort(), publicPosts.map((post) => markdownUrl(post.slug)).sort());
+  assert.deepEqual(links.filter((href) => href.endsWith('.md')).sort(), publicPosts.map((post) => markdownUrl(post.slug)).sort());
   for (const href of links) {
     const url = new URL(href);
     assert.equal(url.origin, new URL(config.siteUrl).origin);
@@ -148,8 +148,9 @@ async function main() {
     assert.ok(!robots.includes(`User-agent: ${bot}\nDisallow: /`), `search/user bot blocked: ${bot}`);
   }
   assert.ok(robots.includes(`Sitemap: ${config.siteUrl}/sitemap.xml`));
-  assert.ok((await read('_headers')).includes(`/:slug/index.md\n  Link: <${config.siteUrl}/:slug/>; rel="canonical"`));
-  assert.ok((await read('_headers')).includes('/test/index.md\n  X-Robots-Tag: noindex'));
+  assert.ok((await read('_headers')).includes(`/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <${config.siteUrl}/:splat/>; rel="canonical"`));
+  assert.ok((await read('_headers')).includes('/test.md\n  X-Robots-Tag: noindex'));
+  assert.ok((await read('_redirects')).includes('/:slug/index.md /:slug.md 301'));
   for (const feed of ['rss.xml', 'atom.xml']) {
     const xml = await read(feed);
     for (const post of publicPosts) assert.ok(xml.includes(postUrl(post.slug)), `${feed}: missing ${post.slug}`);

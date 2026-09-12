@@ -19,7 +19,7 @@ description: 根据用户提供的项目官网、产品页或代码仓库地址�
 ## 阶段一：检查当前状态
 
 1. 读取 `content/projects.json`、`lib/projects.ts` 和 `scripts/validate-content.mjs` 中与项目有关的规则；以当前代码为准，不依赖技能内的旧快照。
-2. 搜索 `public/*/index.md` 的 `projectId`，确认项目是否已经登记、是否已有可关联文章，以及候选 ID 或 URL 是否冲突。
+2. 搜索 `public/*.md` 的 `projectId`，确认项目是否已经登记、是否已有可关联文章，以及候选 ID 或 URL 是否冲突。
 3. 记录工作树状态。保留用户的既有改动，只触碰本次确认范围内的文件。
 4. 规范化输入 URL 用于查重，但保留项目官方使用的 canonical URL 作为展示地址。
 
@@ -65,14 +65,14 @@ description: 根据用户提供的项目官网、产品页或代码仓库地址�
 项目 registry 中的每个项目必须至少被一篇文章通过 `projectId` 引用。检查后推荐以下一种方案：
 
 1. **关联已有文章**：只在文章确实介绍或复盘该项目时，给它增加 `projectId`。
-2. **新建项目介绍页**：默认保存到 `public/<slug>/index.md`，使用 `hidden: true` 使页面可直达、从文章列表/Feed/Sitemap 隐藏，同时仍出现在项目集合中。
+2. **新建项目介绍页**：默认保存到 `public/<slug>.md`，使用 `hidden: true` 使页面可直达、从文章列表/Feed/Sitemap 隐藏，同时仍出现在项目集合中。
 
 新建介绍页时，提出并确认：
 
 - `slug`、`title`、`date`、`summary`、`tags`、`projectId`；
 - `date` 表示这篇博客页面的发布日期，不冒充项目发布日期；
 - 正文将采用的已核实要点；用户个人动机、经历和判断没有来源时标为待用户补充，不替用户编造；
-- 本地资源与文章放在同一目录，并以 `./asset.ext` 引用；项目卡片封面若要本地化，则使用 `public/` 下稳定的站点绝对路径。
+- 本地资源放在同名目录 `public/<slug>/`，并以 `./asset.ext` 引用；项目卡片封面若要本地化，则使用 `public/` 下稳定的站点绝对路径。
 
 为新增项目或登记不完整的现有项目，用紧凑的确认单展示：
 
@@ -89,7 +89,7 @@ description: 根据用户提供的项目官网、产品页或代码仓库地址�
 收到“确认更新”“确认新增”或“确认补全”等明确授权后，先重新读取目标文件，防止确认期间发生漂移，再按确认分支做最小且完整的修改：
 
 1. **更新现有项目**：只修改用户确认的字段，保留稳定的 `projectId` 和现有文章关联；除非关联缺失且用户确认补全，否则不新建文章。
-2. **新增项目**：向 `content/projects.json` 写入确认过的完整对象，并关联已有文章或创建已确认的 `public/<slug>/index.md`。
+2. **新增项目**：向 `content/projects.json` 写入确认过的完整对象，并关联已有文章或创建已确认的 `public/<slug>.md`。
 3. 只使用当前 schema 允许的 `name`、`url`、`date`、`description`、`cover`、`pinned`。
 4. 文章 frontmatter 只写 `projectId`，不要重复 `projectName`、`projectUrl`、`projectDescription` 或 `projectCover`。
 5. 新文章至少包含 `title`、`date`、`summary`、`tags` 和 `projectId`；按确认结果设置 `hidden: true`。

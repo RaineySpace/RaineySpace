@@ -28,7 +28,7 @@ test('canonical URLs consolidate query strings and preserve encoded slug charact
   assert.equal(seo.canonicalUrl('/articles///'), 'https://rainey.space/articles/');
   assert.equal(seo.canonicalUrl('/'), 'https://rainey.space/');
   assert.equal(seo.postUrl('中文 ?#'), 'https://rainey.space/%E4%B8%AD%E6%96%87%20%3F%23/');
-  assert.equal(seo.markdownUrl('中文 ?#'), 'https://rainey.space/%E4%B8%AD%E6%96%87%20%3F%23/index.md');
+  assert.equal(seo.markdownUrl('中文 ?#'), 'https://rainey.space/%E4%B8%AD%E6%96%87%20%3F%23.md');
 });
 
 test('metadata keeps each page identity, feed discovery and Markdown alternates', () => {
@@ -45,7 +45,7 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   const metadata = seo.postMetadata(post({ cover: '/sample/cover.webp', updated: new Date('2024-02-29') }));
   assert.equal(metadata.openGraph.images, 'https://rainey.space/sample/cover.webp');
   assert.equal(metadata.openGraph.modifiedTime, '2024-02-29T00:00:00.000Z');
-  assert.equal(metadata.alternates.types['text/markdown'], 'https://rainey.space/sample/index.md');
+  assert.equal(metadata.alternates.types['text/markdown'], 'https://rainey.space/sample.md');
   const about = seo.postMetadata(post({ slug: 'about', title: 'about', hidden: true }));
   assert.equal(about.title, "关于 Rainey - Rainey's Blog");
   assert.equal(about.openGraph.type, 'website');
@@ -110,7 +110,7 @@ test('sitemap and llms omit hidden posts and never invent modification dates', (
   assert.ok(!entries.some((entry) => entry.loc.includes('/hidden/')));
   assert.equal(seo.sitemapEntries([post({ date: null })]).at(-1).lastmod, undefined);
   const llms = seo.llmsText(source);
-  assert.ok(llms.includes('https://rainey.space/sample/index.md'));
+  assert.ok(llms.includes('https://rainey.space/sample.md'));
   assert.ok(llms.includes('[原文](https://rainey.space/sample/)'));
   assert.ok(llms.includes('更新 2024-02-29'));
   assert.ok(!llms.includes('/hidden/'));
@@ -124,12 +124,12 @@ test('content reader and CLI both enforce updated on real Markdown fixtures', as
   const root = process.cwd();
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-seo-'));
   try {
-    await fs.mkdir(path.join(directory, 'public', 'sample'), { recursive: true });
+    await fs.mkdir(path.join(directory, 'public'), { recursive: true });
     await fs.mkdir(path.join(directory, 'content'));
     await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
     process.chdir(directory);
     for (const [updated, error] of [['2024-02-29', null], ['2024-02-30', /valid YYYY-MM-DD/], ['2024-01-31', /earlier than/]]) {
-      await fs.writeFile(path.join(directory, 'public/sample/index.md'), `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);
+      await fs.writeFile(path.join(directory, 'public/sample.md'), `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);
       if (error) await assert.rejects(getPostBySlug('sample'), error);
       else assert.equal((await getPostBySlug('sample')).updated.toISOString(), '2024-02-29T00:00:00.000Z');
       const check = spawnSync(process.execPath, [path.join(root, 'scripts/validate-content.mjs')], { cwd: directory, encoding: 'utf8' });

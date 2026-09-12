@@ -31,7 +31,7 @@ test('image pipeline serves responsive previews, preserves originals and handles
     const original = await fs.readFile(path.join(postDir, 'photo.jpg'));
     const markdown = `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\ncover: ./photo.jpg\n---\n` +
       ['photo.jpg', 'photo.png', 'rotated.jpg', 'portrait.jpg', 'small.png', '中文 image,1.png', 'animated.gif'].map((name) => `![Image](<./${name}>)`).join('\n\n');
-    await fs.writeFile(path.join(postDir, 'index.md'), markdown);
+    await fs.writeFile(path.join(directory, 'public/sample.md'), markdown);
     await fs.writeFile(path.join(postDir, 'photo.mov'), 'live photo fixture');
     optimize();
     const manifest = JSON.parse(await fs.readFile(path.join(directory, 'public/_optimized/manifest.json')));
@@ -66,7 +66,7 @@ test('image pipeline serves responsive previews, preserves originals and handles
     assert.match(post.content, /data-full-src="\/sample\/photo.jpg"/);
     assert.match(post.content, /data-live-src="\/sample\/photo.mov"/);
 
-    await fs.writeFile(path.join(postDir, 'index.md'), '---\nhidden: true\n---\n![Small](./small.png)');
+    await fs.writeFile(path.join(directory, 'public/sample.md'), '---\nhidden: true\n---\n![Small](./small.png)');
     optimize();
     const cleaned = JSON.parse(await fs.readFile(path.join(directory, 'public/_optimized/manifest.json')));
     assert.deepEqual(Object.keys(cleaned), ['/sample/small.png']);

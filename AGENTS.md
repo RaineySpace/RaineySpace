@@ -16,12 +16,12 @@ The GitHub profile `README.md` is not project documentation. Do not edit `README
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
 - `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, public-post filtering, and feed data behavior centralized there.
 - `content/projects.json` is the canonical registry for project names, links, dates, descriptions, covers, and pinning.
-- `public/<slug>/index.md` is the source format for posts.
+- `public/<slug>.md` is the source format for posts. A same-named `public/<slug>/` directory holds referenced assets.
 - `scripts/` contains local maintenance scripts.
 
 ## Content Model
 
-Posts are directories under `public/` with an `index.md` file. Public posts should include:
+Posts are Markdown files at the top level of `public/`. Public posts should include:
 
 ```yaml
 ---
@@ -42,13 +42,13 @@ projectId: example-project
 cover: ./cover.webp
 ```
 
-`cover` is optional. Prefer a local file in the post directory with a relative path such as `./cover.webp`. When present, the cover renders after the summary (or other header metadata when no summary exists) and before the body on the article page only; article lists never show covers. Posts without `cover` keep the original title-first layout and must not use body images as a fallback cover.
+`cover` is optional. Prefer a local file in the same-named asset directory with a relative path such as `./cover.webp`. When present, the cover renders after the summary (or other header metadata when no summary exists) and before the body on the article page only; article lists never show covers. Posts without `cover` keep the original title-first layout and must not use body images as a fallback cover.
 
 Use `hidden: true` for pages that should remain directly accessible but excluded from article listings, feeds, and sitemap. It does not hide content marked for photography or associated with a registered project.
 
 Project posts reference a key from `content/projects.json` through `projectId`. Do not duplicate project display metadata in post frontmatter. Registered projects must have at least one referencing post. Project display dates come from the registry `date` field (`YYYY-MM-DD`), not from referencing posts.
 
-Local assets referenced by a post should live in the same post directory. Prefer relative paths such as `./image.png`.
+Local assets referenced by a post should live in `public/<slug>/`. Prefer relative paths such as `./image.png`. A post without local assets does not need that directory.
 Photography images must use relative Markdown image paths with non-empty alt text.
 A sibling `.mov` / `.MOV` with the same filename as a still image enables Live Photo playback; Markdown should still reference only the still.
 
@@ -61,7 +61,7 @@ A sibling `.mov` / `.MOV` with the same filename as a still image enables Live P
 - Keep tags optional; most existing posts have empty tags.
 - Keep homepage articles and photography ordered by post `pinned` first and post date descending. Keep projects ordered by registry `pinned` first and their latest referencing post date descending. Feeds remain strictly date-ordered.
 - Keep the visual style lightweight and personal; avoid broad redesigns unless explicitly requested.
-- Do not move Markdown posts out of `public/<slug>/index.md` without an explicit migration request.
+- Do not move Markdown posts out of `public/<slug>.md` without an explicit migration request.
 
 ## Commands
 
