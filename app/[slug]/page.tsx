@@ -8,6 +8,7 @@ import TableOfContents from './TableOfContents';
 import MarkdownContent from '@/app/components/MarkdownContent';
 import PostCover from '@/app/components/PostCover';
 import ProjectCard from '@/app/components/ProjectCard';
+import PostNavigation from '@/app/components/PostNavigation';
 import { getProjectById } from '@/lib/projects';
 
 export async function generateMetadata({
@@ -57,7 +58,15 @@ export default async function PostPage({
               </p>
             )}
             {post.coverDisplaySrc ? (
-              <PostCover src={post.coverDisplaySrc} priority className="article-cover" />
+              <PostCover
+                src={post.coverDisplaySrc}
+                originalSrc={post.cover}
+                thumbnailSrc={post.coverImage?.thumbnailSrc}
+                srcSet={post.coverImage?.srcSet}
+                title={post.title}
+                priority
+                className="article-cover"
+              />
             ) : null}
           </header>
         )}
@@ -73,6 +82,7 @@ export default async function PostPage({
           <ProjectCard project={project} headingLevel="h2" />
         </aside>
       )}
+      <PostNavigation post={post} />
     </div>
   );
 }

@@ -4,6 +4,8 @@ export interface Photo {
   id: string;
   src: string;
   displaySrc: string;
+  thumbnailSrc?: string;
+  srcSet?: string;
   alt: string;
   date: string;
   capturedAt?: string;
@@ -35,6 +37,8 @@ function toPhoto(image: PostImage, post: Post): Photo {
     id: image.id,
     src: image.src,
     displaySrc: image.displaySrc,
+    thumbnailSrc: image.thumbnailSrc,
+    srcSet: image.srcSet,
     alt: image.alt,
     date: formatDate(post.date),
     capturedAt: image.capturedAt,

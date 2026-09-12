@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
 import { useMemo, useRef, useState } from "react";
 import ImageLightbox, { type PreviewImage } from "@/app/components/ImageLightbox";
 import LivePhoto from "@/app/components/LivePhoto";
@@ -18,6 +18,8 @@ function toPreviewImage(photo: Photo): PreviewImage {
     id: photo.id,
     src: photo.src,
     displaySrc: photo.displaySrc,
+    thumbnailSrc: photo.thumbnailSrc,
+    srcSet: photo.srcSet,
     alt: photo.alt,
     capturedAt: photo.capturedAt,
     date: photo.date,
@@ -42,6 +44,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const returnFocusRef = useRef<HTMLButtonElement | null>(null);
   const previewImages = useMemo<PreviewImage[]>(() => photos.map(toPreviewImage), [photos]);
+  const sizes = variant === "strip" ? "112px" : "(min-width: 672px) 203px, (min-width: 640px) calc((100vw - 64px) / 3), calc((100vw - 52px) / 2)";
 
   if (photos.length === 0) return null;
 
@@ -75,21 +78,25 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
                   badgeSize="sm"
                   className="transition-transform duration-200 group-hover:scale-[1.02]"
                 >
-                  <Image
-                    src={photo.displaySrc}
+                  <img
+                    src={photo.thumbnailSrc || photo.displaySrc}
+                    srcSet={photo.srcSet}
                     alt={photo.alt}
-                    fill
-                    sizes={variant === "strip" ? "120px" : "(min-width: 640px) 200px, 50vw"}
-                    className="object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    sizes={sizes}
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 </LivePhoto>
               ) : (
-                <Image
-                  src={photo.displaySrc}
+                <img
+                  src={photo.thumbnailSrc || photo.displaySrc}
+                  srcSet={photo.srcSet}
                   alt={photo.alt}
-                  fill
-                  sizes={variant === "strip" ? "120px" : "(min-width: 640px) 200px, 50vw"}
-                  className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                  loading="lazy"
+                  decoding="async"
+                  sizes={sizes}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                 />
               )}
               {variant === "grid" && (

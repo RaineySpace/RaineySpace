@@ -9,7 +9,8 @@ import hljs from 'highlight.js';
 import { readImageExif, type ImageExif } from './image-exif';
 import { parseUpdatedDate } from './post-dates.mjs';
 import {
-  resolveDisplaySrc,
+  resolveDisplayImage,
+  type DisplayImage,
   SKIP_PUBLIC_DIRS,
   toOriginalSrc,
 } from './optimized-images';
@@ -35,6 +36,7 @@ export interface Post {
   slug: string;
   cover: string;
   coverDisplaySrc: string;
+  coverImage?: DisplayImage;
   tags: string[];
   keywords: string[];
   location: string;
@@ -52,10 +54,9 @@ export interface PostTagCount {
   count: number;
 }
 
-export interface PostImage extends ImageExif {
+export interface PostImage extends ImageExif, DisplayImage {
   id: string;
   src: string;
-  displaySrc: string;
   alt: string;
   liveVideoSrc?: string;
 }
@@ -150,7 +151,7 @@ export function toAbsoluteUrl(src: string): string {
 async function resolveCover(
   slug: string,
   raw: unknown,
-): Promise<{ cover: string; coverDisplaySrc: string }> {
+): Promise<{ cover: string; coverDisplaySrc: string; coverImage?: DisplayImage }> {
   // Cover comes only from explicit frontmatter. Never fall back to body images.
   const value = raw ? String(raw).trim() : "";
   if (!value) return { cover: "", coverDisplaySrc: "" };
@@ -172,9 +173,11 @@ async function resolveCover(
   }
 
   const cover = toOriginalSrc(slug, relativePath);
+  const coverImage = await resolveDisplayImage(slug, relativePath);
   return {
     cover,
-    coverDisplaySrc: await resolveDisplaySrc(slug, relativePath),
+    coverDisplaySrc: coverImage.displaySrc,
+    coverImage,
   };
 }
 
@@ -205,11 +208,11 @@ async function extractMarkdownImages(
   slug: string,
 ): Promise<{
   images: PostImage[];
-  displaySrcByRelativePath: Map<string, string>;
+  displayByRelativePath: Map<string, DisplayImage>;
   liveVideoSrcByRelativePath: Map<string, string>;
 }> {
   const images: PostImage[] = [];
-  const displaySrcByRelativePath = new Map<string, string>();
+  const displayByRelativePath = new Map<string, DisplayImage>();
   const liveVideoSrcByRelativePath = new Map<string, string>();
   const seen = new Set<string>();
   const relativePaths: string[] = [];
@@ -242,22 +245,22 @@ async function extractMarkdownImages(
 
   for (const relativePath of relativePaths) {
     const src = toOriginalSrc(slug, relativePath);
-    const displaySrc = await resolveDisplaySrc(slug, relativePath);
+    const display = await resolveDisplayImage(slug, relativePath);
     const liveVideoSrc = await resolveLiveVideoSrc(slug, relativePath);
     const filePath = path.join(process.cwd(), 'public', slug, relativePath);
-    displaySrcByRelativePath.set(relativePath, displaySrc);
+    displayByRelativePath.set(relativePath, display);
     if (liveVideoSrc) liveVideoSrcByRelativePath.set(relativePath, liveVideoSrc);
     images.push({
       id: `${slug}/${relativePath}`,
       src,
-      displaySrc,
+      ...display,
       alt: alts.get(relativePath) || '',
       ...(liveVideoSrc ? { liveVideoSrc } : {}),
       ...(await readImageExif(filePath)),
     });
   }
 
-  return { images, displaySrcByRelativePath, liveVideoSrcByRelativePath };
+  return { images, displayByRelativePath, liveVideoSrcByRelativePath };
 }
 
 function createHeadingId(text: string, counts: Map<string, number>): string {
@@ -278,7 +281,7 @@ function renderMarkdown(
   content: string,
   options?: {
     slug: string;
-    displaySrcByRelativePath: Map<string, string>;
+    displayByRelativePath: Map<string, DisplayImage>;
     liveVideoSrcByRelativePath?: Map<string, string>;
   },
 ): { html: string; headings: Heading[] } {
@@ -307,10 +310,13 @@ function renderMarkdown(
     }
 
     const originalSrc = toOriginalSrc(options.slug, relativePath);
-    const displaySrc = options.displaySrcByRelativePath.get(relativePath) || originalSrc;
+    const display = options.displayByRelativePath.get(relativePath);
+    const displaySrc = display?.displaySrc || originalSrc;
+    const dimensions = display?.width && display.height ? ` width="${display.width}" height="${display.height}"` : '';
+    const responsive = display?.srcSet ? ` srcset="${escapeHtml(display.srcSet)}" sizes="(min-width: 672px) 632px, calc(100vw - 40px)"` : '';
     const liveVideoSrc = options.liveVideoSrcByRelativePath?.get(relativePath);
     const liveAttr = liveVideoSrc ? ` data-live-src="${escapeHtml(liveVideoSrc)}"` : "";
-    const image = `<img src="${escapeHtml(displaySrc)}" alt="${alt}"${titleAttr} loading="lazy" data-full-src="${escapeHtml(originalSrc)}"${liveAttr}>`;
+    const image = `<img src="${escapeHtml(displaySrc)}" alt="${alt}"${titleAttr}${dimensions}${responsive} loading="lazy" decoding="async" data-full-src="${escapeHtml(originalSrc)}"${liveAttr}>`;
     if (!liveVideoSrc) return image;
     return `<span class="live-photo" data-live-src="${escapeHtml(liveVideoSrc)}">${image}${LIVE_PHOTO_BADGE_HTML}</span>`;
   };
@@ -334,12 +340,12 @@ export async function getPostBySlug(slug: string): Promise<Post> {
   } catch (error) {
     throw new Error(`${slug}: ${(error as Error).message}`);
   }
-  const { images, displaySrcByRelativePath, liveVideoSrcByRelativePath } = await extractMarkdownImages(
+  const { images, displayByRelativePath, liveVideoSrcByRelativePath } = await extractMarkdownImages(
     content,
     slug,
   );
-  const rendered = renderMarkdown(content, { slug, displaySrcByRelativePath, liveVideoSrcByRelativePath });
-  const { cover, coverDisplaySrc } = await resolveCover(slug, data.cover);
+  const rendered = renderMarkdown(content, { slug, displayByRelativePath, liveVideoSrcByRelativePath });
+  const { cover, coverDisplaySrc, coverImage } = await resolveCover(slug, data.cover);
 
   return {
     title: data.title ? String(data.title) : slug,
@@ -351,6 +357,7 @@ export async function getPostBySlug(slug: string): Promise<Post> {
     slug,
     cover,
     coverDisplaySrc,
+    coverImage,
     tags: normalizeList(data.tags),
     keywords: normalizeList(data.keywords),
     location: data.location ? String(data.location) : '',
@@ -388,6 +395,21 @@ export async function getPosts(): Promise<Post[]> {
 
 export async function getPublicPosts(): Promise<Post[]> {
   return (await getPosts()).filter((post) => !post.hidden);
+}
+
+export function getRelatedPosts(post: Post, posts: readonly Post[], limit = 3): Post[] {
+  if (post.hidden || post.tags.length === 0) return [];
+  const tags = new Set(post.tags);
+  return posts
+    .filter((candidate) => !candidate.hidden && candidate.slug !== post.slug)
+    .map((candidate) => ({
+      post: candidate,
+      matches: new Set(candidate.tags.filter((tag) => tags.has(tag))).size,
+    }))
+    .filter((candidate) => candidate.matches > 0)
+    .sort((a, b) => b.matches - a.matches || comparePostDates(a.post, b.post))
+    .slice(0, limit)
+    .map((candidate) => candidate.post);
 }
 
 export function getPostTagCounts(posts: readonly Pick<Post, 'tags' | 'hidden'>[]): PostTagCount[] {

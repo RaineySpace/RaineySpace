@@ -98,6 +98,8 @@ export function postMetadata(post: Post): Metadata {
       } : {}),
     }),
     keywords: [...new Set([...config.keywords, ...post.keywords, ...post.tags])],
+    // The syntax fixture is not a publication. Other hidden pages stay indexable.
+    ...(post.slug === 'test' ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

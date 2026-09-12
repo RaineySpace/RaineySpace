@@ -61,7 +61,7 @@ updated: 2026-09-12
 cover: ./cover.webp
 ```
 
-封面文件放在同一文章目录下，使用相对路径。只有文章详情页会把封面渲染在标题上方，首页和文章列表不显示封面。没有 `cover` 的文章不显示占位图，也不用正文图片顶替封面，仍从标题开始排版。
+封面文件放在同一文章目录下，使用相对路径。文章详情页在摘要之后、正文之前显示封面，首页和文章列表不显示封面。封面默认显示压缩图，点击或用键盘打开灯箱查看原图，关闭后焦点回到封面。没有 `cover` 的文章不显示占位图，也不用正文图片顶替封面。
 
 ## 隐藏文章
 
@@ -75,11 +75,15 @@ hidden: true
 
 `hidden` 不等于 `noindex`，也不是访问控制。摄影和项目的集合成员资格仍与 `hidden` 无关；它们的频道 JSON-LD 与频道实际展示的条目一致。`llms.txt` 的公开文章目录和 sitemap 一样，不枚举隐藏详情页或其 Markdown 原文。
 
+`/test/` 是 Markdown 语法测试页，单独声明 `noindex, follow`。对应的 `/test/index.md` 由 `public/_headers` 添加 `X-Robots-Tag: noindex`，同时保留 HTML canonical 响应头。不要通过 robots.txt 禁止抓取测试页，否则搜索引擎无法读取这条索引限制；关于页、摄影和项目不继承该限制。
+
 ## SEO 与 AI 阅读
 
 首页、文章、摄影、项目和详情页各自提供标题、描述、canonical、Open Graph 与 Twitter 元数据。页面规范网址统一为 `https://rainey.space/` 下带尾斜杠的 HTML 地址；`/articles/?tag=摄影` 等筛选链接的 canonical 始终是 `/articles/`，不额外生成标签索引页。聚合页不声明无法确认的 `lastmod`。
 
 首页提供 `WebSite` 与 `Person`，公开文章提供 `BlogPosting`，频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`。作者身份和已公开的个人资料链接来自 `lib/config.ts`；结构化数据只使用实际内容，有明确文章封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
+
+详情页末尾提供静态的“全部文章”和作者页链接；摄影、项目详情还提供对应频道入口。相关阅读只推荐至少有一个相同标签的公开文章，优先共同标签更多、日期更近的文章，最多三篇；不推荐自身或隐藏文章，没有关联标签时不显示。维护好实际内容标签即可，不需要额外登记推荐列表。
 
 每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。原文仍位于 `/<slug>/index.md`，不维护第二份文章。`public/_headers` 随构建复制到 `out/_headers`，由 Cloudflare Pages 为 Markdown 响应添加指向对应 HTML 页的 HTTP `Link: <...>; rel="canonical"`。变更站点域名时，需要同时更新该文件并运行 SEO 校验。普通本地静态服务器不会解释 `_headers`。
 
@@ -105,7 +109,9 @@ hidden: true
 
 内容校验会检查公开文章中的本地图片和 `cover` 是否存在。缺失图片会输出 warning。
 
-正文继续引用原图，例如 `./photo.jpg`。构建和本地开发前会生成压缩 WebP 到 `public/_optimized/`，用于文章正文、文章封面、摄影列表和灯箱底栏；灯箱主预览仍加载原图。压缩图是构建产物，不要提交到 git。
+封面和正文统一遵循“默认显示缩略图，点击查看原图”。Markdown 继续引用原图，例如 `./photo.jpg`。构建和本地开发前会生成 320、640、960 像素宽及最大展示尺寸的 WebP 到 `public/_optimized/`，最大边长不超过 1600，不放大小图。输出文件保留原始扩展名作为文件名的一部分，避免同名 JPG/PNG 冲突；`manifest.json` 记录宽高、展示图和 `srcset`。
+
+正文、封面和摄影列表通过 `srcset`/`sizes` 按屏幕选择压缩图；正文还声明宽高，提前预留版面。灯箱底栏使用缩略图，主预览才加载原图。EXIF 方向在生成时纠正，原图与 Live Photo 视频保留不变；动图保留原文件，避免丢失动画。远程图片沿用其原 URL，不在构建时下载。压缩图和 manifest 都是构建产物，不要提交到 git。修改图片后重新运行优化命令；脚本会清理已经不再引用的派生文件。
 
 ```bash
 pnpm optimize:images
@@ -125,11 +131,7 @@ pnpm validate:content
 - 本地封面文件是否存在
 - Markdown 本地图片是否存在
 
-当前已知 warning：
-
-```text
-my-programmer-growth-journey: missing image asset ./attachments/bafybeie6xzabiit4b5t4x526f42276l3igxczrfuom2egfbj23qp2ujz2a
-```
+缺失图片以当次校验输出为准，发布前应逐项检查 warning。
 
 ## 本地开发
 
@@ -156,9 +158,7 @@ http://localhost:4173/
 ## 构建和部署
 
 ```bash
-pnpm build
-pnpm test:seo
-pnpm validate:seo
+pnpm verify
 pnpm deploy:cf
 ```
 
@@ -174,11 +174,15 @@ pnpm deploy:cf
 
 `pnpm test:seo` 检查日期、元数据、结构化数据序列化和隐藏内容边界，并通过临时 Markdown 验证实际内容读取和 CLI 校验。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、sitemap、feed、Markdown 原文、llms.txt 链接及 `_headers`；运行前必须完成当前版本的 `pnpm build`。这两项使用已有 TypeScript 编译器和 Node.js，不引入浏览器端依赖。
 
-`pnpm deploy:cf` 会先构建，再通过 Wrangler 部署 `out/` 到 Cloudflare Pages。
+`pnpm verify` 依次执行内容校验、SEO 测试、图片管线测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留和派生文件清理；产物校验检查静态内链、测试页 noindex、图片候选尺寸、正文占位尺寸及封面灯箱入口。
+
+`pnpm deploy:cf` 和 GitHub Actions 共用 `pnpm verify`，任一步失败都会停止部署。CI 通过 mise-action 读取仓库 `mise.toml` 安装 Node.js 和 pnpm，与本地使用同一版本来源。验证成功后才通过 Wrangler 或现有 Pages action 部署 `out/` 到 Cloudflare Pages。
 
 ### 上线核查
 
 发布后检查首页、一个频道页和一篇文章，以及 `/robots.txt`、`/sitemap.xml`、`/llms.txt` 的 HTTP 状态和内容；确认文章 Markdown 返回 `text/markdown`，HTTP `Link` 指向同一篇 HTML canonical。检查最终 `robots.txt` 中托管规则与源码规则的合并结果。
+
+另外检查 `/test/` 的 robots meta、`/test/index.md` 的 `X-Robots-Tag` 和 canonical Link 同时生效；关于页和图集不应带 noindex。用手机与桌面浏览器检查封面、正文和摄影缩略图，点击后应请求原图，关闭灯箱后应恢复焦点。图片候选以浏览器 `currentSrc` 和实际网络请求为准。
 
 使用 Cloudflare 安全事件或真实爬虫访问记录排查 403/挑战，确认搜索与用户读取没有被额外拦截。仅修改 User-Agent 的请求不代表真实爬虫，也不足以确认某条防火墙规则导致拦截，不据此创建宽泛白名单。通过 Google Search Console、Bing Webmaster Tools 检查 sitemap 和代表性网址的抓取、索引状态；抓取允许不保证一定收录或被引用。
 

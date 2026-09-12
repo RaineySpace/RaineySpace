@@ -5,6 +5,8 @@ import ImageLightbox, { type PreviewImage } from "@/app/components/ImageLightbox
 
 interface ArticleImageMeta {
   src: string;
+  thumbnailSrc?: string;
+  srcSet?: string;
   capturedAt?: string;
   latitude?: number;
   longitude?: number;
@@ -108,6 +110,8 @@ export default function MarkdownContent({
         id: `article-image-${index}-${fullSrc || "unknown"}`,
         src: fullSrc,
         displaySrc,
+        thumbnailSrc: extras?.thumbnailSrc,
+        srcSet: extras?.srcSet,
         alt,
         ...previewFieldsFromPostImage(extras, location, date),
         liveVideoSrc,

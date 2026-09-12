@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 import { marked } from "marked";
 import sharp from "sharp";
@@ -10,11 +11,11 @@ const SKIP_PUBLIC_DIRS = new Set(["assets", OPTIMIZED_DIR]);
 const RASTER_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 const MAX_EDGE = 1600;
 const WEBP_QUALITY = 80;
-const SKIP_MAX_BYTES = 150 * 1024;
+const WIDTHS = [320, 640, 960];
+const pipelineMtime = (await fs.stat(fileURLToPath(import.meta.url))).mtimeMs;
 
-function toOptimizedRelative(relativePath) {
-  const parsed = path.posix.parse(relativePath);
-  return path.posix.join(parsed.dir, `${parsed.name}.webp`);
+function assetUrl(relativePath) {
+  return `/${relativePath.split('/').map(encodeURIComponent).join('/')}`;
 }
 
 function isRasterImagePath(relativePath) {
@@ -107,7 +108,6 @@ async function collectPostImages() {
         slug,
         relativePath,
         sourcePath,
-        outputPath: path.join(publicDir, OPTIMIZED_DIR, slug, toOptimizedRelative(relativePath)),
       });
     }
   }
@@ -115,38 +115,18 @@ async function collectPostImages() {
   return jobs;
 }
 
-async function shouldSkipSource(sourcePath) {
-  const image = sharp(sourcePath, { animated: true, failOn: "none" });
-  const metadata = await image.metadata();
-
-  if ((metadata.pages && metadata.pages > 1) || (metadata.delay && metadata.delay.length > 1)) {
-    return "animated";
-  }
-
-  const stats = await fs.stat(sourcePath);
-  const width = metadata.width || 0;
-  const height = metadata.height || 0;
-  if (width > 0 && height > 0 && width <= MAX_EDGE && height <= MAX_EDGE && stats.size <= SKIP_MAX_BYTES) {
-    return "small";
-  }
-
-  return null;
-}
-
 async function isFresh(sourcePath, outputPath) {
   if (!(await exists(outputPath))) return false;
   const [sourceStat, outputStat] = await Promise.all([fs.stat(sourcePath), fs.stat(outputPath)]);
-  return outputStat.mtimeMs >= sourceStat.mtimeMs;
+  return outputStat.mtimeMs >= Math.max(sourceStat.mtimeMs, pipelineMtime);
 }
 
-async function generateOptimized(sourcePath, outputPath) {
+async function generateOptimized(sourcePath, outputPath, width) {
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await sharp(sourcePath, { failOn: "none" })
     .rotate()
     .resize({
-      width: MAX_EDGE,
-      height: MAX_EDGE,
-      fit: "inside",
+      width,
       withoutEnlargement: true,
     })
     .webp({ quality: WEBP_QUALITY })
@@ -182,35 +162,59 @@ async function removeOrphans(expectedOutputs) {
 
 async function main() {
   const jobs = await collectPostImages();
-  const expectedOutputs = new Set();
-  const counts = { generated: 0, reused: 0, skippedSmall: 0, skippedAnimated: 0 };
+  const manifestPath = path.join(publicDir, OPTIMIZED_DIR, 'manifest.json');
+  const expectedOutputs = new Set([manifestPath]);
+  const manifest = {};
+  const counts = { generated: 0, reused: 0, skippedAnimated: 0 };
 
   for (const job of jobs) {
-    const skipReason = await shouldSkipSource(job.sourcePath);
-    if (skipReason === "animated") {
+    const metadata = await sharp(job.sourcePath, { animated: true, failOn: 'none' }).metadata();
+    const rotated = metadata.orientation >= 5 && metadata.orientation <= 8;
+    const sourceHeight = metadata.pageHeight || metadata.height;
+    const width = rotated ? sourceHeight : metadata.width;
+    const height = rotated ? metadata.width : sourceHeight;
+    if (!width || !height) throw new Error(`Missing image dimensions: ${job.sourcePath}`);
+    const originalSrc = assetUrl(`${job.slug}/${job.relativePath}`);
+    if (metadata.pages > 1 || metadata.delay?.length > 1) {
       counts.skippedAnimated += 1;
-      if (await exists(job.outputPath)) await fs.unlink(job.outputPath);
-      continue;
-    }
-    if (skipReason === "small") {
-      counts.skippedSmall += 1;
-      if (await exists(job.outputPath)) await fs.unlink(job.outputPath);
+      // Preserve animation instead of replacing it with a still frame.
+      manifest[originalSrc] = { displaySrc: originalSrc, width, height };
       continue;
     }
 
-    expectedOutputs.add(job.outputPath);
-    if (await isFresh(job.sourcePath, job.outputPath)) {
-      counts.reused += 1;
-      continue;
+    const maxWidth = Math.max(1, Math.floor(width * Math.min(1, MAX_EDGE / Math.max(width, height))));
+    const widths = [...WIDTHS.filter((value) => value < maxWidth), maxWidth];
+    const variants = [];
+    for (const targetWidth of widths) {
+      // Include the original extension so photo.jpg and photo.png never collide.
+      const relativeOutput = `${OPTIMIZED_DIR}/${job.slug}/${job.relativePath}.${targetWidth}.webp`;
+      const outputPath = path.join(publicDir, relativeOutput);
+      expectedOutputs.add(outputPath);
+      if (await isFresh(job.sourcePath, outputPath)) {
+        counts.reused += 1;
+      } else {
+        await generateOptimized(job.sourcePath, outputPath, targetWidth);
+        counts.generated += 1;
+      }
+      const size = await sharp(outputPath).metadata();
+      variants.push({ src: assetUrl(relativeOutput), width: size.width, height: size.height });
     }
-
-    await generateOptimized(job.sourcePath, job.outputPath);
-    counts.generated += 1;
+    const largest = variants.at(-1);
+    const display = variants.find((variant) => variant.width >= 640) || largest;
+    manifest[originalSrc] = {
+      displaySrc: display.src,
+      thumbnailSrc: variants[0].src,
+      width: largest.width,
+      height: largest.height,
+      srcSet: variants.map((variant) => `${variant.src} ${variant.width}w`).join(', '),
+    };
   }
 
+  await fs.mkdir(path.dirname(manifestPath), { recursive: true });
+  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   const removed = await removeOrphans(expectedOutputs);
   console.log(
-    `Optimized images: ${counts.generated} generated, ${counts.reused} reused, ${counts.skippedSmall} already small, ${counts.skippedAnimated} animated skipped, ${removed} orphan(s) removed.`,
+    `Optimized images: ${counts.generated} variants generated, ${counts.reused} reused, ${counts.skippedAnimated} animated preserved, ${removed} orphan(s) removed; ${Object.keys(manifest).length} images in manifest.`,
   );
 }
 

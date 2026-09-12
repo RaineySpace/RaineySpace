@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 import Sheet from "@/app/components/Sheet";
 import LivePhoto from "@/app/components/LivePhoto";
@@ -11,6 +12,8 @@ export interface PreviewImage {
   id: string;
   src: string;
   displaySrc?: string;
+  thumbnailSrc?: string;
+  srcSet?: string;
   alt: string;
   capturedAt?: string;
   date?: string;
@@ -303,6 +306,7 @@ export default function ImageLightbox({
   onClose,
   returnFocus,
 }: ImageLightboxProps) {
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -312,6 +316,7 @@ export default function ImageLightbox({
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [settledSrc, setSettledSrc] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  useEffect(() => { setPortalTarget(document.body); }, []);
   const isOpen = activeIndex !== null;
   const activeImage = activeIndex === null ? null : images[activeIndex];
   const hasMultipleImages = images.length > 1;
@@ -389,6 +394,7 @@ export default function ImageLightbox({
   });
 
   useLayoutEffect(() => {
+    if (!portalTarget) return;
     const dialog = dialogRef.current;
     if (!isOpen) {
       if (dialog?.open) dialog.close();
@@ -402,7 +408,7 @@ export default function ImageLightbox({
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isOpen]);
+  }, [isOpen, portalTarget]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -454,7 +460,9 @@ export default function ImageLightbox({
     return () => media.removeEventListener("change", handleChange);
   }, []);
 
-  return (
+  // Keep article typography and header layout from affecting the overlay images.
+  if (!portalTarget) return null;
+  return createPortal(
     <dialog
       ref={dialogRef}
       aria-label="图片预览"
@@ -633,7 +641,7 @@ export default function ImageLightbox({
                     aria-current={index === activeIndex ? "true" : undefined}
                     className={`image-lightbox-thumbnail ${index === activeIndex ? "is-active" : ""}`}
                   >
-                    <img src={image.displaySrc || image.src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    <img src={image.thumbnailSrc || image.displaySrc || image.src} srcSet={image.srcSet} sizes="64px" alt="" className="h-full w-full object-cover" loading="lazy" />
                   </button>
                 ))}
               </div>
@@ -704,6 +712,7 @@ export default function ImageLightbox({
           </div>
         </Sheet>
       )}
-    </dialog>
+    </dialog>,
+    portalTarget,
   );
 }

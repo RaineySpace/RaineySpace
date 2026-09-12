@@ -7,7 +7,7 @@ const { spawnSync } = require('node:child_process');
 const matter = require('gray-matter');
 const load = require('./load-typescript.cjs');
 const seo = load('lib/seo.ts');
-const { getPostBySlug } = load('lib/posts.ts');
+const { getPostBySlug, getRelatedPosts } = load('lib/posts.ts');
 const { parseUpdatedDate } = require('../lib/post-dates.mjs');
 
 function post(overrides = {}) {
@@ -50,6 +50,24 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   assert.equal(about.title, "关于 Rainey - Rainey's Blog");
   assert.equal(about.openGraph.type, 'website');
   assert.equal(about.robots, undefined);
+  assert.deepEqual(seo.postMetadata(post({ slug: 'test', hidden: true })).robots, { index: false, follow: true });
+  assert.equal(seo.postMetadata(post({ slug: 'photo-album', hidden: true })).robots, undefined);
+});
+
+test('related reading uses shared tags and excludes hidden, unrelated and current posts', () => {
+  const current = post({ tags: ['AI', '生活'] });
+  const source = [
+    current,
+    post({ slug: 'hidden', hidden: true, tags: ['AI', '生活'] }),
+    post({ slug: 'unrelated', tags: ['摄影'] }),
+    post({ slug: 'older', tags: ['AI'], date: new Date('2024-01-01') }),
+    post({ slug: 'newer', tags: ['AI'], date: new Date('2024-03-01') }),
+    post({ slug: 'closest', tags: ['AI', '生活'] }),
+  ];
+  assert.deepEqual(getRelatedPosts(current, source).map((item) => item.slug), ['closest', 'newer', 'older']);
+  assert.deepEqual(getRelatedPosts(current, source, 1).map((item) => item.slug), ['closest']);
+  assert.deepEqual(getRelatedPosts(post(), source), []);
+  assert.deepEqual(getRelatedPosts(post({ hidden: true, tags: ['AI'] }), source), []);
 });
 
 test('updated accepts real calendar dates and rejects rollover, wrong types and earlier dates', () => {

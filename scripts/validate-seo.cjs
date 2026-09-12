@@ -55,7 +55,7 @@ function verifyPage(html, expected) {
   if (expected.markdown) {
     assert.ok(links.some((tag) => tag.rel === 'alternate' && tag.type === 'text/markdown' && tag.href === expected.markdown), `${expected.url}: missing Markdown alternate`);
   }
-  assert.ok(!meta('robots')?.includes('noindex'), `${expected.url}: unexpected noindex`);
+  assert.equal(Boolean(meta('robots')?.includes('noindex')), expected.noindex === true, `${expected.url}: incorrect indexing policy`);
   return { data: jsonLd(html), meta };
 }
 
@@ -88,7 +88,16 @@ async function main() {
     const expected = post.slug === 'about' ? pages.about : {
       title: `${post.title} - ${config.title}`, description: post.summary || config.description,
     };
-    const { data, meta } = verifyPage(html, { ...expected, url: postUrl(post.slug), markdown: markdownUrl(post.slug) });
+    const { data, meta } = verifyPage(html, { ...expected, url: postUrl(post.slug), markdown: markdownUrl(post.slug), noindex: post.slug === 'test' });
+    const navigation = html.match(/<nav aria-label="文章导航"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
+    assert.ok(navigation, `${post.slug}: missing static article navigation`);
+    const navigationLinks = tags(navigation, 'a').map((tag) => tag.href);
+    assert.ok(navigationLinks.includes('/articles/'), `${post.slug}: missing archive link`);
+    for (const href of navigationLinks) {
+      assert.ok((await fs.stat(path.join(output, decodeURIComponent(href), 'index.html'))).isFile(), `${post.slug}: broken navigation ${href}`);
+      const linkedPost = posts.find((item) => postUrl(item.slug) === new URL(href, config.siteUrl).href);
+      if (linkedPost && linkedPost.slug !== 'about') assert.ok(!linkedPost.hidden, `${post.slug}: hidden related article ${href}`);
+    }
     assert.equal(meta('og:image'), new URL(post.cover || config.ogImage, config.siteUrl).href);
     assert.equal(meta('twitter:image'), meta('og:image'));
     if (post.slug === 'about') assert.equal(data[0]?.['@type'], 'AboutPage');
@@ -140,6 +149,7 @@ async function main() {
   }
   assert.ok(robots.includes(`Sitemap: ${config.siteUrl}/sitemap.xml`));
   assert.ok((await read('_headers')).includes(`/:slug/index.md\n  Link: <${config.siteUrl}/:slug/>; rel="canonical"`));
+  assert.ok((await read('_headers')).includes('/test/index.md\n  X-Robots-Tag: noindex'));
   for (const feed of ['rss.xml', 'atom.xml']) {
     const xml = await read(feed);
     for (const post of publicPosts) assert.ok(xml.includes(postUrl(post.slug)), `${feed}: missing ${post.slug}`);
