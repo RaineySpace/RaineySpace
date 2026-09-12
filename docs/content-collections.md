@@ -20,8 +20,10 @@ cover: ./cover.webp
 ```
 
 - `location` 可用于任何文章，也是摄影灯箱显示的地点文案。
+- `updated: YYYY-MM-DD` 可选，记录实质更新日期，不得早于 `date`；用于文章修改时间和 sitemap，不改变列表排序或原发布日期。未填写时不声明文章修改时间。
 - `pinned: true` 会在文章和摄影列表中置顶；项目是否置顶由项目注册表控制。
 - `hidden: true` 只从首页文章、文章列表、RSS/Atom 和 sitemap 隐藏，详情页仍可访问。
+- `hidden` 不是 `noindex` 或访问权限。`llms.txt` 的文章目录同样排除隐藏内容；摄影与项目频道的结构化数据仍包含频道实际展示的条目。
 - `photography: true` 和 `projectId` 不受 `hidden` 影响，可以同时使用。
 - `cover` 可选。建议使用文章目录内的相对路径，例如 `./cover.webp`。有封面时只在文章详情页显示在标题上方，文章列表不展示封面。没有 `cover` 时保持原来的标题开头排版，不会用正文图片递补为封面。
 
@@ -94,4 +96,6 @@ projectId: example-project
 ```bash
 pnpm validate:content
 pnpm build
+pnpm test:seo
+pnpm validate:seo
 ```

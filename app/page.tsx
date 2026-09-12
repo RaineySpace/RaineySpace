@@ -6,7 +6,11 @@ import ProjectList from '@/app/components/ProjectList';
 import { getFeaturedPhotos } from '@/lib/photography';
 import { getAboutContent, getPublicPosts } from '@/lib/posts';
 import { getFeaturedProjects } from '@/lib/projects';
+import JsonLd from '@/app/components/JsonLd';
+import { homeJsonLd, pageMetadata, pages } from '@/lib/seo';
 import './[slug]/prose.css';
+
+export const metadata = pageMetadata(pages.home);
 
 export default async function Home() {
   const [aboutContent, posts, featuredPhotos, featuredProjects] = await Promise.all([
@@ -18,6 +22,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col gap-10">
+      <JsonLd data={homeJsonLd()} />
       <section id="about" aria-label="关于我" className="home-intro">
         <div className="markdown" dangerouslySetInnerHTML={{ __html: aboutContent }} />
       </section>

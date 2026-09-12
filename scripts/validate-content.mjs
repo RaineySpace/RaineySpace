@@ -3,12 +3,13 @@ import path from "node:path";
 import matter from "gray-matter";
 import { marked } from "marked";
 import exifr from "exifr";
+import { parseUpdatedDate } from "../lib/post-dates.mjs";
 
 const publicDir = path.join(process.cwd(), "public");
 const projectsPath = path.join(process.cwd(), "content", "projects.json");
 const requiredFields = ["title", "date", "summary"];
 const booleanFields = ["hidden", "pinned", "photography"];
-const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "_optimized"]);
+const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "_optimized", "llms.txt", "robots.txt", "sitemap.xml", "rss.xml", "atom.xml"]);
 const exifExtensions = new Set([".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".heic"]);
 const deprecatedProjectFields = [
   "project",
@@ -279,7 +280,7 @@ async function main() {
     }
 
     const fileContents = await fs.readFile(filePath, "utf8");
-    const { data, content } = matter(fileContents);
+    const { data, content, matter: frontmatter } = matter(fileContents);
     const participatesInAList = !data.hidden || data.photography === true || data.projectId !== undefined;
 
     if (participatesInAList) {
@@ -314,6 +315,11 @@ async function main() {
     }
 
     if (data.date && !isValidDate(data.date)) errors.push(`${slug}: invalid date "${data.date}"`);
+    try {
+      parseUpdatedDate(data.updated, isValidDate(data.date) ? new Date(data.date) : null, frontmatter);
+    } catch (error) {
+      errors.push(`${slug}: ${error.message}`);
+    }
     if (data.location !== undefined && typeof data.location !== "string") {
       errors.push(`${slug}: frontmatter "location" must be a string`);
     }

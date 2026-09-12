@@ -3,11 +3,10 @@ import { Suspense } from "react";
 import PostCard from "@/app/components/PostCard";
 import { getPostTagCounts, getPublicPosts } from "@/lib/posts";
 import ArticleList, { ArticleListContent } from "./ArticleList";
+import JsonLd from "@/app/components/JsonLd";
+import { collectionJsonLd, pageMetadata, pages, postUrl } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "文章 - Rainey's Blog",
-  description: "Rainey 的全部公开文章。",
-};
+export const metadata: Metadata = pageMetadata(pages.articles);
 
 export default async function ArticlesPage() {
   const posts = await getPublicPosts();
@@ -20,6 +19,9 @@ export default async function ArticlesPage() {
 
   return (
     <div className="page-content">
+      <JsonLd data={collectionJsonLd(pages.articles, posts.map((post) => ({
+        url: postUrl(post.slug), name: post.title, description: post.summary,
+      })))} />
       <header className="mb-3">
         <h1 className="page-title">文章</h1>
         <p className="page-description">

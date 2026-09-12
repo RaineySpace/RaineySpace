@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import PhotoGallery from "@/app/components/PhotoGallery";
 import { getPhotographyAlbums } from "@/lib/photography";
+import JsonLd from "@/app/components/JsonLd";
+import { collectionJsonLd, pageMetadata, pages, postUrl } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "摄影 - Rainey's Blog",
-  description: "Rainey 的摄影记录。",
-};
+export const metadata: Metadata = pageMetadata(pages.photography);
 
 export default async function PhotographyPage() {
   const albums = await getPhotographyAlbums();
 
   return (
     <div className="page-content">
+      <JsonLd data={collectionJsonLd(pages.photography, albums.map((album) => ({
+        url: postUrl(album.slug), name: album.title,
+      })))} />
       <header className="mb-3">
         <h1 className="page-title">摄影</h1>
         <p className="page-description">

@@ -13,6 +13,17 @@ export const title = "Rainey's Blog";
  */
 export const author = "Rainey";
 
+export const authorUrl = `${siteUrl}/about/`;
+
+export const authorProfiles = [
+  "https://github.com/RaineySpace",
+  "https://space.bilibili.com/18291848",
+  "https://web.okjike.com/u/FBF0F46B-5CA8-4568-A98C-3D50EF570462",
+  "https://x.com/XueRainey",
+];
+
+export const twitterHandle = "@XueRainey";
+
 /**
  * 邮箱信息
  */
@@ -40,7 +51,7 @@ export const ogImage = `${siteUrl}/og.jpg`;
 /**
  * 描述信息
  */
-export const description = "A blog by Rainey";
+export const description = "Rainey 的个人博客，记录技术、产品与 AI，也分享生活、摄影和旅行。";
 
 
 /**

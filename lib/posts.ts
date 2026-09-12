@@ -7,6 +7,7 @@ import { Renderer, marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import { readImageExif, type ImageExif } from './image-exif';
+import { parseUpdatedDate } from './post-dates.mjs';
 import {
   resolveDisplaySrc,
   SKIP_PUBLIC_DIRS,
@@ -29,6 +30,7 @@ export interface Post {
   showTitle: boolean;
   date: Date | null;
   dateText: string;
+  updated: Date | null;
   summary: string;
   slug: string;
   cover: string;
@@ -324,8 +326,14 @@ export async function getAboutContent(): Promise<string> {
 
 export async function getPostBySlug(slug: string): Promise<Post> {
   const fileContents = await fs.readFile(`./public/${slug}/index.md`, 'utf8');
-  const { data, content } = matter(fileContents);
+  const { data, content, matter: frontmatter } = matter(fileContents);
   const date = normalizeDate(data.date);
+  let updated: Date | null;
+  try {
+    updated = parseUpdatedDate(data.updated, date, frontmatter);
+  } catch (error) {
+    throw new Error(`${slug}: ${(error as Error).message}`);
+  }
   const { images, displaySrcByRelativePath, liveVideoSrcByRelativePath } = await extractMarkdownImages(
     content,
     slug,
@@ -338,6 +346,7 @@ export async function getPostBySlug(slug: string): Promise<Post> {
     showTitle: Boolean(data.title),
     date,
     dateText: formatDate(date),
+    updated,
     summary: data.summary ? String(data.summary) : '',
     slug,
     cover,

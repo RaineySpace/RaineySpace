@@ -3,6 +3,7 @@ import "./globals.css";
 import * as config from "@/lib/config";
 import { READING_SETTINGS_BOOTSTRAP_SCRIPT } from "@/lib/reading-settings";
 import SiteHeader from "./components/SiteHeader";
+import { pageMetadata, pages } from "@/lib/seo";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -11,29 +12,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  ...pageMetadata(pages.home),
   metadataBase: new URL(config.siteUrl),
-  title: config.title,
-  authors: [{ name: config.author, url: config.siteUrl }],
+  authors: [{ name: config.author, url: config.authorUrl }],
   creator: config.author,
-  description: config.description,
   keywords: config.keywords,
   icons: {
     icon: config.icon,
-  },
-  openGraph: {
-    title: config.title,
-    description: config.description,
-    images: config.ogImage,
-    url: config.siteUrl,
-    siteName: config.title,
-    locale: "zh-CN",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    site: config.author,
-    creator: config.author,
-    images: config.ogImage,
   },
 };
 

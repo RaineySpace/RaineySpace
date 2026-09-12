@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { getPostBySlug, getPosts } from '@/lib/posts';
 import "./prose.css";
 import "./syntax.css";
-import * as config from '@/lib/config';
+import { postJsonLd, postMetadata } from '@/lib/seo';
+import JsonLd from '@/app/components/JsonLd';
 import TableOfContents from './TableOfContents';
 import MarkdownContent from '@/app/components/MarkdownContent';
 import PostCover from '@/app/components/PostCover';
@@ -15,32 +16,7 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const post = await getPostBySlug(decodeURIComponent(params.slug));
-  
-  return {
-    title: post.title ? `${post.title} - ${config.title}` : config.title,
-    authors: [{ name: config.author, url: config.siteUrl }],
-    creator: config.author,
-    description: post.summary || config.description,
-    keywords: [...config.keywords, ...post.keywords, ...post.tags],
-    openGraph: {
-      title: post.title,
-      description: post.summary || config.description,
-      url: `${config.siteUrl}/${post.slug}/`,
-      siteName: config.title,
-      locale: "zh-CN",
-      type: "article",
-      publishedTime: post.date?.toISOString(),
-      authors: [config.author],
-      tags: post.tags,
-      images: post.cover || config.ogImage,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description: post.summary || config.description,
-      images: post.cover || config.ogImage,
-    },
-  };
+  return postMetadata(post);
 }
 
 export async function generateStaticParams() {
@@ -58,6 +34,7 @@ export default async function PostPage({
 
   return (
     <div className="relative">
+      <JsonLd data={postJsonLd(post)} />
       <TableOfContents headings={post.headings} />
       <article className="markdown">
         {(post.coverDisplaySrc || post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary) && (
