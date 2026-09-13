@@ -112,7 +112,7 @@ async function main() {
       assert.equal(data[0].image, post.cover ? new URL(post.cover, config.siteUrl).href : undefined);
       assert.ok(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '').includes(post.content), `${post.slug}: body missing from static HTML`);
     }
-    assert.equal(await read(`${post.slug}.md`), await fs.readFile(`public/${post.slug}.md`, 'utf8'));
+    assert.equal(await read(`${post.slug}.md`), await fs.readFile(`public/${post.slug}/index.md`, 'utf8'));
   }
 
   const sitemap = await read('sitemap.xml');

@@ -124,12 +124,12 @@ test('content reader and CLI both enforce updated on real Markdown fixtures', as
   const root = process.cwd();
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-seo-'));
   try {
-    await fs.mkdir(path.join(directory, 'public'), { recursive: true });
+    await fs.mkdir(path.join(directory, 'public', 'sample'), { recursive: true });
     await fs.mkdir(path.join(directory, 'content'));
     await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
     process.chdir(directory);
     for (const [updated, error] of [['2024-02-29', null], ['2024-02-30', /valid YYYY-MM-DD/], ['2024-01-31', /earlier than/]]) {
-      await fs.writeFile(path.join(directory, 'public/sample.md'), `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);
+      await fs.writeFile(path.join(directory, 'public/sample/index.md'), `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);
       if (error) await assert.rejects(getPostBySlug('sample'), error);
       else assert.equal((await getPostBySlug('sample')).updated.toISOString(), '2024-02-29T00:00:00.000Z');
       const check = spawnSync(process.execPath, [path.join(root, 'scripts/validate-content.mjs')], { cwd: directory, encoding: 'utf8' });

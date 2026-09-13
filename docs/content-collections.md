@@ -1,6 +1,6 @@
 # 文章、摄影与项目内容维护
 
-文章与摄影内容存放在 `public/<slug>.md`，同名目录 `public/<slug>/` 放封面、文内图片和其他引用资源。项目资料集中保存在 `content/projects.json`。每个 Markdown 都有详情页，也可以通过 frontmatter 汇入摄影列表或关联一个项目。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。
+文章与摄影内容存放在 `public/<slug>/index.md`，封面、文内图片和其他引用资源放在同一个文章目录。项目资料集中保存在 `content/projects.json`。每个 Markdown 都有详情页，也可以通过 frontmatter 汇入摄影列表或关联一个项目。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。原文在构建时从 `index.md` 复制到站点根路径，不另维护第二份源文件。
 
 ## 通用字段
 
@@ -25,7 +25,7 @@ cover: ./cover.webp
 - `hidden: true` 只从首页文章、文章列表、RSS/Atom 和 sitemap 隐藏，详情页仍可访问。
 - `hidden` 不是 `noindex` 或访问权限。`llms.txt` 的文章目录同样排除隐藏内容；摄影与项目频道的结构化数据仍包含频道实际展示的条目。
 - `photography: true` 和 `projectId` 不受 `hidden` 影响，可以同时使用。
-- `cover` 可选。建议把文件放在同名资源目录，并用相对路径引用，例如 `./cover.webp`。有封面时只在文章详情页显示在标题上方，文章列表不展示封面。没有 `cover` 时保持原来的标题开头排版，不会用正文图片递补为封面。
+- `cover` 可选。建议使用文章目录内的相对路径，例如 `./cover.webp`。有封面时只在文章详情页显示在标题上方，文章列表不展示封面。没有 `cover` 时保持原来的标题开头排版，不会用正文图片递补为封面。
 
 ## 文章标签筛选
 
@@ -35,9 +35,9 @@ cover: ./cover.webp
 
 ## 添加摄影图集
 
-1. 建立 `public/<slug>.md`。
+1. 建立 `public/<slug>/index.md`。
 2. 在 frontmatter 中设置 `photography: true`。
-3. 将图片放在同名目录 `public/<slug>/` 或其子目录，通过相对路径引用：
+3. 将图片放在同一个 `public/<slug>/` 目录或其子目录，通过相对路径引用：
 
 ```md
 ![准确描述画面内容的图片说明](./photo.webp)

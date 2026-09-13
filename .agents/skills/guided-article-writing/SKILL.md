@@ -144,9 +144,9 @@ description: 通过多轮对话把模糊想法发展成完整文章。用户想�
 
 仅在用户明确要求写入项目时执行：
 
-1. 保存到 `public/<slug>.md`，不要移动现有文章文件。
+1. 保存到 `public/<slug>/index.md`，不要移动现有文章目录。
 2. 使用项目要求的 frontmatter：`title`、`date`、`summary` 和可选 `tags`；需要保持可直达但不公开展示时使用 `hidden: true`。
-3. 将本地资源放在同名目录 `public/<slug>/` 中，并使用 `./image.png` 形式的相对路径。没有本地资源时不必创建该目录。
+3. 将本地资源放在同一文章目录中，并使用 `./image.png` 形式的相对路径。
 4. 保持日期格式为 `YYYY-MM-DD`，不要修改作为 GitHub 主页的 `README.md`。
 5. 写入后运行 `pnpm validate:content` 和 `pnpm build`。区分已有警告与本次新增问题。
 

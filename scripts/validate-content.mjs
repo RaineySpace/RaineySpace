@@ -273,7 +273,7 @@ async function main() {
     const postDir = postAssetDir(publicDir, slug);
     const filePath = postMarkdownPath(publicDir, slug);
     if (!(await exists(filePath))) {
-      errors.push(`${slug}: missing ${slug}.md`);
+      errors.push(`${slug}: missing index.md`);
       continue;
     }
 

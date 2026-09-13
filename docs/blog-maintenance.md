@@ -1,6 +1,6 @@
 # 博客维护说明
 
-这个项目是一个基于 Next.js App Router 的静态博客。文章内容存放在 `public/<slug>.md`，同名目录 `public/<slug>/` 放封面、文内图片和其他引用资源，构建后输出到 `out/`，用于 Cloudflare Pages 部署。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。
+这个项目是一个基于 Next.js App Router 的静态博客。文章内容存放在 `public/<slug>/index.md`，封面和附件放在同一个文章目录，构建后输出到 `out/`，用于 Cloudflare Pages 部署。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。
 
 ## 项目结构
 
@@ -15,6 +15,7 @@
 - `scripts/new-post.mjs`：新建文章脚本。
 - `scripts/validate-content.mjs`：内容校验脚本。
 - `scripts/optimize-images.mjs`：构建前根据原图生成展示用 WebP。
+- `scripts/export-markdown.mjs`：构建后把 `public/<slug>/index.md` 复制为 `out/<slug>.md`。
 
 ## 新建文章
 
@@ -31,10 +32,8 @@ pnpm new-post my-new-post "我的新文章"
 脚本会创建：
 
 ```text
-public/my-new-post.md
+public/my-new-post/index.md
 ```
-
-如果文章需要封面、图片或其他附件，再建立同名目录 `public/my-new-post/`。没有本地资源时不必创建目录。
 
 默认 frontmatter：
 
@@ -63,7 +62,7 @@ updated: 2026-09-12
 cover: ./cover.webp
 ```
 
-封面文件放在同名资源目录下，使用相对路径，例如 `public/my-new-post/cover.webp` 对应 `cover: ./cover.webp`。文章详情页在摘要之后、正文之前显示封面，首页和文章列表不显示封面。封面默认显示压缩图，点击或用键盘打开灯箱查看原图，关闭后焦点回到封面。没有 `cover` 的文章不显示占位图，也不用正文图片顶替封面。
+封面文件放在同一文章目录下，使用相对路径。文章详情页在摘要之后、正文之前显示封面，首页和文章列表不显示封面。封面默认显示压缩图，点击或用键盘打开灯箱查看原图，关闭后焦点回到封面。没有 `cover` 的文章不显示占位图，也不用正文图片顶替封面。
 
 ## 隐藏文章
 
@@ -87,7 +86,7 @@ hidden: true
 
 详情页末尾提供静态的“全部文章”和作者页链接；摄影、项目详情还提供对应频道入口。相关阅读只推荐至少有一个相同标签的公开文章，优先共同标签更多、日期更近的文章，最多三篇；不推荐自身或隐藏文章，没有关联标签时不显示。维护好实际内容标签即可，不需要额外登记推荐列表。
 
-每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。原文位于 `/<slug>.md`，不维护第二份文章。`public/_headers` 随构建复制到 `out/_headers`，由 Cloudflare Pages 为 Markdown 响应添加 `Content-Type: text/markdown`，以及指向对应 HTML 页的 HTTP `Link: <...>; rel="canonical"`。旧地址 `/<slug>/index.md` 由 `public/_redirects` 301 到 `/<slug>.md`。变更站点域名时，需要同时更新 `_headers` 并运行 SEO 校验。普通本地静态服务器不会解释 `_headers` 或 `_redirects`。
+每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。源文件仍是 `public/<slug>/index.md`，构建时复制为 `/<slug>.md`，不维护第二份文章。`public/_headers` 随构建复制到 `out/_headers`，由 Cloudflare Pages 为 Markdown 响应添加 `Content-Type: text/markdown`，以及指向对应 HTML 页的 HTTP `Link: <...>; rel="canonical"`。旧地址 `/<slug>/index.md` 由 `public/_redirects` 301 到 `/<slug>.md`。变更站点域名时，需要同时更新 `_headers` 并运行 SEO 校验。普通本地静态服务器不会解释 `_headers` 或 `_redirects`。
 
 `/llms.txt` 在构建时从现有内容生成站点导航、公开文章标题、摘要、日期和 Markdown 链接，并提供 HTML 原文链接供引用。它只是机器阅读的便利入口，不保证排名或 AI 引用量提升；[Google 的 AI 搜索功能仍遵循基础 SEO 要求](https://developers.google.com/search/docs/appearance/ai-features)。
 
@@ -103,7 +102,7 @@ hidden: true
 
 ## 图片和附件
 
-文章内图片建议放在同名资源目录 `public/<slug>/` 下，并使用相对路径：
+文章内图片建议放在当前文章目录下，并使用相对路径：
 
 ```markdown
 ![](./cover.png)
@@ -191,7 +190,7 @@ pnpm deploy:cf
 ## 维护约定
 
 - 不要把项目维护说明写入 `README.md`，该文件用于 GitHub public profile。
-- 不要改变 `public/<slug>.md` 加同名资源目录的文章存储方式，除非明确执行内容迁移。
+- 不要改变 `public/<slug>/index.md` 的文章存储方式，除非明确执行内容迁移。文章的公开 Markdown 地址是 `/<slug>.md`。
 - 不要让隐藏文章进入首页、feed 或 sitemap。
 - 日期展示保持 `YYYY-MM-DD`。
 - 优先保持轻量个人博客风格，避免引入复杂内容系统。
