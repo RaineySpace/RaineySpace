@@ -178,7 +178,7 @@ async function resolveCover(
   const cover = toOriginalSrc(slug, relativePath);
   const coverImage = await resolveDisplayImage(slug, relativePath);
   return {
-    cover,
+    cover: coverImage.originalSrc || cover,
     coverDisplaySrc: coverImage.displaySrc,
     coverImage,
   };
@@ -255,7 +255,7 @@ async function extractMarkdownImages(
     if (liveVideoSrc) liveVideoSrcByRelativePath.set(relativePath, liveVideoSrc);
     images.push({
       id: `${slug}/${relativePath}`,
-      src,
+      src: display.originalSrc || src,
       ...display,
       alt: alts.get(relativePath) || '',
       ...(liveVideoSrc ? { liveVideoSrc } : {}),
@@ -312,8 +312,8 @@ function renderMarkdown(
       return `<img src="${escapeHtml(hrefValue)}" alt="${alt}"${titleAttr} loading="lazy">`;
     }
 
-    const originalSrc = toOriginalSrc(options.slug, relativePath);
     const display = options.displayByRelativePath.get(relativePath);
+    const originalSrc = display?.originalSrc || toOriginalSrc(options.slug, relativePath);
     const displaySrc = display?.displaySrc || originalSrc;
     const dimensions = display?.width && display.height ? ` width="${display.width}" height="${display.height}"` : '';
     const responsive = display?.srcSet ? ` srcset="${escapeHtml(display.srcSet)}" sizes="(min-width: 672px) 632px, calc(100vw - 40px)"` : '';

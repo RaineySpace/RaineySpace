@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const sharp = require('sharp');
+const { createHash } = require('node:crypto');
 
 const output = path.resolve('out');
 const localFile = (url) => path.join(output, decodeURIComponent(url));
@@ -14,15 +15,31 @@ const variants = (srcSet) => srcSet.split(', ').map((part) => {
 async function main() {
   const manifest = JSON.parse(await fs.readFile(path.join(output, '_optimized/manifest.json'), 'utf8'));
   const widths = new Map();
+  const originals = new Map();
+  const checked = new Set();
+  const checkVersion = async (url) => {
+    assert.match(url, /^\/_optimized\/images\/[a-f0-9]{64}\/[^/]+$/, 'Image URL must include a content hash: ' + url);
+    if (checked.has(url)) return;
+    const bytes = await fs.readFile(localFile(url));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), url.split('/')[3], 'Image bytes disagree with URL: ' + url);
+    checked.add(url);
+  };
   for (const [original, image] of Object.entries(manifest)) {
     assert.ok((await fs.stat(localFile(original))).isFile(), `Missing original: ${original}`);
+    await checkVersion(image.originalSrc);
+    assert.deepEqual(await fs.readFile(localFile(image.originalSrc)), await fs.readFile(localFile(original)), 'Versioned original differs from source: ' + original);
+    originals.set(image.originalSrc, image);
     assert.ok(image.width > 0 && image.height > 0, original);
-    if (!image.srcSet) continue; // Animated originals retain their frames.
+    if (!image.srcSet) {
+      assert.equal(image.displaySrc, image.originalSrc, 'Animated images must use the preserved original');
+      continue;
+    }
     assert.notEqual(image.displaySrc, original, original);
     const candidates = variants(image.srcSet);
     assert.ok(candidates.some((candidate) => candidate.src === image.displaySrc), original);
     assert.equal(image.thumbnailSrc, candidates[0].src, original);
     for (const candidate of candidates) {
+      await checkVersion(candidate.src);
       const metadata = await sharp(localFile(candidate.src)).metadata();
       assert.equal(candidate.width, metadata.width, candidate.src);
       assert.ok(Math.max(metadata.width, metadata.height) <= 1600, candidate.src);
@@ -44,8 +61,8 @@ async function main() {
       const html = (await fs.readFile(filename, 'utf8')).replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
       for (const match of html.matchAll(/<img\b([^>]*)>/g)) {
         const image = attributes(match[1]);
-        assert.ok(!manifest[image.src]?.srcSet, `${filename}: original displayed before opening lightbox: ${image.src}`);
-        if (image.src?.startsWith('/_optimized/')) {
+        assert.ok(!manifest[image.src]?.srcSet && !originals.get(image.src)?.srcSet, `${filename}: original displayed before opening lightbox: ${image.src}`);
+        if (image.src?.startsWith('/_optimized/') && !originals.has(image.src)) {
           assert.ok(image.srcset && image.sizes, `${filename}: missing responsive attributes`);
           assert.ok(widths.has(image.src), `${filename}: missing display image ${image.src}`);
           for (const candidate of variants(image.srcset)) {
@@ -53,8 +70,9 @@ async function main() {
           }
           responsiveImages += 1;
         }
-        if (image['data-full-src'] && manifest[image['data-full-src']]) {
-          const expected = manifest[image['data-full-src']];
+        if (image['data-full-src']?.startsWith('/_optimized/')) {
+          const expected = originals.get(image['data-full-src']);
+          assert.ok(expected, `${filename}: unknown versioned original ${image['data-full-src']}`);
           assert.equal(Number(image.width), expected.width, filename);
           assert.equal(Number(image.height), expected.height, filename);
         }
@@ -66,7 +84,12 @@ async function main() {
   };
   await walk(output);
   assert.ok(responsiveImages > 0, 'No responsive images in static export');
-  console.log(`Image validation passed: ${Object.keys(manifest).length} originals, ${widths.size} variants, ${responsiveImages} responsive images across ${pages} HTML pages.`);
+  const headers = await fs.readFile(path.join(output, '_headers'), 'utf8');
+  assert.ok(headers.includes('/_optimized/images/*\n  Cache-Control: public, max-age=31536000, immutable'));
+  for (const pathname of ['/', '/*/', '/*.html', '/*.txt', '/_optimized/manifest.json']) {
+    assert.ok(headers.includes(`${pathname}\n  Cache-Control: no-cache`), 'Missing cache revalidation: ' + pathname);
+  }
+  console.log(`Image validation passed: ${Object.keys(manifest).length} versioned originals, ${widths.size} variants, ${responsiveImages} responsive images across ${pages} HTML pages, and cache headers.`);
 }
 
 main().catch((error) => { console.error(error); process.exitCode = 1; });

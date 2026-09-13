@@ -278,6 +278,33 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
   transition: none;
 }
 
+.image-lightbox[data-opening]::backdrop {
+  animation: image-lightbox-backdrop-in 280ms ease-out both;
+}
+
+.image-lightbox[data-opening="fade"]::backdrop {
+  animation-duration: 150ms;
+}
+
+.image-lightbox[data-opening="shared"] .image-lightbox-track {
+  visibility: hidden;
+}
+
+.image-lightbox-opening-image {
+  position: fixed;
+  z-index: 10;
+  max-width: none;
+  margin: 0;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: transform, clip-path;
+}
+
+@keyframes image-lightbox-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .image-lightbox-shell {
   position: relative;
   display: flex;
@@ -354,6 +381,12 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
 
 .image-lightbox-slide img.is-full {
   z-index: 1;
+  transition-duration: 0.3s;
+}
+
+.image-lightbox-slide img.is-fallback,
+.image-lightbox-slide img.is-cached {
+  transition: none;
 }
 
 .image-lightbox-slide img.is-ready {
@@ -384,6 +417,40 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
   border-top-color: rgb(255 255 255 / 0.75);
   border-radius: 50%;
   animation: image-lightbox-spin 0.7s linear infinite;
+}
+
+.image-lightbox-loading {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  color: rgb(255 255 255 / 0.9);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  backdrop-filter: blur(6px);
+}
+
+.image-lightbox-loading-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+  animation: image-lightbox-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes image-lightbox-breathe {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 .image-lightbox-error {
@@ -740,6 +807,12 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .image-lightbox-loading-dot,
+  .image-lightbox-spinner,
+  .image-lightbox[data-opening]::backdrop {
+    animation: none;
   }
 
   *,

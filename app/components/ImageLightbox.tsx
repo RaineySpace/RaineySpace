@@ -7,6 +7,8 @@ import { createPortal } from "react-dom";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 import Sheet from "@/app/components/Sheet";
 import LivePhoto from "@/app/components/LivePhoto";
+import { animateLightboxOpening, captureOpeningImage, type OpeningPreview } from "./lightbox-opening";
+import { useCurrentImageLoading, useImagePreloading, usePreloadedImage } from "./useImagePreloading";
 
 export interface PreviewImage {
   id: string;
@@ -198,83 +200,124 @@ function SheetCard({
 
 type SlideRole = "previous" | "current" | "next";
 
+function useLightboxImage(src: string | null) {
+  const ref = useRef<HTMLImageElement>(null);
+  const [result, setResult] = useState<{
+    src: string;
+    ready: boolean;
+    cached: boolean;
+    size?: { width: number; height: number };
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    setResult(null);
+    const img = ref.current;
+    if (!img || !src) return;
+    let cancelled = false;
+    let decoding = false;
+    const cached = img.complete && img.naturalWidth > 0;
+    const isCurrent = () => !cancelled && img.getAttribute("src") === src;
+    const fail = () => {
+      if (isCurrent()) setResult({ src, ready: false, cached: false });
+    };
+    const load = async () => {
+      if (decoding || !isCurrent()) return;
+      decoding = true;
+      try {
+        await img.decode();
+        if (isCurrent()) {
+          setResult({
+            src, ready: true, cached,
+            size: { width: img.naturalWidth, height: img.naturalHeight },
+          });
+        }
+      } catch {
+        fail();
+      }
+    };
+    img.addEventListener("load", load);
+    img.addEventListener("error", fail);
+    if (img.complete) {
+      if (img.naturalWidth > 0) void load();
+      else fail();
+    }
+    return () => {
+      cancelled = true;
+      img.removeEventListener("load", load);
+      img.removeEventListener("error", fail);
+    };
+  }, [src]);
+
+  const current = result?.src === src ? result : null;
+  return {
+    ref,
+    ready: current?.ready === true,
+    error: current?.ready === false,
+    cached: current?.cached,
+    size: current?.size,
+  };
+}
+
 function LightboxSlide({
   image,
   isActive,
-  onActiveSettled,
+  isOpening,
+  openingPreview,
 }: {
   image: PreviewImage;
   isActive: boolean;
-  onActiveSettled?: (src: string) => void;
+  isOpening: boolean;
+  openingPreview?: OpeningPreview;
 }) {
-  const imgRef = useRef<HTMLImageElement>(null);
-  const previewRef = useRef<HTMLImageElement>(null);
   const previewSrc = image.displaySrc && image.displaySrc !== image.src ? image.displaySrc : null;
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const [previewReady, setPreviewReady] = useState(false);
-  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | undefined>();
-  const isReady = loadedSrc === image.src;
-  const isError = failedSrc === image.src;
-  const showSpinner = !isReady && !isError && !previewReady;
-
-  const markReady = (img: HTMLImageElement) => {
-    setLoadedSrc(image.src);
-    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-      setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
-    }
-  };
-
-  useLayoutEffect(() => {
-    setNaturalSize(undefined);
-    const img = imgRef.current;
-    if (!img) return;
-    if (img.complete && img.naturalWidth > 0) {
-      setLoadedSrc(image.src);
-      setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
-      return;
-    }
-    if (img.complete) {
-      setFailedSrc(image.src);
-    }
-  }, [image.src]);
-
-  useLayoutEffect(() => {
-    setPreviewReady(false);
-    const img = previewRef.current;
-    if (!img) return;
-    if (img.complete && img.naturalWidth > 0) setPreviewReady(true);
-  }, [previewSrc]);
-
-  useLayoutEffect(() => {
-    if (isActive && (isReady || isError)) onActiveSettled?.(image.src);
-  }, [image.src, isActive, isError, isReady, onActiveSettled]);
+  const preloaded = usePreloadedImage(image.src);
+  const fullSrc = isActive || preloaded ? image.src : null;
+  const full = useLightboxImage(fullSrc);
+  useCurrentImageLoading(image.src, isActive, full.ready, full.error);
+  const preview = useLightboxImage(previewSrc);
+  const fallback = useLightboxImage(openingPreview?.src || null);
+  const hasPreview = preview.ready || fallback.ready;
+  const naturalSize = full.size || preview.size || fallback.size;
+  const showSpinner = !full.ready && !full.error && !hasPreview;
 
   const media = (
     <>
       {showSpinner && <div className="image-lightbox-spinner" aria-hidden="true" />}
-      {isError && <p className="image-lightbox-error">图片加载失败</p>}
+      {isActive && !isOpening && !full.ready && hasPreview && (
+        <span className="image-lightbox-loading" role="status">
+          {!full.error && <span className="image-lightbox-loading-dot" aria-hidden="true" />}
+          {full.error ? "原图加载失败" : "原图加载中"}
+        </span>
+      )}
+      {full.error && !hasPreview && <p className="image-lightbox-error" role="status">图片加载失败</p>}
+      {openingPreview && (
+        <img
+          ref={fallback.ref}
+          src={openingPreview.src}
+          alt=""
+          draggable={false}
+          className={`is-fallback ${fallback.ready ? "is-ready" : ""}`}
+        />
+      )}
       {previewSrc && (
         <img
-          ref={previewRef}
+          ref={preview.ref}
           src={previewSrc}
           alt=""
           draggable={false}
           decoding="async"
-          className={`is-preview ${previewReady ? "is-ready" : ""}`}
-          onLoad={() => setPreviewReady(true)}
+          className={`is-preview ${preview.ready ? "is-ready" : ""}`}
         />
       )}
       <img
-        ref={imgRef}
-        src={image.src}
+        ref={full.ref}
+        src={fullSrc || undefined}
         alt={isActive ? image.alt : ""}
+        aria-busy={isActive && !full.ready && !full.error ? true : undefined}
         draggable={false}
         decoding="async"
         fetchPriority={isActive ? "high" : "low"}
-        className={`is-full ${isReady ? "is-ready" : ""}`}
-        onLoad={(event) => markReady(event.currentTarget)}
-        onError={() => setFailedSrc(image.src)}
+        className={`is-full ${full.ready && !isOpening ? "is-ready" : ""}${full.cached ? " is-cached" : ""}`}
       />
     </>
   );
@@ -286,7 +329,7 @@ function LightboxSlide({
           videoSrc={image.liveVideoSrc}
           fill
           objectFit="contain"
-          playOnce={isActive}
+          playOnce={isActive && !isOpening}
           naturalWidth={naturalSize?.width}
           naturalHeight={naturalSize?.height}
         >
@@ -306,6 +349,7 @@ export default function ImageLightbox({
   onClose,
   returnFocus,
 }: ImageLightboxProps) {
+  useImagePreloading(images, activeIndex);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -314,11 +358,17 @@ export default function ImageLightbox({
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const thumbnailTrackRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [settledSrc, setSettledSrc] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Defer media on the first render of an opening, before its layout effect.
+  const [isOpening, setIsOpening] = useState(true);
+  const [openingPreview, setOpeningPreview] = useState<(OpeningPreview & { originalSrc: string }) | null>(null);
+  const openingCleanupRef = useRef<(() => void) | null>(null);
+  const openingInputsRef = useRef({ returnFocus, activeSrc: "" });
+  const previousActiveSrcRef = useRef<string | null>(null);
   useEffect(() => { setPortalTarget(document.body); }, []);
   const isOpen = activeIndex !== null;
   const activeImage = activeIndex === null ? null : images[activeIndex];
+  openingInputsRef.current = { returnFocus, activeSrc: activeImage?.src || "" };
   const hasMultipleImages = images.length > 1;
   const hasOverflowingThumbnails = images.length > 5;
   const previousImage =
@@ -330,7 +380,6 @@ export default function ImageLightbox({
   if (previousImage) slides.push({ image: previousImage, role: "previous" });
   if (activeImage) slides.push({ image: activeImage, role: "current" });
   if (nextImage) slides.push({ image: nextImage, role: "next" });
-  const isCurrentBusy = Boolean(activeImage && settledSrc !== activeImage.src);
   const dateText = activeImage ? displayDate(activeImage) : undefined;
   const focalText = activeImage ? activeImage.focalLength35mm || activeImage.focalLength : undefined;
   const params: Array<{ key: string; icon: ReactNode; value: string }> = [];
@@ -346,6 +395,12 @@ export default function ImageLightbox({
   const showMore = Boolean(titleText || hasExtra || hasSummary);
   const hasDesktopMeta = hasSummary || hasExtra;
 
+  const finishOpening = useCallback(() => {
+    openingCleanupRef.current?.();
+    openingCleanupRef.current = null;
+    setIsOpening(false);
+  }, []);
+
   const restoreFocus = useCallback(() => {
     requestAnimationFrame(() => {
       const target = typeof returnFocus === "function" ? returnFocus() : returnFocus;
@@ -354,18 +409,20 @@ export default function ImageLightbox({
   }, [returnFocus]);
 
   const handleClosed = useCallback(() => {
+    finishOpening();
     onClose();
     restoreFocus();
-  }, [onClose, restoreFocus]);
+  }, [finishOpening, onClose, restoreFocus]);
 
   const closeLightbox = useCallback(() => {
+    finishOpening();
     setSheetOpen(false);
     if (dialogRef.current?.open) {
       dialogRef.current.close();
     } else {
       handleClosed();
     }
-  }, [handleClosed]);
+  }, [finishOpening, handleClosed]);
 
   const closeSheet = useCallback(() => {
     setSheetOpen(false);
@@ -373,13 +430,15 @@ export default function ImageLightbox({
 
   const showPrevious = useCallback(() => {
     if (activeIndex === null || images.length < 2) return;
+    finishOpening();
     onActiveIndexChange(wrapIndex(activeIndex - 1, images.length));
-  }, [activeIndex, images.length, onActiveIndexChange]);
+  }, [activeIndex, finishOpening, images.length, onActiveIndexChange]);
 
   const showNext = useCallback(() => {
     if (activeIndex === null || images.length < 2) return;
+    finishOpening();
     onActiveIndexChange(wrapIndex(activeIndex + 1, images.length));
-  }, [activeIndex, images.length, onActiveIndexChange]);
+  }, [activeIndex, finishOpening, images.length, onActiveIndexChange]);
 
   const gestureHandlers = useLightboxGestures({
     isOpen,
@@ -398,17 +457,44 @@ export default function ImageLightbox({
     const dialog = dialogRef.current;
     if (!isOpen) {
       if (dialog?.open) dialog.close();
+      setOpeningPreview(null);
+      setIsOpening(true);
       return;
     }
 
+    const { returnFocus: sourceTarget, activeSrc } = openingInputsRef.current;
+    const source = captureOpeningImage(typeof sourceTarget === "function" ? sourceTarget() : sourceTarget);
+    setOpeningPreview(source ? { src: source.src, width: source.width, height: source.height, originalSrc: activeSrc } : null);
     if (dialog && !dialog.open) dialog.showModal();
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    let cancelled = false;
+    if (dialog && stageRef.current && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setIsOpening(true);
+      openingCleanupRef.current = animateLightboxOpening(dialog, stageRef.current, source, () => {
+        if (!cancelled) finishOpening();
+      });
+    } else {
+      setIsOpening(false);
+    }
+    window.addEventListener("resize", finishOpening);
+    window.visualViewport?.addEventListener("resize", finishOpening);
 
     return () => {
+      cancelled = true;
+      openingCleanupRef.current?.();
+      openingCleanupRef.current = null;
+      window.removeEventListener("resize", finishOpening);
+      window.visualViewport?.removeEventListener("resize", finishOpening);
       document.body.style.overflow = previousOverflow;
     };
-  }, [isOpen, portalTarget]);
+  }, [finishOpening, isOpen, portalTarget]);
+
+  useLayoutEffect(() => {
+    const src = activeImage?.src || null;
+    if (src && previousActiveSrcRef.current && src !== previousActiveSrcRef.current) finishOpening();
+    previousActiveSrcRef.current = src;
+  }, [activeImage?.src, finishOpening]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -505,8 +591,10 @@ export default function ImageLightbox({
           <div
             ref={stageRef}
             className="image-lightbox-stage"
-            aria-busy={isCurrentBusy || undefined}
-            onPointerDown={gestureHandlers.onPointerDown}
+            onPointerDown={(event) => {
+              finishOpening();
+              gestureHandlers.onPointerDown(event);
+            }}
             onPointerMove={gestureHandlers.onPointerMove}
             onPointerUp={gestureHandlers.onPointerUp}
             onPointerCancel={gestureHandlers.onPointerCancel}
@@ -517,7 +605,8 @@ export default function ImageLightbox({
                   key={duplicateAdjacent && role !== "current" ? `${image.id}-${role}` : image.id}
                   image={image}
                   isActive={role === "current"}
-                  onActiveSettled={role === "current" ? setSettledSrc : undefined}
+                  isOpening={isOpening && role === "current"}
+                  openingPreview={openingPreview?.originalSrc === image.src ? openingPreview : undefined}
                 />
               ))}
             </div>
@@ -636,7 +725,10 @@ export default function ImageLightbox({
                       thumbnailRefs.current[index] = element;
                     }}
                     type="button"
-                    onClick={() => onActiveIndexChange(index)}
+                    onClick={() => {
+                      finishOpening();
+                      onActiveIndexChange(index);
+                    }}
                     aria-label={`查看第 ${index + 1} 张：${image.alt}`}
                     aria-current={index === activeIndex ? "true" : undefined}
                     className={`image-lightbox-thumbnail ${index === activeIndex ? "is-active" : ""}`}

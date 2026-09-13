@@ -1,12 +1,13 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const matter = require('gray-matter');
 const { marked } = require('marked');
 const load = require('./load-typescript.cjs');
 const config = load('lib/config.ts');
 const { getPosts } = load('lib/posts.ts');
 const { canonicalUrl, markdownUrl, pages, postUrl } = load('lib/seo.ts');
-const { rewritePublishedMarkdown } = require('../lib/published-markdown.mjs');
+const { rewritePublishedMarkdown, toSiteAbsoluteAssetPath } = require('../lib/published-markdown.mjs');
 
 const output = path.resolve('out');
 const read = (filename) => fs.readFile(path.join(output, filename), 'utf8');
@@ -129,11 +130,15 @@ async function main() {
     const published = await read(`${post.slug}.md`);
     assert.equal(published, rewritePublishedMarkdown(source, post.slug), `${post.slug}: published Markdown rewrite mismatch`);
     await assert.rejects(fs.access(path.join(output, post.slug, 'index.md')), { code: 'ENOENT' }, `${post.slug}: leaked /${post.slug}/index.md`);
-    if (post.cover.startsWith('/')) {
-      assert.ok(published.includes(post.cover), `${post.slug}: published Markdown missing cover ${post.cover}`);
-    }
-    for (const image of post.images) {
-      assert.ok(published.includes(image.src), `${post.slug}: published Markdown missing ${image.src}`);
+    // Published Markdown keeps source asset URLs; rendered pages use content-versioned images.
+    const { data: sourceData, content: sourceContent } = matter(source);
+    const sourceImages = sourceData.cover ? [sourceData.cover] : [];
+    marked.walkTokens(marked.lexer(sourceContent), (token) => {
+      if (token.type === 'image') sourceImages.push(token.href);
+    });
+    for (const href of sourceImages) {
+      const src = toSiteAbsoluteAssetPath(href, post.slug);
+      if (src) assert.ok(published.includes(src), `${post.slug}: published Markdown missing ${src}`);
     }
     assert.doesNotMatch(published, /^cover:\s*['"]?\.\//m, `${post.slug}: published cover still relative`);
     assert.doesNotMatch(published, /!?\[[^\]]*\]\(\.\//, `${post.slug}: published Markdown still uses relative destinations`);

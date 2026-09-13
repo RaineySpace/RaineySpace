@@ -6,6 +6,7 @@ export const SKIP_PUBLIC_DIRS = new Set(["assets", OPTIMIZED_DIR]);
 export const RASTER_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
 export interface DisplayImage {
+  originalSrc?: string;
   displaySrc: string;
   thumbnailSrc?: string;
   srcSet?: string;
@@ -32,7 +33,17 @@ export async function resolveDisplayImage(slug: string, relativePath: string): P
     if (manifestCache?.filename !== filename || manifestCache.mtimeMs !== mtimeMs) {
       manifestCache = { filename, mtimeMs, data: JSON.parse(await fs.readFile(filename, 'utf8')) };
     }
-    return manifestCache.data[originalSrc] || { displaySrc: originalSrc };
+    const entry = manifestCache.data[originalSrc];
+    if (!entry) return { displaySrc: originalSrc };
+    // Build-cache fingerprints stay in the manifest, not in page props.
+    return {
+      originalSrc: entry.originalSrc,
+      displaySrc: entry.displaySrc,
+      thumbnailSrc: entry.thumbnailSrc,
+      srcSet: entry.srcSet,
+      width: entry.width,
+      height: entry.height,
+    };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     return { displaySrc: originalSrc };

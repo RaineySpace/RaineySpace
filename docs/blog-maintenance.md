@@ -99,7 +99,7 @@ showHeader: false
 
 每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。源文件仍是 `public/<slug>/index.md`，构建时发布为 `/<slug>.md`，不维护第二份源文件。发布稿会把 `./cover.webp` 这类相对资源改写成 `/<slug>/cover.webp`，让根路径 Markdown 对搜索引擎和 AI 抓取仍能解析图片；源文件继续使用相对路径。构建后删除 `out/<slug>/index.md`，避免同一篇文章出现两份公开 Markdown。
 
-`pnpm build` 完成静态导出与 Markdown 发布后，`postbuild` 步骤运行 `scripts/generate-headers.cjs`，根据站点 URL 与原文元数据完整生成 `out/_headers`：为 `/<slug>.md` 提供 `Content-Type: text/markdown; charset=utf-8` 和指向 HTML 页的 canonical Link，并为标记内容添加 `X-Robots-Tag: noindex`。删除内容或取消标记后，下一次构建会移除旧规则；生成失败会使构建失败。不要维护第二份手写 `public/_headers`。变更站点域名后重新构建并运行 SEO 校验即可；普通本地静态服务器不会解释 `_headers`。
+`pnpm build` 完成静态导出与 Markdown 发布后，`postbuild` 步骤运行 `scripts/generate-headers.cjs`，根据站点 URL 与原文元数据完整生成 `out/_headers`：为 `/<slug>.md` 提供 `Content-Type: text/markdown; charset=utf-8` 和指向 HTML 页的 canonical Link，为标记内容添加 `X-Robots-Tag: noindex`，并生成图片长期缓存及页面校验规则。删除内容或取消标记后，下一次构建会移除旧规则；生成失败会使构建失败。不要维护第二份手写 `public/_headers`。变更站点域名后重新构建并运行 SEO 校验即可；普通本地静态服务器不会解释 `_headers`。
 
 `/llms.txt` 在构建时从允许索引的内容生成站点导航、标题、摘要、日期和 Markdown 链接，并提供 HTML 原文链接供引用。没有日期时省略日期，不产生空日期标点或当前时间；sitemap 同样省略无法确定的 `lastmod`。它只是机器阅读的便利入口，不保证排名或 AI 引用量提升；[Google 的 AI 搜索功能仍遵循基础 SEO 要求](https://developers.google.com/search/docs/appearance/ai-features)。
 
@@ -123,9 +123,21 @@ showHeader: false
 
 内容校验会检查公开文章中的本地图片和 `cover` 是否存在。缺失图片会输出 warning。
 
-封面和正文统一遵循“默认显示缩略图，点击查看原图”。Markdown 继续引用原图，例如 `./photo.jpg`。构建和本地开发前会生成 320、640、960 像素宽及最大展示尺寸的 WebP 到 `public/_optimized/`，最大边长不超过 1600，不放大小图。输出文件保留原始扩展名作为文件名的一部分，避免同名 JPG/PNG 冲突；`manifest.json` 记录宽高、展示图和 `srcset`。
+封面和正文统一遵循“默认显示缩略图，点击查看原图”。Markdown 继续引用原图，例如 `./photo.jpg`。构建和本地开发前会生成 320、640、960 像素宽及最大展示尺寸的 WebP，最大边长不超过 1600，不放大小图。原图逐字节复制，原图副本与各尺寸预览分别根据实际文件内容生成 SHA-256 路径：`/_optimized/images/<hash>/<filename>`。输出文件保留原始扩展名，避免同名 JPG/PNG 冲突；`public/_optimized/manifest.json` 以原有图片路径为键，记录版本化原图 URL、宽高、展示图和 `srcset`。
 
-正文、封面和摄影列表通过 `srcset`/`sizes` 按屏幕选择压缩图；正文还声明宽高，提前预留版面。灯箱底栏使用缩略图，主预览才加载原图。EXIF 方向在生成时纠正，原图与 Live Photo 视频保留不变；动图保留原文件，避免丢失动画。远程图片沿用其原 URL，不在构建时下载。压缩图和 manifest 都是构建产物，不要提交到 git。修改图片后重新运行优化命令；脚本会清理已经不再引用的派生文件。
+正文、封面和摄影列表通过 `srcset`/`sizes` 按屏幕选择压缩图；正文还声明宽高，提前预留版面。灯箱底栏使用缩略图，主预览及后台预热使用版本化原图 URL。EXIF 方向在生成预览时纠正，原图与 Live Photo 视频保留不变；动图只生成原样副本，避免丢失动画。远程图片沿用其原 URL，不在构建时下载。整个 `_optimized` 目录都是构建产物，不要提交到 git。修改图片后重新运行优化命令；脚本会清理已经不再引用的派生文件。原有 `/<slug>/photo.jpg` 链接继续可访问，公开 Markdown 的资源路径也保持该格式。
+
+`/_optimized/images/*` 使用 `Cache-Control: public, max-age=31536000, immutable`，浏览器可在一年有效期内复用缓存。同名图片内容发生变化时自动生成新 URL；只改文件时间或重复构建不会改变 URL。构建缓存按源文件内容和图片处理工具链校验，缺失或损坏的派生文件会重新生成。哈希始终来自输出字节，即使工具链变化后重新处理，也不会把不同内容发布到同一个长期缓存 URL。
+
+HTML 页面、Next.js 导航数据（`.txt`）、Markdown、XML 和图片 manifest 使用 `Cache-Control: no-cache`，允许存储，但再次请求时需校验，从而获取最新图片地址。一年缓存仅覆盖版本化图片目录；未经过图片管线的文件、原有图片地址及 Live Photo 视频不追加该规则。缓存配置在重新部署后生效，本地可用 `wrangler pages dev out` 验证实际响应头。浏览器仍可能主动回收图片缓存；已打开的旧页面或浏览器历史快照可能继续显示当时版本，重新加载页面可获取新版本。
+
+打开灯箱时，已加载的缩略图通过独立图层等比展开，入场与遮罩渐变持续 280ms；无法取得来源图片或有效几何时使用 150ms 淡入。原图并行加载，点击时的 `currentSrc` 继续作为后备预览，避免切换展示文件时出现空白。预览图保持原有清晰度和亮度，原图加载并解码成功后以 300ms 淡入，缓存命中时直接显示。
+
+入场结束后，若原图仍未就绪，图片区域底部会显示“原图加载中”，只有圆点以 1.6 秒周期呼吸；失败时保留可用预览并改为“原图加载失败”。提示不拦截手势，切图、关闭或窗口变化会清理入场动画。Live Photo 在入场结束后播放，减少动态效果模式下跳过入场与呼吸动画。维护灯箱时应同时检查慢网连续切图、裁剪与旋转缩略图、加载失败、缓存命中和关闭后的焦点恢复。
+
+原图预加载由 `lib/image-preloader.ts` 统一调度，通过 `useImagePreloading` 自动登记本页所有灯箱中的封面、正文和摄影图片；相同 URL 去重，不预热 Live Photo 视频。页面 `load` 后利用 `requestIdleCallback` 逐张预热，缺少该 API 时回退到 500ms 定时调度。打开灯箱后，当前原图立即以高优先级请求，不等待后台队列；其加载、解码结束后，依次预热下一张、上一张、同组其余图片，再继续本页其他图片。相邻滑动页先显示预览，原图完成预热后才挂载，避免绕开调度重复发起后台请求。
+
+全页最多同时进行一个后台原图请求，使用 `fetchPriority="low"`。当前图仍在加载时不启动新的后台任务；已有的一次下载可完成，若它正是新打开的图片则提升优先级。蜂窝网络或有效速度为 `3g` 时仅预热前后各一张，`Save-Data`、`2g` 和 `slow-2g` 时关闭后台预热；不支持网络信息 API 时沿用单请求队列。页面隐藏或离线时暂停新增后台请求，恢复后继续。切换路由会移除旧页面队列并取消不再使用的任务；失败原图不自动循环重试，用户实际打开时仍可重新请求。预热仅复用浏览器缓存，完成后释放临时 Image 引用，不批量解码或长期保留原图；缓存可能被浏览器回收，原有加载提示仍作为兜底。
 
 ```bash
 pnpm optimize:images
@@ -186,11 +198,11 @@ pnpm deploy:cf
 - sitemap
 - robots
 - llms.txt
-- `_headers`（构建后自动生成的 Markdown canonical 与索引响应头）
+- `_headers`（构建后自动生成的 Markdown canonical、索引及缓存响应头）
 
-`pnpm test:seo` 检查日期、元数据和结构化数据序列化，通过临时 Markdown 覆盖 `hidden/noindex` 四种组合、新字段默认值与非法类型、非测试页的索引声明，以及重命名、删除或取消标记后的响应头清理。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、自动页头与封面、sitemap、feed、Markdown 原文、llms.txt 链接及完整 `_headers` 索引规则；运行前必须完成当前版本的 `pnpm build`。这些脚本复用现有 TypeScript 编译器和 Node.js，不引入浏览器端依赖。
+`pnpm test:seo` 检查日期、元数据和结构化数据序列化，通过临时 Markdown 覆盖 `hidden/noindex` 四种组合、新字段默认值与非法类型、非测试页的索引声明、重命名或删除后的响应头清理，以及图片长期缓存和页面校验的匹配范围。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、自动页头与封面、sitemap、feed、Markdown 原文、llms.txt 链接及完整 `_headers` 索引规则；运行前必须完成当前版本的 `pnpm build`。这些脚本复用现有 TypeScript 编译器和 Node.js，不引入浏览器端依赖。
 
-`pnpm verify` 依次执行内容校验、SEO 测试、图片管线测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留和派生文件清理；产物校验检查静态内链、测试页 noindex、图片候选尺寸、正文占位尺寸及封面灯箱入口。
+`pnpm verify` 依次执行内容校验、SEO 测试、图片管线及预加载调度测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留、哈希稳定性、同名替换、构建缓存修复、派生文件清理，以及预加载优先级、并发去重、网络策略、后台暂停和路由清理；产物校验检查静态内链、测试页 noindex、文件内容与哈希的一致性、版本化原图字节、图片候选尺寸、正文占位尺寸、封面灯箱入口及缓存响应头。
 
 `pnpm deploy:cf` 和 GitHub Actions 共用 `pnpm verify`，任一步失败都会停止部署。CI 通过 mise-action 读取仓库 `mise.toml` 安装 Node.js 和 pnpm，与本地使用同一版本来源。验证成功后才通过 Wrangler 或现有 Pages action 部署 `out/` 到 Cloudflare Pages。
 
@@ -198,7 +210,9 @@ pnpm deploy:cf
 
 发布后检查首页、一个频道页和一篇文章，以及 `/robots.txt`、`/sitemap.xml`、`/llms.txt` 的 HTTP 状态和内容；确认文章 Markdown 返回 `text/markdown`，HTTP `Link` 指向同一篇 HTML canonical。检查最终 `robots.txt` 中托管规则与源码规则的合并结果。
 
-另外检查 `/test/` 的 robots meta、`/test.md` 的 `X-Robots-Tag` 和 canonical Link 同时生效；按当前元数据，关于页和图集不应带 noindex。用手机与桌面浏览器检查封面、正文和摄影缩略图，点击后应请求原图，关闭灯箱后应恢复焦点。图片候选以浏览器 `currentSrc` 和实际网络请求为准。
+另外检查 `/test/` 的 robots meta、`/test.md` 的 `X-Robots-Tag` 和 canonical Link 同时生效；按当前元数据，关于页和图集不应带 noindex。用手机与桌面浏览器检查封面、正文和摄影缩略图，点击后应显示原图或加载提示，关闭灯箱后应恢复焦点。检查页面空闲预热、同组优先、慢网连续切图、隐藏页面暂停及省流量模式下仍能正常打开原图。图片候选和缓存命中以浏览器 `currentSrc` 和实际网络请求为准。
+
+核对版本化原图和预览图的线上响应包含一年 `max-age` 与 `immutable`，HTML 及 `.txt` 导航数据为 `no-cache`；域名级 Cloudflare Cache Rules 或 Browser Cache TTL 也可能影响最终响应，以部署后的实际响应头为准。同名替换图片后，检查新 HTML 引用本次构建的图片 URL；输出字节变化的原图或预览图应获得新 URL。
 
 使用 Cloudflare 安全事件或真实爬虫访问记录排查 403/挑战，确认搜索与用户读取没有被额外拦截。仅修改 User-Agent 的请求不代表真实爬虫，也不足以确认某条防火墙规则导致拦截，不据此创建宽泛白名单。通过 Google Search Console、Bing Webmaster Tools 检查 sitemap 和代表性网址的抓取、索引状态；抓取允许不保证一定收录或被引用。
 

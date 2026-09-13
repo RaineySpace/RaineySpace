@@ -225,6 +225,7 @@ test('header generation encodes arbitrary slugs and removes obsolete rules on ev
     assert.ok(headers.includes(`${new URL(seo.markdownUrl(originalSlug)).pathname}\n  X-Robots-Tag: noindex`));
     const canonicalRule = '/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <https://rainey.space/:splat/>; rel="canonical"\n';
     assert.ok(headers.startsWith(canonicalRule));
+    const baseHeaders = headers.trim().split(/\n\s*\n/).filter((rule) => !rule.includes('X-Robots-Tag: noindex')).join('\n\n') + '\n';
     await fs.rename(path.join('public', originalSlug), 'public/renamed');
     assert.equal(await generateHeaders(), 1);
     headers = await fs.readFile('out/_headers', 'utf8');
@@ -232,14 +233,31 @@ test('header generation encodes arbitrary slugs and removes obsolete rules on ev
     assert.ok(headers.includes('/renamed.md\n  X-Robots-Tag: noindex'));
     await writeFixture('renamed', 'noindex: false\n');
     assert.equal(await generateHeaders(), 0);
-    assert.equal(await fs.readFile('out/_headers', 'utf8'), canonicalRule);
+    assert.equal(await fs.readFile('out/_headers', 'utf8'), baseHeaders);
     await writeFixture('renamed', 'noindex: true\n');
     await generateHeaders();
     await fs.rm('public/renamed', { recursive: true });
     assert.equal(await generateHeaders(), 0);
-    assert.equal(await fs.readFile('out/_headers', 'utf8'), canonicalRule);
+    assert.equal(await fs.readFile('out/_headers', 'utf8'), baseHeaders);
     await fs.rm('out', { recursive: true });
     await assert.rejects(generateHeaders(), /ENOENT/);
+  });
+});
+
+test('headers cache only versioned images for a year and revalidate HTML and navigation data', async () => {
+  await withContentFixture(async () => {
+    await generateHeaders();
+    const blocks = (await fs.readFile('out/_headers', 'utf8')).trim().split(/\n\s*\n/);
+    const cacheHeaders = (pathname) => blocks.flatMap((block) => {
+      const [pattern, ...headers] = block.split('\n');
+      const regex = new RegExp('^' + pattern.split('*').map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
+      return regex.test(pathname) ? headers.filter((line) => line.trim().startsWith('Cache-Control:')).map((line) => line.trim().slice('Cache-Control: '.length)) : [];
+    });
+    assert.deepEqual(cacheHeaders('/_optimized/images/' + 'a'.repeat(64) + '/photo.jpg'), ['public, max-age=31536000, immutable']);
+    assert.deepEqual(cacheHeaders('/sample/photo.jpg'), [], 'legacy original URLs must not get immutable caching');
+    for (const pathname of ['/', '/sample/', '/sample/index.html', '/sample/index.txt', '/sample.md', '/rss.xml', '/_optimized/manifest.json']) {
+      assert.deepEqual(cacheHeaders(pathname), ['no-cache'], pathname);
+    }
   });
 });
 
