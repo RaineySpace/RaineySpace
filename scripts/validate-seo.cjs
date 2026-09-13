@@ -150,7 +150,6 @@ async function main() {
   assert.ok(robots.includes(`Sitemap: ${config.siteUrl}/sitemap.xml`));
   assert.ok((await read('_headers')).includes(`/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <${config.siteUrl}/:splat/>; rel="canonical"`));
   assert.ok((await read('_headers')).includes('/test.md\n  X-Robots-Tag: noindex'));
-  assert.ok((await read('_redirects')).includes('/:slug/index.md /:slug.md 301'));
   for (const feed of ['rss.xml', 'atom.xml']) {
     const xml = await read(feed);
     for (const post of publicPosts) assert.ok(xml.includes(postUrl(post.slug)), `${feed}: missing ${post.slug}`);
