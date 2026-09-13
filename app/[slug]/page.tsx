@@ -38,10 +38,10 @@ export default async function PostPage({
       <JsonLd data={postJsonLd(post)} />
       <TableOfContents headings={post.headings} />
       <article className="markdown">
-        {(post.coverDisplaySrc || post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary) && (
+        {(post.coverDisplaySrc || (post.showHeader && (post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary))) && (
           <header className="article-header">
-            {post.showTitle && <h1>{post.title}</h1>}
-            {(post.date || post.location || post.tags.length > 0) && (
+            {post.showHeader && post.showTitle && <h1>{post.title}</h1>}
+            {post.showHeader && (post.date || post.location || post.tags.length > 0) && (
               <div className="article-meta flex flex-wrap items-center gap-x-2 gap-y-1 meta">
                 {post.date && <time dateTime={post.date.toISOString()}>{post.dateText}</time>}
                 {post.location && <span>{post.location}</span>}
@@ -52,7 +52,7 @@ export default async function PostPage({
                 ))}
               </div>
             )}
-            {post.summary && (
+            {post.showHeader && post.summary && (
               <p className="article-summary">
                 {post.summary}
               </p>

@@ -8,8 +8,8 @@
 - `app/[slug]/page.tsx`：文章详情页，包含文章 metadata 和目录。
 - `app/rss.xml/route.ts`、`app/atom.xml/route.ts`：RSS 和 Atom feed。
 - `app/sitemap.xml/route.ts`、`app/robots.txt/route.ts`：搜索引擎入口。
-- `app/llms.txt/route.ts`：公开文章的 AI 阅读导航。
-- `lib/posts.ts`：文章读取、frontmatter 归一化、Markdown 渲染、日期格式、公开文章过滤和 feed 数据逻辑。
+- `app/llms.txt/route.ts`：允许索引内容的 AI 阅读导航。
+- `lib/posts.ts`：文章读取、frontmatter 归一化、Markdown 渲染、日期格式、文章频道／允许索引内容筛选和 feed 数据逻辑。
 - `lib/seo.ts`：规范网址、页面元数据、JSON-LD、sitemap 条目和 llms.txt 内容。
 - `lib/config.ts`：站点 URL、标题、作者、头像、关键词等全局配置。
 - `scripts/new-post.mjs`：新建文章脚本。
@@ -65,7 +65,7 @@ cover: ./cover.webp
 
 ## 隐藏文章
 
-如果文章只希望直接访问，不希望进入首页、feed 和 sitemap，添加：
+如果内容不希望进入首页文章、文章列表、标签统计、相关阅读和 RSS/Atom，添加：
 
 ```yaml
 hidden: true
@@ -73,21 +73,32 @@ hidden: true
 
 隐藏文章仍会被静态生成，所以 `/about/` 这类页面可以继续作为独立页面使用。
 
-`hidden` 不等于 `noindex`，也不是访问控制。摄影和项目的集合成员资格仍与 `hidden` 无关；它们的频道 JSON-LD 与频道实际展示的条目一致。`llms.txt` 的公开文章目录和 sitemap 一样，不枚举隐藏详情页或其 Markdown 原文。
+`hidden` 默认为 `false`，不控制索引或访问权限。摄影和项目的集合成员资格仍与 `hidden` 无关；它们的频道 JSON-LD 与实际展示的条目一致。sitemap 和 `llms.txt` 按独立的 `noindex` 字段筛选，允许索引的隐藏页面也会被列出。
 
-`/test/` 是 Markdown 语法测试页，单独声明 `noindex, follow`。对应的 `/test/index.md` 由 `public/_headers` 添加 `X-Robots-Tag: noindex`，同时保留 HTML canonical 响应头。不要通过 robots.txt 禁止抓取测试页，否则搜索引擎无法读取这条索引限制；关于页、摄影和项目不继承该限制。
+## 索引与页头开关
+
+```yaml
+noindex: true
+showHeader: false
+```
+
+`noindex` 默认为 `false`。设为 `true` 时，HTML 声明 `noindex, follow`，Markdown 原文声明 `X-Robots-Tag: noindex`，同时不进入 sitemap、`llms.txt` 或详情页 JSON-LD；页面仍可直达，文章列表、订阅和摄影／项目集合不因此隐藏。当前只有语法测试页显式设置为 `true`，索引规则不再根据 `test` 目录名判断。不要用 robots.txt 禁止抓取这些页面，否则搜索引擎无法读取索引声明。
+
+`showHeader` 默认为 `true`。设为 `false` 时隐藏自动生成的标题、日期、地点、标签和摘要，但这些数据仍用于 SEO。封面、正文、目录和导航保持原有行为。关于页和测试页填写完整标题与摘要，再通过这个开关保持当前正文起始布局；不需要为它们补造发布日期。
+
+两个字段只接受 YAML 布尔值，字符串 `"false"`、空值和其他类型会使读取、内容校验或响应头生成失败。共享解析位于 `lib/post-options.mjs`。常规新文章模板省略这两个默认开关；完整字段说明见 [内容集合维护](./content-collections.md)。
 
 ## SEO 与 AI 阅读
 
 首页、文章、摄影、项目和详情页各自提供标题、描述、canonical、Open Graph 与 Twitter 元数据。页面规范网址统一为 `https://rainey.space/` 下带尾斜杠的 HTML 地址；`/articles/?tag=摄影` 等筛选链接的 canonical 始终是 `/articles/`，不额外生成标签索引页。聚合页不声明无法确认的 `lastmod`。
 
-首页提供 `WebSite` 与 `Person`，公开文章提供 `BlogPosting`，频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`。作者身份和已公开的个人资料链接来自 `lib/config.ts`；结构化数据只使用实际内容，有明确文章封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
+首页提供 `WebSite` 与 `Person`，允许索引的普通内容提供 `BlogPosting`（包括隐藏内容），频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`。`noindex: true` 的详情页不输出 JSON-LD。详情页标题与摘要统一读取 Markdown，包括关于页；作者身份和已公开的个人资料链接来自 `lib/config.ts`。结构化数据只使用实际内容，有明确封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
 
 详情页末尾提供静态的“全部文章”和作者页链接；摄影、项目详情还提供对应频道入口。相关阅读只推荐至少有一个相同标签的公开文章，优先共同标签更多、日期更近的文章，最多三篇；不推荐自身或隐藏文章，没有关联标签时不显示。维护好实际内容标签即可，不需要额外登记推荐列表。
 
-每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。原文仍位于 `/<slug>/index.md`，不维护第二份文章。`public/_headers` 随构建复制到 `out/_headers`，由 Cloudflare Pages 为 Markdown 响应添加指向对应 HTML 页的 HTTP `Link: <...>; rel="canonical"`。变更站点域名时，需要同时更新该文件并运行 SEO 校验。普通本地静态服务器不会解释 `_headers`。
+每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。原文仍位于 `/<slug>/index.md`，不维护第二份文章。`pnpm build` 的 `postbuild` 步骤运行 `scripts/generate-headers.cjs`，根据站点 URL 与原文元数据完整生成 `out/_headers`：为所有 Markdown 提供指向 HTML 页的 canonical Link，并为标记内容添加 `X-Robots-Tag: noindex`。删除内容或取消标记后，下一次构建会移除旧规则；生成失败会使构建失败。不要维护第二份手写 `public/_headers`。变更站点域名后重新构建并运行 SEO 校验即可；普通本地静态服务器不会解释 `_headers`。
 
-`/llms.txt` 在构建时从现有内容生成站点导航、公开文章标题、摘要、日期和 Markdown 链接，并提供 HTML 原文链接供引用。它只是机器阅读的便利入口，不保证排名或 AI 引用量提升；[Google 的 AI 搜索功能仍遵循基础 SEO 要求](https://developers.google.com/search/docs/appearance/ai-features)。
+`/llms.txt` 在构建时从允许索引的内容生成站点导航、标题、摘要、日期和 Markdown 链接，并提供 HTML 原文链接供引用。没有日期时省略日期，不产生空日期标点或当前时间；sitemap 同样省略无法确定的 `lastmod`。它只是机器阅读的便利入口，不保证排名或 AI 引用量提升；[Google 的 AI 搜索功能仍遵循基础 SEO 要求](https://developers.google.com/search/docs/appearance/ai-features)。
 
 ### 抓取策略
 
@@ -128,6 +139,7 @@ pnpm validate:content
 - 公开文章是否包含 `title`、`date`、`summary`
 - 日期是否合法
 - `updated` 是否为合法日期，且不早于发布日期
+- `noindex` 和 `showHeader` 是否为布尔值
 - 本地封面文件是否存在
 - Markdown 本地图片是否存在
 
@@ -171,8 +183,9 @@ pnpm deploy:cf
 - sitemap
 - robots
 - llms.txt
+- `_headers`（构建后自动生成的 Markdown canonical 与索引响应头）
 
-`pnpm test:seo` 检查日期、元数据、结构化数据序列化和隐藏内容边界，并通过临时 Markdown 验证实际内容读取和 CLI 校验。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、sitemap、feed、Markdown 原文、llms.txt 链接及 `_headers`；运行前必须完成当前版本的 `pnpm build`。这两项使用已有 TypeScript 编译器和 Node.js，不引入浏览器端依赖。
+`pnpm test:seo` 检查日期、元数据和结构化数据序列化，通过临时 Markdown 覆盖 `hidden/noindex` 四种组合、新字段默认值与非法类型、非测试页的索引声明，以及重命名、删除或取消标记后的响应头清理。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、自动页头与封面、sitemap、feed、Markdown 原文、llms.txt 链接及完整 `_headers` 索引规则；运行前必须完成当前版本的 `pnpm build`。这些脚本复用现有 TypeScript 编译器和 Node.js，不引入浏览器端依赖。
 
 `pnpm verify` 依次执行内容校验、SEO 测试、图片管线测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留和派生文件清理；产物校验检查静态内链、测试页 noindex、图片候选尺寸、正文占位尺寸及封面灯箱入口。
 
@@ -182,7 +195,7 @@ pnpm deploy:cf
 
 发布后检查首页、一个频道页和一篇文章，以及 `/robots.txt`、`/sitemap.xml`、`/llms.txt` 的 HTTP 状态和内容；确认文章 Markdown 返回 `text/markdown`，HTTP `Link` 指向同一篇 HTML canonical。检查最终 `robots.txt` 中托管规则与源码规则的合并结果。
 
-另外检查 `/test/` 的 robots meta、`/test/index.md` 的 `X-Robots-Tag` 和 canonical Link 同时生效；关于页和图集不应带 noindex。用手机与桌面浏览器检查封面、正文和摄影缩略图，点击后应请求原图，关闭灯箱后应恢复焦点。图片候选以浏览器 `currentSrc` 和实际网络请求为准。
+另外检查 `/test/` 的 robots meta、`/test/index.md` 的 `X-Robots-Tag` 和 canonical Link 同时生效；按当前元数据，关于页和图集不应带 noindex。用手机与桌面浏览器检查封面、正文和摄影缩略图，点击后应请求原图，关闭灯箱后应恢复焦点。图片候选以浏览器 `currentSrc` 和实际网络请求为准。
 
 使用 Cloudflare 安全事件或真实爬虫访问记录排查 403/挑战，确认搜索与用户读取没有被额外拦截。仅修改 User-Agent 的请求不代表真实爬虫，也不足以确认某条防火墙规则导致拦截，不据此创建宽泛白名单。通过 Google Search Console、Bing Webmaster Tools 检查 sitemap 和代表性网址的抓取、索引状态；抓取允许不保证一定收录或被引用。
 

@@ -1,10 +1,10 @@
-import { getPublicPosts } from "@/lib/posts";
+import { getIndexablePosts } from "@/lib/posts";
 import { sitemapEntries } from "@/lib/seo";
 
 export const dynamic = "force-static";
 
 export async function GET() {
-  const posts = await getPublicPosts();
+  const posts = await getIndexablePosts();
   const urls = sitemapEntries(posts);
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>

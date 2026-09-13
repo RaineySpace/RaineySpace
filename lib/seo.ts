@@ -13,11 +13,6 @@ export const pages = {
   articles: { pathname: '/articles/', title: `文章 - ${config.title}`, description: 'Rainey 的全部公开文章。' },
   photography: { pathname: '/photography/', title: `摄影 - ${config.title}`, description: 'Rainey 的摄影记录。' },
   projects: { pathname: '/projects/', title: `项目 - ${config.title}`, description: 'Rainey 的项目与个人实验。' },
-  about: {
-    pathname: '/about/',
-    title: `关于 ${config.author} - ${config.title}`,
-    description: '关于 Rainey：写了十多年代码，现在重新创业，探索产品、AI 与生活。',
-  },
 } satisfies Record<string, PageInfo>;
 
 export function canonicalUrl(pathname: string): string {
@@ -82,7 +77,7 @@ export function pageMetadata(
 export function postMetadata(post: Post): Metadata {
   const isAbout = post.slug === 'about';
   return {
-    ...pageMetadata(isAbout ? pages.about : {
+    ...pageMetadata({
       pathname: postUrl(post.slug),
       title: `${post.title} - ${config.title}`,
       description: post.summary || config.description,
@@ -98,8 +93,7 @@ export function postMetadata(post: Post): Metadata {
       } : {}),
     }),
     keywords: [...new Set([...config.keywords, ...post.keywords, ...post.tags])],
-    // The syntax fixture is not a publication. Other hidden pages stay indexable.
-    ...(post.slug === 'test' ? { robots: { index: false, follow: true } } : {}),
+    ...(post.noindex ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
@@ -133,6 +127,7 @@ export function homeJsonLd() {
 }
 
 export function postJsonLd(post: Post): Record<string, unknown> | null {
+  if (post.noindex) return null;
   const url = postUrl(post.slug);
   if (post.slug === 'about') {
     return {
@@ -140,13 +135,12 @@ export function postJsonLd(post: Post): Record<string, unknown> | null {
       '@type': 'AboutPage',
       '@id': `${url}#webpage`,
       url,
-      name: pages.about.title,
-      description: pages.about.description,
+      name: `${post.title} - ${config.title}`,
+      description: post.summary || undefined,
       mainEntity: authorJsonLd(),
       inLanguage: 'zh-CN',
     };
   }
-  if (post.hidden) return null;
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -200,7 +194,7 @@ export function sitemapEntries(posts: readonly Post[]) {
       loc: canonicalUrl(page.pathname),
       lastmod: undefined as string | undefined,
     })),
-    ...posts.filter((post) => !post.hidden).map((post) => ({
+    ...posts.filter((post) => !post.noindex).map((post) => ({
       loc: postUrl(post.slug),
       lastmod: (post.updated || post.date)?.toISOString(),
     })),
@@ -225,11 +219,12 @@ export function llmsText(posts: readonly Post[]): string {
     '',
     ...channels.map((page) => `- [${markdownText(page.title)}](${canonicalUrl(page.pathname)}): ${markdownText(page.description)}`),
     '',
-    '## 公开文章',
+    '## 内容',
     '',
-    ...posts.filter((post) => !post.hidden).map((post) => {
-      const updated = post.updated ? `；更新 ${post.updated.toISOString().slice(0, 10)}` : '';
-      return `- [${markdownText(post.title)}](${markdownUrl(post.slug)}): ${post.dateText}${updated}。${markdownText(post.summary)} [原文](${postUrl(post.slug)})`;
+    ...posts.filter((post) => !post.noindex).map((post) => {
+      const dates = [post.dateText, post.updated ? `更新 ${post.updated.toISOString().slice(0, 10)}` : ''].filter(Boolean).join('；');
+      const description = [dates, markdownText(post.summary)].filter(Boolean).join('。');
+      return `- [${markdownText(post.title)}](${markdownUrl(post.slug)}): ${description ? `${description} ` : ''}[原文](${postUrl(post.slug)})`;
     }),
     '',
   ].join('\n');

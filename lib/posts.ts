@@ -8,6 +8,7 @@ import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import { readImageExif, type ImageExif } from './image-exif';
 import { parseUpdatedDate } from './post-dates.mjs';
+import { parsePostOptions } from './post-options.mjs';
 import {
   resolveDisplayImage,
   type DisplayImage,
@@ -29,6 +30,7 @@ marked.use(
 export interface Post {
   title: string;
   showTitle: boolean;
+  showHeader: boolean;
   date: Date | null;
   dateText: string;
   updated: Date | null;
@@ -41,6 +43,7 @@ export interface Post {
   keywords: string[];
   location: string;
   hidden: boolean;
+  noindex: boolean;
   pinned: boolean;
   photography: boolean;
   projectId: string;
@@ -335,7 +338,9 @@ export async function getPostBySlug(slug: string): Promise<Post> {
   const { data, content, matter: frontmatter } = matter(fileContents);
   const date = normalizeDate(data.date);
   let updated: Date | null;
+  let options: ReturnType<typeof parsePostOptions>;
   try {
+    options = parsePostOptions(data);
     updated = parseUpdatedDate(data.updated, date, frontmatter);
   } catch (error) {
     throw new Error(`${slug}: ${(error as Error).message}`);
@@ -348,6 +353,7 @@ export async function getPostBySlug(slug: string): Promise<Post> {
   const { cover, coverDisplaySrc, coverImage } = await resolveCover(slug, data.cover);
 
   return {
+    ...options,
     title: data.title ? String(data.title) : slug,
     showTitle: Boolean(data.title),
     date,
@@ -393,8 +399,12 @@ export async function getPosts(): Promise<Post[]> {
   return posts.sort(comparePosts);
 }
 
-export async function getPublicPosts(): Promise<Post[]> {
+export async function getListedPosts(): Promise<Post[]> {
   return (await getPosts()).filter((post) => !post.hidden);
+}
+
+export async function getIndexablePosts(): Promise<Post[]> {
+  return (await getPosts()).filter((post) => !post.noindex);
 }
 
 export function getRelatedPosts(post: Post, posts: readonly Post[], limit = 3): Post[] {
@@ -428,7 +438,7 @@ export function getPostTagCounts(posts: readonly Pick<Post, 'tags' | 'hidden'>[]
 }
 
 export async function generateFeed() {
-  const posts = (await getPublicPosts()).sort(comparePostDates);
+  const posts = (await getListedPosts()).sort(comparePostDates);
 
   const feed = new Feed({
     author: {

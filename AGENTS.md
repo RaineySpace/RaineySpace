@@ -14,7 +14,7 @@ The GitHub profile `README.md` is not project documentation. Do not edit `README
 - `app/rss.xml/route.ts` and `app/atom.xml/route.ts` generate feeds.
 - `app/sitemap.xml/route.ts` and `app/robots.txt/route.ts` generate SEO metadata files.
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
-- `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, public-post filtering, and feed data behavior centralized there.
+- `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, article-channel/indexable-content filtering, and feed data behavior centralized there. `lib/post-options.mjs` shares `noindex` and `showHeader` parsing with maintenance scripts.
 - `content/projects.json` is the canonical registry for project names, links, dates, descriptions, covers, and pinning.
 - `public/<slug>/index.md` is the source format for posts.
 - `scripts/` contains local maintenance scripts.
@@ -44,7 +44,11 @@ cover: ./cover.webp
 
 `cover` is optional. Prefer a local file in the post directory with a relative path such as `./cover.webp`. When present, the cover renders after the summary (or other header metadata when no summary exists) and before the body on the article page only; article lists never show covers. Posts without `cover` keep the original title-first layout and must not use body images as a fallback cover.
 
-Use `hidden: true` for pages that should remain directly accessible but excluded from article listings, feeds, and sitemap. It does not hide content marked for photography or associated with a registered project.
+Use `hidden: true` to exclude content from article listings, tag statistics, related reading, and RSS/Atom. It does not affect indexing, photography, or registered-project membership.
+
+`noindex` defaults to `false`. Set `noindex: true` to emit HTML `noindex, follow` and Markdown `X-Robots-Tag: noindex`, and exclude the content from sitemap, `llms.txt`, and JSON-LD. It does not prevent direct access or hide content from article/photography/project collections. Indexable hidden content belongs in sitemap and `llms.txt`; omit unavailable dates rather than inventing them.
+
+`showHeader` defaults to `true`. Set `showHeader: false` to hide the generated title, date, location, tags, and summary while retaining those values for SEO. Covers, body content, table of contents, and navigation remain available. Both new fields require actual YAML booleans; strings and null values are invalid. Ordinary posts should omit these default options.
 
 Project posts reference a key from `content/projects.json` through `projectId`. Do not duplicate project display metadata in post frontmatter. Registered projects must have at least one referencing post. Project display dates come from the registry `date` field (`YYYY-MM-DD`), not from referencing posts.
 
@@ -74,7 +78,7 @@ pnpm new-post <slug> [title]
 pnpm deploy:cf
 ```
 
-`pnpm build` is the primary verification command. The deployed artifact is `out/`.
+`pnpm build` is the primary verification command. The deployed artifact is `out/`. Its `postbuild` step generates `out/_headers` from site configuration and content metadata; do not add a second handwritten `public/_headers` source. A failed header-generation step must fail the build.
 
 `pnpm validate:content` should pass before shipping. Warnings about missing local images should be investigated but are not currently fatal.
 

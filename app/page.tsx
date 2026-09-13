@@ -4,7 +4,7 @@ import PhotoGallery from '@/app/components/PhotoGallery';
 import PostCard from '@/app/components/PostCard';
 import ProjectList from '@/app/components/ProjectList';
 import { getFeaturedPhotos } from '@/lib/photography';
-import { getAboutContent, getPublicPosts } from '@/lib/posts';
+import { getAboutContent, getListedPosts } from '@/lib/posts';
 import { getFeaturedProjects } from '@/lib/projects';
 import JsonLd from '@/app/components/JsonLd';
 import { homeJsonLd, pageMetadata, pages } from '@/lib/seo';
@@ -15,7 +15,7 @@ export const metadata = pageMetadata(pages.home);
 export default async function Home() {
   const [aboutContent, posts, featuredPhotos, featuredProjects] = await Promise.all([
     getAboutContent(),
-    getPublicPosts(),
+    getListedPosts(),
     getFeaturedPhotos(6),
     getFeaturedProjects(3),
   ]);

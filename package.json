@@ -8,6 +8,7 @@
     "predev": "node scripts/optimize-images.mjs",
     "prebuild": "node scripts/optimize-images.mjs",
     "build": "next build",
+    "postbuild": "node scripts/generate-headers.cjs",
     "start": "next start",
     "lint": "next lint",
     "validate:content": "node scripts/validate-content.mjs",

@@ -4,6 +4,7 @@ import matter from "gray-matter";
 import { marked } from "marked";
 import exifr from "exifr";
 import { parseUpdatedDate } from "../lib/post-dates.mjs";
+import { parsePostOptions } from "../lib/post-options.mjs";
 
 const publicDir = path.join(process.cwd(), "public");
 const projectsPath = path.join(process.cwd(), "content", "projects.json");
@@ -281,6 +282,11 @@ async function main() {
 
     const fileContents = await fs.readFile(filePath, "utf8");
     const { data, content, matter: frontmatter } = matter(fileContents);
+    try {
+      parsePostOptions(data);
+    } catch (error) {
+      errors.push(`${slug}: ${error.message}`);
+    }
     const participatesInAList = !data.hidden || data.photography === true || data.projectId !== undefined;
 
     if (participatesInAList) {

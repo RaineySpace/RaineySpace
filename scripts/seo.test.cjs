@@ -7,12 +7,14 @@ const { spawnSync } = require('node:child_process');
 const matter = require('gray-matter');
 const load = require('./load-typescript.cjs');
 const seo = load('lib/seo.ts');
-const { getPostBySlug, getRelatedPosts } = load('lib/posts.ts');
+const { getPosts, getPostBySlug, getListedPosts, getIndexablePosts, getRelatedPosts, getPostTagCounts, generateFeed } = load('lib/posts.ts');
 const { parseUpdatedDate } = require('../lib/post-dates.mjs');
+const { generateHeaders } = require('./generate-headers.cjs');
+const projectRoot = path.resolve(__dirname, '..');
 
 function post(overrides = {}) {
   return {
-    slug: 'sample', title: '一篇文章', summary: '文章摘要', hidden: false,
+    slug: 'sample', title: '一篇文章', summary: '文章摘要', hidden: false, noindex: false, showHeader: true,
     date: new Date('2024-02-01'), dateText: '2024-02-01', updated: null,
     cover: '', tags: [], keywords: [], ...overrides,
   };
@@ -46,11 +48,13 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   assert.equal(metadata.openGraph.images, 'https://rainey.space/sample/cover.webp');
   assert.equal(metadata.openGraph.modifiedTime, '2024-02-29T00:00:00.000Z');
   assert.equal(metadata.alternates.types['text/markdown'], 'https://rainey.space/sample/index.md');
-  const about = seo.postMetadata(post({ slug: 'about', title: 'about', hidden: true }));
-  assert.equal(about.title, "关于 Rainey - Rainey's Blog");
+  const about = seo.postMetadata(post({ slug: 'about', title: '自定义关于页', summary: '关于页摘要', hidden: true, showHeader: false }));
+  assert.equal(about.title, "自定义关于页 - Rainey's Blog");
+  assert.equal(about.description, '关于页摘要');
   assert.equal(about.openGraph.type, 'website');
   assert.equal(about.robots, undefined);
-  assert.deepEqual(seo.postMetadata(post({ slug: 'test', hidden: true })).robots, { index: false, follow: true });
+  assert.equal(seo.postMetadata(post({ slug: 'test', hidden: true })).robots, undefined);
+  assert.deepEqual(seo.postMetadata(post({ slug: 'syntax-check', noindex: true })).robots, { index: false, follow: true });
   assert.equal(seo.postMetadata(post({ slug: 'photo-album', hidden: true })).robots, undefined);
 });
 
@@ -93,8 +97,13 @@ test('structured data uses real content and safely handles a script-closing titl
   assert.equal(data.dateModified, '2024-02-29T00:00:00.000Z');
   assert.equal(data.image, undefined);
   assert.equal(data.author.url, 'https://rainey.space/about/');
-  assert.equal(seo.postJsonLd(post({ hidden: true })), null);
-  assert.equal(seo.postJsonLd(post({ slug: 'about', hidden: true }))['@type'], 'AboutPage');
+  assert.equal(seo.postJsonLd(post({ hidden: true }))['@type'], 'BlogPosting');
+  assert.equal(seo.postJsonLd(post({ noindex: true })), null);
+  assert.equal(seo.postJsonLd(post({ slug: 'about', noindex: true })), null);
+  const about = seo.postJsonLd(post({ slug: 'about', hidden: true, title: '作者介绍', summary: '自定义摘要' }));
+  assert.equal(about['@type'], 'AboutPage');
+  assert.equal(about.name, "作者介绍 - Rainey's Blog");
+  assert.equal(about.description, '自定义摘要');
   assert.equal(JSON.parse(seo.serializeJsonLd(seo.postJsonLd(post()))).dateModified, undefined);
   const items = [{ url: 'https://example.com/', name: '项目' }, { url: seo.postUrl('hidden-album'), name: '摄影' }];
   const collection = seo.collectionJsonLd(seo.pages.projects, items).mainEntity;
@@ -102,22 +111,134 @@ test('structured data uses real content and safely handles a script-closing titl
   assert.deepEqual(collection.itemListElement.map((item) => item.position), [1, 2]);
 });
 
-test('sitemap and llms omit hidden posts and never invent modification dates', () => {
-  const source = [post(), post({ slug: 'revised', updated: new Date('2024-02-29') }), post({ slug: 'hidden', hidden: true })];
+test('sitemap and llms include hidden indexable content without inventing dates', () => {
+  const source = [post(), post({ slug: 'revised', updated: new Date('2024-02-29') }), post({ slug: 'about', hidden: true, date: null, dateText: '' }), post({ slug: 'excluded', noindex: true })];
   const entries = seo.sitemapEntries(source);
   assert.ok(entries.slice(0, 4).every((entry) => entry.lastmod === undefined));
-  assert.deepEqual(entries.slice(4).map((entry) => entry.lastmod), ['2024-02-01T00:00:00.000Z', '2024-02-29T00:00:00.000Z']);
-  assert.ok(!entries.some((entry) => entry.loc.includes('/hidden/')));
+  assert.deepEqual(entries.slice(4).map((entry) => entry.lastmod), ['2024-02-01T00:00:00.000Z', '2024-02-29T00:00:00.000Z', undefined]);
+  assert.ok(entries.some((entry) => entry.loc.includes('/about/')));
+  assert.ok(!entries.some((entry) => entry.loc.includes('/excluded/')));
   assert.equal(seo.sitemapEntries([post({ date: null })]).at(-1).lastmod, undefined);
   const llms = seo.llmsText(source);
   assert.ok(llms.includes('https://rainey.space/sample/index.md'));
   assert.ok(llms.includes('[原文](https://rainey.space/sample/)'));
   assert.ok(llms.includes('更新 2024-02-29'));
-  assert.ok(!llms.includes('/hidden/'));
+  assert.ok(llms.includes('## 内容'));
+  assert.ok(llms.includes('https://rainey.space/about/index.md): 文章摘要 [原文]'));
+  assert.ok(!llms.includes('/excluded/'));
   assert.equal(seo.llmsText(source), llms);
   const tricky = seo.llmsText([post({ title: '[标题](https://bad.example)\n## 假标题', summary: '<script>text</script>' })]);
   assert.ok(tricky.includes('\\[标题\\]'));
   assert.ok(!tricky.includes('\n## 假标题'));
+});
+
+async function withContentFixture(run) {
+  const originalCwd = process.cwd();
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-metadata-'));
+  try {
+    for (const name of ['public', 'content', 'out']) await fs.mkdir(path.join(directory, name));
+    await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
+    process.chdir(directory);
+    await run(directory);
+  } finally {
+    process.chdir(originalCwd);
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function writeFixture(slug, options = '') {
+  await fs.mkdir(path.join('public', slug), { recursive: true });
+  await fs.writeFile(path.join('public', slug, 'index.md'), `---\ntitle: ${JSON.stringify(slug)}\nsummary: Fixture summary\ndate: 2024-02-01\ntags: ${JSON.stringify(['shared', slug])}\n${options}---\n\nFixture body.\n`);
+}
+
+test('real content keeps listing, feeds and indexing independent for all four combinations', async () => {
+  await withContentFixture(async () => {
+    for (const hidden of [false, true]) {
+      for (const noindex of [false, true]) {
+        await writeFixture(`content-${hidden}-${noindex}`, `hidden: ${hidden}\nnoindex: ${noindex}\n`);
+      }
+    }
+    const posts = await getPosts();
+    const listed = await getListedPosts();
+    const indexable = await getIndexablePosts();
+    const feed = await generateFeed();
+    const sitemap = seo.sitemapEntries(posts);
+    const llms = seo.llmsText(posts);
+    const tagCounts = getPostTagCounts(posts);
+    assert.equal(await generateHeaders(), 2);
+    const headers = await fs.readFile('out/_headers', 'utf8');
+    for (const item of posts) {
+      assert.equal(listed.some((entry) => entry.slug === item.slug), !item.hidden);
+      assert.equal(indexable.some((entry) => entry.slug === item.slug), !item.noindex);
+      for (const xml of [feed.rss2(), feed.atom1()]) assert.equal(xml.includes(seo.postUrl(item.slug)), !item.hidden);
+      assert.equal(tagCounts.some((entry) => entry.tag === item.slug), !item.hidden);
+      assert.equal(sitemap.some((entry) => entry.loc === seo.postUrl(item.slug)), !item.noindex);
+      assert.equal(llms.includes(seo.markdownUrl(item.slug)), !item.noindex);
+      assert.equal(seo.postMetadata(item).robots?.index === false, item.noindex);
+      assert.equal(seo.postJsonLd(item) === null, item.noindex);
+      assert.equal(headers.includes(`/${item.slug}/index.md\n  X-Robots-Tag: noindex`), item.noindex);
+    }
+    const visible = posts.find((item) => !item.hidden && !item.noindex);
+    assert.deepEqual(getRelatedPosts(visible, posts).map((item) => item.slug), ['content-false-true']);
+  });
+});
+
+test('reader, validator and header CLI agree on defaults and reject invalid new options', async () => {
+  await withContentFixture(async (directory) => {
+    await writeFixture('options');
+    let item = await getPostBySlug('options');
+    assert.equal(item.noindex, false);
+    assert.equal(item.showHeader, true);
+    assert.equal(await generateHeaders(), 0);
+    const validate = () => spawnSync(process.execPath, [path.join(projectRoot, 'scripts/validate-content.mjs')], { cwd: directory, encoding: 'utf8' });
+    assert.equal(validate().status, 0);
+    await writeFixture('options', 'noindex: true\nshowHeader: false\n');
+    item = await getPostBySlug('options');
+    assert.equal(item.noindex, true);
+    assert.equal(item.showHeader, false);
+    assert.equal(validate().status, 0);
+    for (const field of ['noindex', 'showHeader']) {
+      for (const value of ['"false"', 'null', '', '0', '[]', '{}']) {
+        await writeFixture('options', `${field}: ${value}\n`);
+        const error = new RegExp(`frontmatter "${field}" must be a boolean`);
+        await assert.rejects(getPostBySlug('options'), error);
+        await assert.rejects(generateHeaders(), error);
+        const check = validate();
+        assert.equal(check.status, 1, check.stderr);
+        assert.match(check.stderr, error);
+      }
+    }
+    const headers = spawnSync(process.execPath, [path.join(projectRoot, 'scripts/generate-headers.cjs')], { cwd: directory, encoding: 'utf8' });
+    assert.equal(headers.status, 1);
+    assert.match(headers.stderr, /showHeader/);
+  });
+});
+
+test('header generation encodes arbitrary slugs and removes obsolete rules on every run', async () => {
+  await withContentFixture(async () => {
+    const originalSlug = '语法检查 #1';
+    await writeFixture(originalSlug, 'noindex: true\n');
+    assert.equal(await generateHeaders(), 1);
+    let headers = await fs.readFile('out/_headers', 'utf8');
+    assert.ok(headers.includes(`${new URL(seo.markdownUrl(originalSlug)).pathname}\n  X-Robots-Tag: noindex`));
+    const canonicalRule = '/:slug/index.md\n  Link: <https://rainey.space/:slug/>; rel="canonical"\n';
+    assert.ok(headers.startsWith(canonicalRule));
+    await fs.rename(path.join('public', originalSlug), 'public/renamed');
+    assert.equal(await generateHeaders(), 1);
+    headers = await fs.readFile('out/_headers', 'utf8');
+    assert.ok(!headers.includes(new URL(seo.markdownUrl(originalSlug)).pathname));
+    assert.ok(headers.includes('/renamed/index.md\n  X-Robots-Tag: noindex'));
+    await writeFixture('renamed', 'noindex: false\n');
+    assert.equal(await generateHeaders(), 0);
+    assert.equal(await fs.readFile('out/_headers', 'utf8'), canonicalRule);
+    await writeFixture('renamed', 'noindex: true\n');
+    await generateHeaders();
+    await fs.rm('public/renamed', { recursive: true });
+    assert.equal(await generateHeaders(), 0);
+    assert.equal(await fs.readFile('out/_headers', 'utf8'), canonicalRule);
+    await fs.rm('out', { recursive: true });
+    await assert.rejects(generateHeaders(), /ENOENT/);
+  });
 });
 
 test('content reader and CLI both enforce updated on real Markdown fixtures', async () => {

@@ -1,5 +1,0 @@
-/:slug/index.md
-  Link: <https://rainey.space/:slug/>; rel="canonical"
-
-/test/index.md
-  X-Robots-Tag: noindex

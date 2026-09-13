@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { getPublicPosts, getRelatedPosts, type Post } from "@/lib/posts";
+import { getListedPosts, getRelatedPosts, type Post } from "@/lib/posts";
 
 export default async function PostNavigation({ post }: { post: Post }) {
-  const related = post.hidden ? [] : getRelatedPosts(post, await getPublicPosts());
+  const related = post.hidden ? [] : getRelatedPosts(post, await getListedPosts());
   return (
     <nav aria-label="文章导航" className="mt-12 border-t border-[--border] pt-6 text-sm">
       {related.length > 0 && (

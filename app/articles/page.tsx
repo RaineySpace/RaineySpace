@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import PostCard from "@/app/components/PostCard";
-import { getPostTagCounts, getPublicPosts } from "@/lib/posts";
+import { getPostTagCounts, getListedPosts } from "@/lib/posts";
 import ArticleList, { ArticleListContent } from "./ArticleList";
 import JsonLd from "@/app/components/JsonLd";
 import { collectionJsonLd, pageMetadata, pages, postUrl } from "@/lib/seo";
@@ -9,7 +9,7 @@ import { collectionJsonLd, pageMetadata, pages, postUrl } from "@/lib/seo";
 export const metadata: Metadata = pageMetadata(pages.articles);
 
 export default async function ArticlesPage() {
-  const posts = await getPublicPosts();
+  const posts = await getListedPosts();
   const tagCounts = getPostTagCounts(posts);
   const articles = posts.map((post) => ({
     slug: post.slug,

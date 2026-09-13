@@ -1,5 +1,5 @@
 // Run source-level checks with the TypeScript compiler already used by Next.js.
-// This hook is only installed in the validation/test process, never in the site.
+// This hook is only installed in build/validation/test scripts, never in the site.
 const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
