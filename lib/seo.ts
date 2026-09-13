@@ -28,7 +28,7 @@ export function postUrl(slug: string): string {
 }
 
 export function markdownUrl(slug: string): string {
-  return new URL(`/${encodeURIComponent(slug)}/index.md`, config.siteUrl).href;
+  return new URL(`/${encodeURIComponent(slug)}.md`, config.siteUrl).href;
 }
 
 export function pageMetadata(

@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 import { marked } from "marked";
 import sharp from "sharp";
+import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.mjs";
 
 const publicDir = path.join(process.cwd(), "public");
 const OPTIMIZED_DIR = "_optimized";
-const SKIP_PUBLIC_DIRS = new Set(["assets", OPTIMIZED_DIR]);
 const RASTER_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 const MAX_EDGE = 1600;
 const WEBP_QUALITY = 80;
@@ -79,15 +79,12 @@ async function exists(filePath) {
 }
 
 async function collectPostImages() {
-  const entries = await fs.readdir(publicDir, { withFileTypes: true });
+  const slugs = await listPostSlugs(publicDir);
   const jobs = [];
 
-  for (const entry of entries) {
-    if (!entry.isDirectory() || SKIP_PUBLIC_DIRS.has(entry.name)) continue;
-
-    const slug = entry.name;
-    const postDir = path.join(publicDir, slug);
-    const markdownPath = path.join(postDir, "index.md");
+  for (const slug of slugs) {
+    const postDir = postAssetDir(publicDir, slug);
+    const markdownPath = postMarkdownPath(publicDir, slug);
     if (!(await exists(markdownPath))) continue;
 
     const fileContents = await fs.readFile(markdownPath, "utf8");

@@ -3,18 +3,16 @@ const path = require('node:path');
 const matter = require('gray-matter');
 const load = require('./load-typescript.cjs');
 const { canonicalUrl, markdownUrl } = load('lib/seo.ts');
-const { SKIP_PUBLIC_DIRS } = load('lib/optimized-images.ts');
+const { listPostSlugs, postMarkdownPath } = require('../lib/post-files.mjs');
 const { parsePostOptions } = require('../lib/post-options.mjs');
 
 async function generateHeaders(root = process.cwd()) {
   const publicDir = path.join(root, 'public');
-  const entries = await fs.readdir(publicDir, { withFileTypes: true });
-  const slugs = entries.filter((entry) => entry.isDirectory() && !SKIP_PUBLIC_DIRS.has(entry.name))
-    .map((entry) => entry.name).sort();
-  const rules = [`/:slug/index.md\n  Link: <${canonicalUrl('/:slug/')}>; rel="canonical"`];
+  const slugs = (await listPostSlugs(publicDir)).sort();
+  const rules = [`/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <${canonicalUrl('/:splat/')}>; rel="canonical"`];
 
   for (const slug of slugs) {
-    const { data } = matter(await fs.readFile(path.join(publicDir, slug, 'index.md'), 'utf8'));
+    const { data } = matter(await fs.readFile(postMarkdownPath(publicDir, slug), 'utf8'));
     let options;
     try {
       options = parsePostOptions(data);

@@ -6,6 +6,7 @@ const load = require('./load-typescript.cjs');
 const config = load('lib/config.ts');
 const { getPosts } = load('lib/posts.ts');
 const { canonicalUrl, markdownUrl, pages, postUrl } = load('lib/seo.ts');
+const { rewritePublishedMarkdown } = require('../lib/published-markdown.mjs');
 
 const output = path.resolve('out');
 const read = (filename) => fs.readFile(path.join(output, filename), 'utf8');
@@ -124,7 +125,18 @@ async function main() {
     assert.equal(header.includes('class="article-meta '), Boolean(post.showHeader && (post.date || post.location || post.tags.length)), `${post.slug}: incorrect visible metadata`);
     assert.equal(header.includes('class="article-summary"'), Boolean(post.showHeader && post.summary), `${post.slug}: incorrect visible summary`);
     if (post.coverDisplaySrc) assert.ok(tags(header, 'img').some((image) => image.src === post.coverDisplaySrc), `${post.slug}: cover missing from article header`);
-    assert.equal(await read(`${post.slug}/index.md`), await fs.readFile(`public/${post.slug}/index.md`, 'utf8'));
+    const source = await fs.readFile(`public/${post.slug}/index.md`, 'utf8');
+    const published = await read(`${post.slug}.md`);
+    assert.equal(published, rewritePublishedMarkdown(source, post.slug), `${post.slug}: published Markdown rewrite mismatch`);
+    await assert.rejects(fs.access(path.join(output, post.slug, 'index.md')), { code: 'ENOENT' }, `${post.slug}: leaked /${post.slug}/index.md`);
+    if (post.cover.startsWith('/')) {
+      assert.ok(published.includes(post.cover), `${post.slug}: published Markdown missing cover ${post.cover}`);
+    }
+    for (const image of post.images) {
+      assert.ok(published.includes(image.src), `${post.slug}: published Markdown missing ${image.src}`);
+    }
+    assert.doesNotMatch(published, /^cover:\s*['"]?\.\//m, `${post.slug}: published cover still relative`);
+    assert.doesNotMatch(published, /!?\[[^\]]*\]\(\.\//, `${post.slug}: published Markdown still uses relative destinations`);
   }
 
   const sitemap = await read('sitemap.xml');
@@ -141,7 +153,7 @@ async function main() {
   const llms = await read('llms.txt');
   const links = [];
   marked.walkTokens(marked.lexer(llms), (token) => { if (token.type === 'link') links.push(token.href); });
-  assert.deepEqual(links.filter((href) => href.endsWith('/index.md')).sort(), indexablePosts.map((post) => markdownUrl(post.slug)).sort());
+  assert.deepEqual(links.filter((href) => href.endsWith('.md')).sort(), indexablePosts.map((post) => markdownUrl(post.slug)).sort());
   for (const href of links) {
     const url = new URL(href);
     assert.equal(url.origin, new URL(config.siteUrl).origin);
@@ -162,7 +174,7 @@ async function main() {
   }
   assert.ok(robots.includes(`Sitemap: ${config.siteUrl}/sitemap.xml`));
   const headers = await read('_headers');
-  assert.ok(headers.includes(`/:slug/index.md\n  Link: <${canonicalUrl('/:slug/')}>; rel="canonical"`));
+  assert.ok(headers.includes(`/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <${canonicalUrl('/:splat/')}>; rel="canonical"`));
   const noindexPaths = headers.trim().split(/\n\s*\n/).filter((rule) => rule.includes('X-Robots-Tag: noindex')).map((rule) => rule.split('\n')[0]);
   assert.deepEqual(noindexPaths.sort(), posts.filter((post) => post.noindex).map((post) => new URL(markdownUrl(post.slug)).pathname).sort(), 'incorrect Markdown noindex rules');
   for (const feed of ['rss.xml', 'atom.xml']) {

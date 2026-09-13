@@ -30,7 +30,7 @@ test('canonical URLs consolidate query strings and preserve encoded slug charact
   assert.equal(seo.canonicalUrl('/articles///'), 'https://rainey.space/articles/');
   assert.equal(seo.canonicalUrl('/'), 'https://rainey.space/');
   assert.equal(seo.postUrl('中文 ?#'), 'https://rainey.space/%E4%B8%AD%E6%96%87%20%3F%23/');
-  assert.equal(seo.markdownUrl('中文 ?#'), 'https://rainey.space/%E4%B8%AD%E6%96%87%20%3F%23/index.md');
+  assert.equal(seo.markdownUrl('中文 ?#'), 'https://rainey.space/%E4%B8%AD%E6%96%87%20%3F%23.md');
 });
 
 test('metadata keeps each page identity, feed discovery and Markdown alternates', () => {
@@ -47,7 +47,7 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   const metadata = seo.postMetadata(post({ cover: '/sample/cover.webp', updated: new Date('2024-02-29') }));
   assert.equal(metadata.openGraph.images, 'https://rainey.space/sample/cover.webp');
   assert.equal(metadata.openGraph.modifiedTime, '2024-02-29T00:00:00.000Z');
-  assert.equal(metadata.alternates.types['text/markdown'], 'https://rainey.space/sample/index.md');
+  assert.equal(metadata.alternates.types['text/markdown'], 'https://rainey.space/sample.md');
   const about = seo.postMetadata(post({ slug: 'about', title: '自定义关于页', summary: '关于页摘要', hidden: true, showHeader: false }));
   assert.equal(about.title, "自定义关于页 - Rainey's Blog");
   assert.equal(about.description, '关于页摘要');
@@ -120,11 +120,11 @@ test('sitemap and llms include hidden indexable content without inventing dates'
   assert.ok(!entries.some((entry) => entry.loc.includes('/excluded/')));
   assert.equal(seo.sitemapEntries([post({ date: null })]).at(-1).lastmod, undefined);
   const llms = seo.llmsText(source);
-  assert.ok(llms.includes('https://rainey.space/sample/index.md'));
+  assert.ok(llms.includes('https://rainey.space/sample.md'));
   assert.ok(llms.includes('[原文](https://rainey.space/sample/)'));
   assert.ok(llms.includes('更新 2024-02-29'));
   assert.ok(llms.includes('## 内容'));
-  assert.ok(llms.includes('https://rainey.space/about/index.md): 文章摘要 [原文]'));
+  assert.ok(llms.includes('https://rainey.space/about.md): 文章摘要 [原文]'));
   assert.ok(!llms.includes('/excluded/'));
   assert.equal(seo.llmsText(source), llms);
   const tricky = seo.llmsText([post({ title: '[标题](https://bad.example)\n## 假标题', summary: '<script>text</script>' })]);
@@ -176,7 +176,7 @@ test('real content keeps listing, feeds and indexing independent for all four co
       assert.equal(llms.includes(seo.markdownUrl(item.slug)), !item.noindex);
       assert.equal(seo.postMetadata(item).robots?.index === false, item.noindex);
       assert.equal(seo.postJsonLd(item) === null, item.noindex);
-      assert.equal(headers.includes(`/${item.slug}/index.md\n  X-Robots-Tag: noindex`), item.noindex);
+      assert.equal(headers.includes(`/${item.slug}.md\n  X-Robots-Tag: noindex`), item.noindex);
     }
     const visible = posts.find((item) => !item.hidden && !item.noindex);
     assert.deepEqual(getRelatedPosts(visible, posts).map((item) => item.slug), ['content-false-true']);
@@ -216,18 +216,20 @@ test('reader, validator and header CLI agree on defaults and reject invalid new 
 
 test('header generation encodes arbitrary slugs and removes obsolete rules on every run', async () => {
   await withContentFixture(async () => {
+    await fs.mkdir('public/asset-only');
     const originalSlug = '语法检查 #1';
     await writeFixture(originalSlug, 'noindex: true\n');
+    assert.deepEqual((await getPosts()).map((item) => item.slug), [originalSlug]);
     assert.equal(await generateHeaders(), 1);
     let headers = await fs.readFile('out/_headers', 'utf8');
     assert.ok(headers.includes(`${new URL(seo.markdownUrl(originalSlug)).pathname}\n  X-Robots-Tag: noindex`));
-    const canonicalRule = '/:slug/index.md\n  Link: <https://rainey.space/:slug/>; rel="canonical"\n';
+    const canonicalRule = '/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <https://rainey.space/:splat/>; rel="canonical"\n';
     assert.ok(headers.startsWith(canonicalRule));
     await fs.rename(path.join('public', originalSlug), 'public/renamed');
     assert.equal(await generateHeaders(), 1);
     headers = await fs.readFile('out/_headers', 'utf8');
     assert.ok(!headers.includes(new URL(seo.markdownUrl(originalSlug)).pathname));
-    assert.ok(headers.includes('/renamed/index.md\n  X-Robots-Tag: noindex'));
+    assert.ok(headers.includes('/renamed.md\n  X-Robots-Tag: noindex'));
     await writeFixture('renamed', 'noindex: false\n');
     assert.equal(await generateHeaders(), 0);
     assert.equal(await fs.readFile('out/_headers', 'utf8'), canonicalRule);

@@ -5,6 +5,7 @@ import { marked } from "marked";
 import exifr from "exifr";
 import { parseUpdatedDate } from "../lib/post-dates.mjs";
 import { parsePostOptions } from "../lib/post-options.mjs";
+import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.mjs";
 
 const publicDir = path.join(process.cwd(), "public");
 const projectsPath = path.join(process.cwd(), "content", "projects.json");
@@ -255,10 +256,7 @@ async function validateProjectRegistry(errors) {
 }
 
 async function main() {
-  const entries = await fs.readdir(publicDir, { withFileTypes: true });
-  const slugs = entries
-    .filter((entry) => entry.isDirectory() && entry.name !== "assets" && entry.name !== "_optimized")
-    .map((entry) => entry.name);
+  const slugs = await listPostSlugs(publicDir);
   const seen = new Set();
   const errors = [];
   const warnings = [];
@@ -273,8 +271,8 @@ async function main() {
     if (seen.has(slug)) errors.push(`${slug}: duplicate slug`);
     seen.add(slug);
 
-    const postDir = path.join(publicDir, slug);
-    const filePath = path.join(postDir, "index.md");
+    const postDir = postAssetDir(publicDir, slug);
+    const filePath = postMarkdownPath(publicDir, slug);
     if (!(await exists(filePath))) {
       errors.push(`${slug}: missing index.md`);
       continue;
@@ -373,9 +371,11 @@ async function main() {
       }
     }
 
-    for (const mov of await collectMovFiles(postDir)) {
-      if (!imageStems.has(assetStem(mov))) {
-        warnings.push(`${slug}: Live Photo video has no matching Markdown image: ${mov}`);
+    if (await exists(postDir)) {
+      for (const mov of await collectMovFiles(postDir)) {
+        if (!imageStems.has(assetStem(mov))) {
+          warnings.push(`${slug}: Live Photo video has no matching Markdown image: ${mov}`);
+        }
       }
     }
 
