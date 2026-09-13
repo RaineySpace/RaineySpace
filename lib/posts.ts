@@ -11,9 +11,9 @@ import { parseUpdatedDate } from './post-dates.mjs';
 import {
   resolveDisplayImage,
   type DisplayImage,
-  SKIP_PUBLIC_DIRS,
   toOriginalSrc,
 } from './optimized-images';
+import { listPostSlugs, postMarkdownPath } from './post-files.mjs';
 
 // 配置 marked 使用 highlight.js
 marked.use(
@@ -331,7 +331,7 @@ export async function getAboutContent(): Promise<string> {
 }
 
 export async function getPostBySlug(slug: string): Promise<Post> {
-  const fileContents = await fs.readFile(`./public/${slug}/index.md`, 'utf8');
+  const fileContents = await fs.readFile(postMarkdownPath(path.join(process.cwd(), 'public'), slug), 'utf8');
   const { data, content, matter: frontmatter } = matter(fileContents);
   const date = normalizeDate(data.date);
   let updated: Date | null;
@@ -385,11 +385,8 @@ function comparePosts(a: Post, b: Post): number {
 }
 
 export async function getPosts(): Promise<Post[]> {
-  const entries = await fs.readdir("./public/", { withFileTypes: true });
-  const dirs = entries
-    .filter((entry) => entry.isDirectory() && !SKIP_PUBLIC_DIRS.has(entry.name))
-    .map((entry) => entry.name);
-  const posts = await Promise.all(dirs.map(getPostBySlug));
+  const slugs = await listPostSlugs(path.join(process.cwd(), "public"));
+  const posts = await Promise.all(slugs.map(getPostBySlug));
   return posts.sort(comparePosts);
 }
 

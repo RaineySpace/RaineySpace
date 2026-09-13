@@ -1,5 +1,6 @@
-/:slug/index.md
-  Link: <https://rainey.space/:slug/>; rel="canonical"
+/*.md
+  Content-Type: text/markdown; charset=utf-8
+  Link: <https://rainey.space/:splat/>; rel="canonical"
 
-/test/index.md
+/test.md
   X-Robots-Tag: noindex

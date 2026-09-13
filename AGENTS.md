@@ -16,7 +16,7 @@ The GitHub profile `README.md` is not project documentation. Do not edit `README
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
 - `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, public-post filtering, and feed data behavior centralized there.
 - `content/projects.json` is the canonical registry for project names, links, dates, descriptions, covers, and pinning.
-- `public/<slug>/index.md` is the source format for posts.
+- `public/<slug>/index.md` is the source format for posts. The same directory holds referenced assets.
 - `scripts/` contains local maintenance scripts.
 
 ## Content Model
@@ -49,6 +49,7 @@ Use `hidden: true` for pages that should remain directly accessible but excluded
 Project posts reference a key from `content/projects.json` through `projectId`. Do not duplicate project display metadata in post frontmatter. Registered projects must have at least one referencing post. Project display dates come from the registry `date` field (`YYYY-MM-DD`), not from referencing posts.
 
 Local assets referenced by a post should live in the same post directory. Prefer relative paths such as `./image.png`.
+The public Markdown URL is `/<slug>.md`. Build copies `public/<slug>/index.md` there, rewrites relative asset paths such as `./cover.webp` to site-absolute `/<slug>/...` URLs, and deletes the copied `out/<slug>/index.md` so it is not a second public document. Source files keep `./` paths. Do not keep a second source file at `public/<slug>.md`.
 Photography images must use relative Markdown image paths with non-empty alt text.
 A sibling `.mov` / `.MOV` with the same filename as a still image enables Live Photo playback; Markdown should still reference only the still.
 
