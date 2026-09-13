@@ -6,6 +6,7 @@ const load = require('./load-typescript.cjs');
 const config = load('lib/config.ts');
 const { getPosts } = load('lib/posts.ts');
 const { canonicalUrl, markdownUrl, pages, postUrl } = load('lib/seo.ts');
+const { rewritePublishedMarkdown } = require('../lib/published-markdown.mjs');
 
 const output = path.resolve('out');
 const read = (filename) => fs.readFile(path.join(output, filename), 'utf8');
@@ -112,7 +113,18 @@ async function main() {
       assert.equal(data[0].image, post.cover ? new URL(post.cover, config.siteUrl).href : undefined);
       assert.ok(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '').includes(post.content), `${post.slug}: body missing from static HTML`);
     }
-    assert.equal(await read(`${post.slug}.md`), await fs.readFile(`public/${post.slug}/index.md`, 'utf8'));
+    const source = await fs.readFile(`public/${post.slug}/index.md`, 'utf8');
+    const published = await read(`${post.slug}.md`);
+    assert.equal(published, rewritePublishedMarkdown(source, post.slug), `${post.slug}: published Markdown rewrite mismatch`);
+    await assert.rejects(fs.access(path.join(output, post.slug, 'index.md')), { code: 'ENOENT' }, `${post.slug}: leaked /${post.slug}/index.md`);
+    if (post.cover.startsWith('/')) {
+      assert.ok(published.includes(post.cover), `${post.slug}: published Markdown missing cover ${post.cover}`);
+    }
+    for (const image of post.images) {
+      assert.ok(published.includes(image.src), `${post.slug}: published Markdown missing ${image.src}`);
+    }
+    assert.doesNotMatch(published, /^cover:\s*['"]?\.\//m, `${post.slug}: published cover still relative`);
+    assert.doesNotMatch(published, /!?\[[^\]]*\]\(\.\//, `${post.slug}: published Markdown still uses relative destinations`);
   }
 
   const sitemap = await read('sitemap.xml');

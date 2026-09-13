@@ -15,7 +15,7 @@
 - `scripts/new-post.mjs`：新建文章脚本。
 - `scripts/validate-content.mjs`：内容校验脚本。
 - `scripts/optimize-images.mjs`：构建前根据原图生成展示用 WebP。
-- `scripts/export-markdown.mjs`：构建后把 `public/<slug>/index.md` 复制为 `out/<slug>.md`。
+- `scripts/export-markdown.mjs`：构建后把 `public/<slug>/index.md` 发布为 `out/<slug>.md`，把相对资源改写成站点绝对路径，并删除会泄漏的 `out/<slug>/index.md`。
 
 ## 新建文章
 
@@ -86,7 +86,7 @@ hidden: true
 
 详情页末尾提供静态的“全部文章”和作者页链接；摄影、项目详情还提供对应频道入口。相关阅读只推荐至少有一个相同标签的公开文章，优先共同标签更多、日期更近的文章，最多三篇；不推荐自身或隐藏文章，没有关联标签时不显示。维护好实际内容标签即可，不需要额外登记推荐列表。
 
-每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。源文件仍是 `public/<slug>/index.md`，构建时复制为 `/<slug>.md`，不维护第二份文章。`public/_headers` 随构建复制到 `out/_headers`，由 Cloudflare Pages 为 Markdown 响应添加 `Content-Type: text/markdown`，以及指向对应 HTML 页的 HTTP `Link: <...>; rel="canonical"`。变更站点域名时，需要同时更新该文件并运行 SEO 校验。普通本地静态服务器不会解释 `_headers`。
+每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。源文件仍是 `public/<slug>/index.md`，构建时发布为 `/<slug>.md`，不维护第二份源文件。发布稿会把 `./cover.webp` 这类相对资源改写成 `/<slug>/cover.webp`，让根路径 Markdown 对搜索引擎和 AI 抓取仍能解析图片；源文件继续使用相对路径。构建后删除 `out/<slug>/index.md`，避免同一篇文章出现两份公开 Markdown。`public/_headers` 随构建复制到 `out/_headers`，由 Cloudflare Pages 为 Markdown 响应添加 `Content-Type: text/markdown`，以及指向对应 HTML 页的 HTTP `Link: <...>; rel="canonical"`。变更站点域名时，需要同时更新该文件并运行 SEO 校验。普通本地静态服务器不会解释 `_headers`。
 
 `/llms.txt` 在构建时从现有内容生成站点导航、公开文章标题、摘要、日期和 Markdown 链接，并提供 HTML 原文链接供引用。它只是机器阅读的便利入口，不保证排名或 AI 引用量提升；[Google 的 AI 搜索功能仍遵循基础 SEO 要求](https://developers.google.com/search/docs/appearance/ai-features)。
 

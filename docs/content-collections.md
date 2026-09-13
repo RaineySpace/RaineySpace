@@ -1,6 +1,6 @@
 # 文章、摄影与项目内容维护
 
-文章与摄影内容存放在 `public/<slug>/index.md`，封面、文内图片和其他引用资源放在同一个文章目录。项目资料集中保存在 `content/projects.json`。每个 Markdown 都有详情页，也可以通过 frontmatter 汇入摄影列表或关联一个项目。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。原文在构建时从 `index.md` 复制到站点根路径，不另维护第二份源文件。
+文章与摄影内容存放在 `public/<slug>/index.md`，封面、文内图片和其他引用资源放在同一个文章目录。项目资料集中保存在 `content/projects.json`。每个 Markdown 都有详情页，也可以通过 frontmatter 汇入摄影列表或关联一个项目。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。原文在构建时从 `index.md` 发布到站点根路径，并把相对资源改写成站点绝对路径，不另维护第二份源文件。
 
 ## 通用字段
 
