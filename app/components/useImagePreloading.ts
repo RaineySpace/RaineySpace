@@ -2,6 +2,31 @@
 
 import { useEffect, useId, useLayoutEffect, useSyncExternalStore } from "react";
 import { ImagePreloader, imagePreloadPolicy, type ImageConnection } from "@/lib/image-preloader";
+import { ImageDownloads, IDLE_DOWNLOAD } from "@/lib/image-downloads";
+
+const downloads = new ImageDownloads();
+
+function supportsProgress(src: string) {
+  if (typeof window === "undefined" || !src) return false;
+  try {
+    const url = new URL(src, document.baseURI);
+    return url.origin === location.origin && /^https?:$/.test(url.protocol);
+  } catch { return false; }
+}
+
+export function useOriginalDownload(src: string, enabled: boolean, active: boolean) {
+  const normalized = typeof window === "undefined" ? src : normalizeSource(src);
+  const tracked = supportsProgress(src);
+  const snapshot = useSyncExternalStore(downloads.subscribe, () => enabled && tracked ? downloads.snapshot(normalized) : IDLE_DOWNLOAD, () => IDLE_DOWNLOAD);
+  useLayoutEffect(() => {
+    if (!enabled || !tracked) return;
+    const handle = downloads.acquire(normalized, active ? "high" : "low");
+    return handle.release;
+    // A role change keeps an in-flight request rather than restarting its download.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalized, enabled, tracked]);
+  return { ...snapshot, imageSrc: enabled ? (tracked ? snapshot.objectUrl || null : src) : null };
+}
 
 function normalizeSource(src: string) {
   if (!src) return src;
@@ -21,6 +46,19 @@ function scheduleIdle(run: () => void) {
 const preloader = new ImagePreloader({
   schedule: scheduleIdle,
   load: (src, done) => {
+    if (supportsProgress(src)) {
+      const handle = downloads.acquire(src, "low");
+      let cancelled = false;
+      void handle.promise.then(success => {
+        if (!cancelled) done(success);
+        handle.release();
+      });
+      return {
+        cancel: () => { cancelled = true; handle.release(); },
+        // Fetch priority cannot be changed after dispatch. The active viewer shares its bytes.
+        promote: () => {},
+      };
+    }
     const image = new Image();
     let cancelled = false;
     const clear = () => { image.onload = null; image.onerror = null; };

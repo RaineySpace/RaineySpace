@@ -8,7 +8,8 @@ import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 import Sheet from "@/app/components/Sheet";
 import LivePhoto from "@/app/components/LivePhoto";
 import { animateLightboxOpening, captureOpeningImage, type OpeningPreview } from "./lightbox-opening";
-import { useCurrentImageLoading, useImagePreloading, usePreloadedImage } from "./useImagePreloading";
+import { useCurrentImageLoading, useImagePreloading, usePreloadedImage, useOriginalDownload } from "./useImagePreloading";
+import { formatImageBytes } from "@/lib/image-downloads";
 
 export interface PreviewImage {
   id: string;
@@ -271,25 +272,36 @@ function LightboxSlide({
 }) {
   const previewSrc = image.displaySrc && image.displaySrc !== image.src ? image.displaySrc : null;
   const preloaded = usePreloadedImage(image.src);
-  const fullSrc = isActive || preloaded ? image.src : null;
+  const download = useOriginalDownload(image.src, isActive || preloaded, isActive);
+  const fullSrc = download.imageSrc;
   const full = useLightboxImage(fullSrc);
-  useCurrentImageLoading(image.src, isActive, full.ready, full.error);
+  const failed = full.error || download.status === "error";
+  useCurrentImageLoading(image.src, isActive, full.ready, failed);
   const preview = useLightboxImage(previewSrc);
   const fallback = useLightboxImage(openingPreview?.src || null);
   const hasPreview = preview.ready || fallback.ready;
   const naturalSize = full.size || preview.size || fallback.size;
-  const showSpinner = !full.ready && !full.error && !hasPreview;
+  const showSpinner = !full.ready && !failed && !hasPreview;
+  const percent = download.total ? Math.min(100, Math.floor(download.loaded / download.total * 100)) : undefined;
 
   const media = (
     <>
       {showSpinner && <div className="image-lightbox-spinner" aria-hidden="true" />}
-      {isActive && !isOpening && !full.ready && hasPreview && (
-        <span className="image-lightbox-loading" role="status">
-          {!full.error && <span className="image-lightbox-loading-dot" aria-hidden="true" />}
-          {full.error ? "原图加载失败" : "原图加载中"}
+      {isActive && !isOpening && !full.ready && (hasPreview || !failed) && (
+        <span className="image-lightbox-loading">
+          {!failed && <span className="image-lightbox-loading-ring" aria-hidden="true" />}
+          <span className="image-lightbox-loading-copy">
+            <span className="image-lightbox-loading-heading">
+              <span role="status">{failed ? "原图加载失败" : download.status === "ready" ? "解码中" : "加载中"}</span>
+              {!failed && percent !== undefined && <span className="image-lightbox-loading-percent" role="progressbar" aria-label="原图下载进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>{percent}%</span>}
+            </span>
+            {!failed && (download.total || download.loaded > 0) && (
+              <span className="image-lightbox-loading-bytes">{formatImageBytes(download.loaded, download.total)}{download.total ? ` / ${formatImageBytes(download.total)}` : " 已下载"}</span>
+            )}
+          </span>
         </span>
       )}
-      {full.error && !hasPreview && <p className="image-lightbox-error" role="status">图片加载失败</p>}
+      {failed && !hasPreview && <p className="image-lightbox-error" role="status">图片加载失败</p>}
       {openingPreview && (
         <img
           ref={fallback.ref}
@@ -313,11 +325,11 @@ function LightboxSlide({
         ref={full.ref}
         src={fullSrc || undefined}
         alt={isActive ? image.alt : ""}
-        aria-busy={isActive && !full.ready && !full.error ? true : undefined}
+        aria-busy={isActive && !full.ready && !failed ? true : undefined}
         draggable={false}
         decoding="async"
         fetchPriority={isActive ? "high" : "low"}
-        className={`is-full ${full.ready && !isOpening ? "is-ready" : ""}${full.cached ? " is-cached" : ""}`}
+        className={`is-full ${full.ready && !isOpening ? "is-ready" : ""}${full.cached || download.cached ? " is-cached" : ""}`}
       />
     </>
   );

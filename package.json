@@ -14,7 +14,7 @@
     "validate:content": "node scripts/validate-content.mjs",
     "validate:seo": "node scripts/validate-seo.cjs",
     "test:seo": "node --test scripts/seo.test.cjs scripts/published-markdown.test.mjs",
-    "test:images": "node --test scripts/images.test.cjs scripts/image-preloader.test.cjs",
+    "test:images": "node --test scripts/images.test.cjs scripts/image-preloader.test.cjs scripts/image-downloads.test.cjs",
     "validate:images": "node scripts/validate-images.cjs",
     "verify": "pnpm validate:content && pnpm test:seo && pnpm test:images && pnpm build && pnpm validate:seo && pnpm validate:images",
     "optimize:images": "node scripts/optimize-images.mjs",

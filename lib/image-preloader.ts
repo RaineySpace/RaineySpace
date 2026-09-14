@@ -22,7 +22,7 @@ interface PreloaderOptions {
   schedule: (run: () => void) => () => void;
 }
 
-/** One speculative request for the whole page; visible originals load through their own img. */
+/** One speculative request for the whole page; visible originals bypass the background queue. */
 export class ImagePreloader {
   private groups = new Map<string, string[]>();
   private active: { id: string; index: number } | null = null;
