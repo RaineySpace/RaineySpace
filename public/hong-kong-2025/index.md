@@ -2,6 +2,7 @@
 title: 香港
 date: 2025-10-03
 summary: 2025 年 10 月在香港记录的海面、黄昏、街道、建筑与树木。
+cover: ./harbour-sunset-skyline.jpg
 tags:
   - 摄影
 location: 香港
