@@ -153,7 +153,8 @@ export function postJsonLd(post: Post): Record<string, unknown> | null {
     dateModified: post.updated?.toISOString(),
     author: authorJsonLd(),
     // Only describe an image that is actually shown as this article's cover.
-    image: post.cover ? new URL(post.cover, config.siteUrl).href : undefined,
+    // Photography covers stay in share metadata but are not rendered on the page.
+    image: post.cover && !post.photography ? new URL(post.cover, config.siteUrl).href : undefined,
     inLanguage: 'zh-CN',
     isPartOf: { '@id': `${canonicalUrl('/')}#website` },
   };
