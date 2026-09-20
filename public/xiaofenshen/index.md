@@ -2,6 +2,7 @@
 title: 小分身
 date: 2026-05-07
 summary: 一个会从作品、对话和反馈中学习，并通过可审阅的风格、长期记忆和「造梦」持续进化的个人 AI 创作分身。
+cover: ./cover.webp
 tags:
   - AI Agent
   - 个人创作

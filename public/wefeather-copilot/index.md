@@ -2,6 +2,7 @@
 title: 微羽助手
 date: 2024-10-27
 summary: 一款简洁、高效、智能的新媒体运营辅助工具，支持多平台账号管理与微信公众号内容编辑、发布、数据分析和消息管理。
+cover: ./cover.webp
 tags:
   - 新媒体辅助工具
 hidden: true

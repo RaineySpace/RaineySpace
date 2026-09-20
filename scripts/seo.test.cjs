@@ -48,10 +48,23 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   assert.equal(metadata.openGraph.images, 'https://rainey.space/sample/cover.webp');
   assert.equal(metadata.openGraph.modifiedTime, '2024-02-29T00:00:00.000Z');
   assert.equal(metadata.alternates.types['text/markdown'], 'https://rainey.space/sample.md');
+  const photography = seo.postMetadata(post({
+    slug: 'photo-album',
+    cover: '/photo-album/cover.webp',
+    photography: true,
+    hidden: true,
+  }));
+  assert.equal(photography.openGraph.images, 'https://rainey.space/photo-album/cover.webp');
+  assert.equal(seo.postJsonLd(post({
+    slug: 'photo-album',
+    cover: '/photo-album/cover.webp',
+    photography: true,
+  })).image, undefined);
   const about = seo.postMetadata(post({ slug: 'about', title: '自定义关于页', summary: '关于页摘要', hidden: true, showHeader: false }));
   assert.equal(about.title, "自定义关于页 - Rainey's Blog");
   assert.equal(about.description, '关于页摘要');
   assert.equal(about.openGraph.type, 'website');
+  assert.equal(about.openGraph.images, 'https://rainey.space/og.jpg');
   assert.equal(about.robots, undefined);
   assert.equal(seo.postMetadata(post({ slug: 'test', hidden: true })).robots, undefined);
   assert.deepEqual(seo.postMetadata(post({ slug: 'syntax-check', noindex: true })).robots, { index: false, follow: true });

@@ -32,13 +32,15 @@ export default async function PostPage({
 }) {
   const post = await getPostBySlug(decodeURIComponent(params.slug));
   const project = getProjectById(post.projectId);
+  // Photography covers are share/OG only; album pages keep the gallery-first layout.
+  const showCover = Boolean(post.coverDisplaySrc && !post.photography);
 
   return (
     <div className="relative">
       <JsonLd data={postJsonLd(post)} />
       <TableOfContents headings={post.headings} />
       <article className="markdown">
-        {(post.coverDisplaySrc || (post.showHeader && (post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary))) && (
+        {(showCover || (post.showHeader && (post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary))) && (
           <header className="article-header">
             {post.showHeader && post.showTitle && <h1>{post.title}</h1>}
             {post.showHeader && (post.date || post.location || post.tags.length > 0) && (
@@ -57,7 +59,7 @@ export default async function PostPage({
                 {post.summary}
               </p>
             )}
-            {post.coverDisplaySrc ? (
+            {showCover ? (
               <PostCover
                 src={post.coverDisplaySrc}
                 originalSrc={post.cover}

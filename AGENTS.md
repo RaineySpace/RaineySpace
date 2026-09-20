@@ -42,7 +42,7 @@ projectId: example-project
 cover: ./cover.webp
 ```
 
-`cover` is optional. Prefer a local file in the post directory with a relative path such as `./cover.webp`. When present, the cover renders after the summary (or other header metadata when no summary exists) and before the body on the article page only; article lists never show covers. Posts without `cover` keep the original title-first layout and must not use body images as a fallback cover.
+`cover` is optional. Prefer a local file in the post directory with a relative path such as `./cover.webp`. When present, the cover is used for Open Graph / Twitter sharing. For ordinary posts it also renders after the summary (or other header metadata when no summary exists) and before the body on the article page only; article lists never show covers. Photography posts keep `cover` for sharing metadata but do not render it on the album page. Posts without `cover` keep the original title-first layout and must not use body images as a fallback cover.
 
 Use `hidden: true` to exclude content from article listings, tag statistics, related reading, and RSS/Atom. It does not affect indexing, photography, or registered-project membership.
 

@@ -117,7 +117,7 @@ async function main() {
       assert.equal(data[0].datePublished, post.date?.toISOString());
       assert.equal(data[0].dateModified, post.updated?.toISOString());
       assert.equal(meta('article:modified_time'), post.updated?.toISOString());
-      assert.equal(data[0].image, post.cover ? new URL(post.cover, config.siteUrl).href : undefined);
+      assert.equal(data[0].image, post.cover && !post.photography ? new URL(post.cover, config.siteUrl).href : undefined);
     }
     const body = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
     assert.ok(body.includes(post.content), `${post.slug}: body missing from static HTML`);
@@ -125,7 +125,12 @@ async function main() {
     assert.equal(tags(header, 'h1').length, post.showHeader && post.showTitle ? 1 : 0, `${post.slug}: incorrect visible title`);
     assert.equal(header.includes('class="article-meta '), Boolean(post.showHeader && (post.date || post.location || post.tags.length)), `${post.slug}: incorrect visible metadata`);
     assert.equal(header.includes('class="article-summary"'), Boolean(post.showHeader && post.summary), `${post.slug}: incorrect visible summary`);
-    if (post.coverDisplaySrc) assert.ok(tags(header, 'img').some((image) => image.src === post.coverDisplaySrc), `${post.slug}: cover missing from article header`);
+    const headerHasCover = tags(header, 'img').some((image) => image.src === post.coverDisplaySrc);
+    if (post.photography) {
+      assert.equal(headerHasCover, false, `${post.slug}: photography cover should stay share-only`);
+    } else if (post.coverDisplaySrc) {
+      assert.ok(headerHasCover, `${post.slug}: cover missing from article header`);
+    }
     const source = await fs.readFile(`public/${post.slug}/index.md`, 'utf8');
     const published = await read(`${post.slug}.md`);
     assert.equal(published, rewritePublishedMarkdown(source, post.slug), `${post.slug}: published Markdown rewrite mismatch`);
