@@ -44,11 +44,11 @@ cover: ./cover.webp
 
 `cover` is optional. Prefer a local file in the post directory with a relative path such as `./cover.webp`. When present, the cover is used for Open Graph / Twitter sharing. For ordinary posts it also renders after the summary (or other header metadata when no summary exists) and before the body on the article page only; article lists never show covers. Photography posts keep `cover` for sharing metadata but do not render it on the album page. Posts without `cover` keep the original title-first layout and must not use body images as a fallback cover.
 
-Use `hidden: true` to exclude content from article listings, tag statistics, related reading, and RSS/Atom. It does not affect indexing, photography, or registered-project membership.
+Use `hidden: true` to exclude content from article listings, tag statistics, and RSS/Atom. It does not affect indexing, photography, or registered-project membership.
 
 `noindex` defaults to `false`. Set `noindex: true` to emit HTML `noindex, follow` and Markdown `X-Robots-Tag: noindex`, and exclude the content from sitemap, `llms.txt`, and JSON-LD. It does not prevent direct access or hide content from article/photography/project collections. Indexable hidden content belongs in sitemap and `llms.txt`; omit unavailable dates rather than inventing them.
 
-`showHeader` defaults to `true`. Set `showHeader: false` to hide the generated title, date, location, tags, and summary while retaining those values for SEO. Covers, body content, table of contents, and navigation remain available. Both new fields require actual YAML booleans; strings and null values are invalid. Ordinary posts should omit these default options.
+`showHeader` defaults to `true`. Set `showHeader: false` to hide the generated title, date, location, tags, and summary while retaining those values for SEO. Covers, body content, and table of contents remain available. Both new fields require actual YAML booleans; strings and null values are invalid. Ordinary posts should omit these default options.
 
 Project posts reference a key from `content/projects.json` through `projectId`. Do not duplicate project display metadata in post frontmatter. Registered projects must have at least one referencing post. Project display dates come from the registry `date` field (`YYYY-MM-DD`), not from referencing posts.
 

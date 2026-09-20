@@ -8,7 +8,6 @@ import TableOfContents from './TableOfContents';
 import MarkdownContent from '@/app/components/MarkdownContent';
 import PostCover from '@/app/components/PostCover';
 import ProjectCard from '@/app/components/ProjectCard';
-import PostNavigation from '@/app/components/PostNavigation';
 import { getProjectById } from '@/lib/projects';
 
 export async function generateMetadata({
@@ -84,7 +83,6 @@ export default async function PostPage({
           <ProjectCard project={project} headingLevel="h2" />
         </aside>
       )}
-      <PostNavigation post={post} />
     </div>
   );
 }

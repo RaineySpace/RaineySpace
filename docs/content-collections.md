@@ -25,14 +25,14 @@ cover: ./cover.webp
 
 - `title` 是内容标题，供页面、列表和 SEO 使用。`summary` 是摘要，供列表、详情、订阅和 SEO 使用；关于页也直接读取这两个字段。
 - `date` 是发布日期，显示为 `YYYY-MM-DD`，用于列表和订阅排序。
-- `tags` 默认为空数组，用于展示、筛选、标签统计和相关阅读。`keywords` 默认为空数组，仅与标签、站点关键词合并后用于页面关键词元信息；常规写作只维护 `tags` 即可。两者支持数组或英文逗号分隔字符串，推荐使用数组。
+- `tags` 默认为空数组，用于展示、筛选、标签统计。`keywords` 默认为空数组，仅与标签、站点关键词合并后用于页面关键词元信息；常规写作只维护 `tags` 即可。两者支持数组或英文逗号分隔字符串，推荐使用数组。
 - `location` 可用于任何文章，也是摄影灯箱显示的地点文案。
 - `updated: YYYY-MM-DD` 可选，记录实质更新日期，不得早于 `date`；用于文章修改时间和 sitemap，不改变列表排序或原发布日期。未填写时不声明文章修改时间。
 - `pinned: true` 会在文章和摄影列表中置顶；项目是否置顶由项目注册表控制。
-- `hidden` 默认为 `false`。设为 `true` 时从首页文章、文章列表、标签统计、相关阅读和 RSS/Atom 隐藏，详情页仍可访问。
+- `hidden` 默认为 `false`。设为 `true` 时从首页文章、文章列表、标签统计和 RSS/Atom 隐藏，详情页仍可访问。
 - `noindex` 默认为 `false`。设为 `true` 时，HTML 声明 `noindex, follow`，Markdown 原文响应声明 `X-Robots-Tag: noindex`，同时从 sitemap、`llms.txt` 和详情页 JSON-LD 排除。它不改变列表或订阅内容，也不是访问权限。
 - `hidden: true` 且 `noindex: false` 的内容仍进入 sitemap 和 `llms.txt`。允许索引的普通内容生成 `BlogPosting`，关于页生成 `AboutPage`；无日期的独立页不声明 sitemap 修改时间，机器阅读目录也省略日期。
-- `showHeader` 默认为 `true`。设为 `false` 时隐藏详情页自动生成的标题、日期、地点、标签和摘要，元数据仍供 SEO 使用；正文、封面、目录与导航不受影响。
+- `showHeader` 默认为 `true`。设为 `false` 时隐藏详情页自动生成的标题、日期、地点、标签和摘要，元数据仍供 SEO 使用；正文、封面与目录不受影响。
 - `noindex`、`showHeader` 必须使用 YAML 布尔值，不能填写字符串 `"false"`、空值或其他类型；读取、校验与响应头生成共用解析规则。
 - `photography: true` 和 `projectId` 不受 `hidden` 影响，可以同时使用。
 - `cover` 可选。建议使用文章目录内的相对路径，例如 `./cover.webp`。封面显示在详情页摘要之后、正文之前，关闭页头时仍显示；文章列表不展示封面。没有 `cover` 时不生成占位图，也不会用正文图片递补。

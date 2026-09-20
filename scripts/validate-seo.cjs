@@ -92,15 +92,6 @@ async function main() {
       title: `${post.title} - ${config.title}`, description: post.summary || config.description,
     };
     const { data, meta } = verifyPage(html, { ...expected, url: postUrl(post.slug), markdown: markdownUrl(post.slug), noindex: post.noindex });
-    const navigation = html.match(/<nav aria-label="文章导航"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
-    assert.ok(navigation, `${post.slug}: missing static article navigation`);
-    const navigationLinks = tags(navigation, 'a').map((tag) => tag.href);
-    assert.ok(navigationLinks.includes('/articles/'), `${post.slug}: missing archive link`);
-    for (const href of navigationLinks) {
-      assert.ok((await fs.stat(path.join(output, decodeURIComponent(href), 'index.html'))).isFile(), `${post.slug}: broken navigation ${href}`);
-      const linkedPost = posts.find((item) => postUrl(item.slug) === new URL(href, config.siteUrl).href);
-      if (linkedPost && linkedPost.slug !== 'about') assert.ok(!linkedPost.hidden, `${post.slug}: hidden related article ${href}`);
-    }
     assert.equal(meta('og:image'), new URL(post.cover || config.ogImage, config.siteUrl).href);
     assert.equal(meta('twitter:image'), meta('og:image'));
     if (post.noindex) assert.equal(data.length, 0, `${post.slug}: noindex content has JSON-LD`);

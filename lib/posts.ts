@@ -404,21 +404,6 @@ export async function getIndexablePosts(): Promise<Post[]> {
   return (await getPosts()).filter((post) => !post.noindex);
 }
 
-export function getRelatedPosts(post: Post, posts: readonly Post[], limit = 3): Post[] {
-  if (post.hidden || post.tags.length === 0) return [];
-  const tags = new Set(post.tags);
-  return posts
-    .filter((candidate) => !candidate.hidden && candidate.slug !== post.slug)
-    .map((candidate) => ({
-      post: candidate,
-      matches: new Set(candidate.tags.filter((tag) => tags.has(tag))).size,
-    }))
-    .filter((candidate) => candidate.matches > 0)
-    .sort((a, b) => b.matches - a.matches || comparePostDates(a.post, b.post))
-    .slice(0, limit)
-    .map((candidate) => candidate.post);
-}
-
 export function getPostTagCounts(posts: readonly Pick<Post, 'tags' | 'hidden'>[]): PostTagCount[] {
   const counts = new Map<string, number>();
 

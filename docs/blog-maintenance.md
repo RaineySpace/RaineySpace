@@ -66,7 +66,7 @@ cover: ./cover.webp
 
 ## 隐藏文章
 
-如果内容不希望进入首页文章、文章列表、标签统计、相关阅读和 RSS/Atom，添加：
+如果内容不希望进入首页文章、文章列表、标签统计和 RSS/Atom，添加：
 
 ```yaml
 hidden: true
@@ -85,7 +85,7 @@ showHeader: false
 
 `noindex` 默认为 `false`。设为 `true` 时，HTML 声明 `noindex, follow`，Markdown 原文声明 `X-Robots-Tag: noindex`，同时不进入 sitemap、`llms.txt` 或详情页 JSON-LD；页面仍可直达，文章列表、订阅和摄影／项目集合不因此隐藏。当前只有语法测试页显式设置为 `true`，索引规则不再根据 `test` 目录名判断。不要用 robots.txt 禁止抓取这些页面，否则搜索引擎无法读取索引声明。
 
-`showHeader` 默认为 `true`。设为 `false` 时隐藏自动生成的标题、日期、地点、标签和摘要，但这些数据仍用于 SEO。封面、正文、目录和导航保持原有行为。关于页和测试页填写完整标题与摘要，再通过这个开关保持当前正文起始布局；不需要为它们补造发布日期。
+`showHeader` 默认为 `true`。设为 `false` 时隐藏自动生成的标题、日期、地点、标签和摘要，但这些数据仍用于 SEO。封面、正文和目录保持原有行为。关于页和测试页填写完整标题与摘要，再通过这个开关保持当前正文起始布局；不需要为它们补造发布日期。
 
 两个字段只接受 YAML 布尔值，字符串 `"false"`、空值和其他类型会使读取、内容校验或响应头生成失败。共享解析位于 `lib/post-options.mjs`。常规新文章模板省略这两个默认开关；完整字段说明见 [内容集合维护](./content-collections.md)。
 
@@ -94,8 +94,6 @@ showHeader: false
 首页、文章、摄影、项目和详情页各自提供标题、描述、canonical、Open Graph 与 Twitter 元数据。页面规范网址统一为 `https://rainey.space/` 下带尾斜杠的 HTML 地址；`/articles/?tag=摄影` 等筛选链接的 canonical 始终是 `/articles/`，不额外生成标签索引页。聚合页不声明无法确认的 `lastmod`。
 
 首页提供 `WebSite` 与 `Person`，允许索引的普通内容提供 `BlogPosting`（包括隐藏内容），频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`。`noindex: true` 的详情页不输出 JSON-LD。详情页标题与摘要统一读取 Markdown，包括关于页；作者身份和已公开的个人资料链接来自 `lib/config.ts`。结构化数据只使用实际内容，有明确封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
-
-详情页末尾提供静态的“全部文章”和作者页链接；摄影、项目详情还提供对应频道入口。相关阅读只推荐至少有一个相同标签的公开文章，优先共同标签更多、日期更近的文章，最多三篇；不推荐自身或隐藏文章，没有关联标签时不显示。维护好实际内容标签即可，不需要额外登记推荐列表。
 
 每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。源文件仍是 `public/<slug>/index.md`，构建时发布为 `/<slug>.md`，不维护第二份源文件。发布稿会把 `./cover.webp` 这类相对资源改写成 `/<slug>/cover.webp`，让根路径 Markdown 对搜索引擎和 AI 抓取仍能解析图片；源文件继续使用相对路径。构建后删除 `out/<slug>/index.md`，避免同一篇文章出现两份公开 Markdown。
 
