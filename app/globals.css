@@ -1038,9 +1038,13 @@ a.section-heading-row:focus-visible .section-heading-title { border-bottom-color
 }
 .entity-chip:hover,
 .entity-chip:focus-within { z-index: 30; }
-@media (hover: hover) and (pointer: fine) {
-  .entity-chip:hover .entity-chip-popover,
-  .entity-chip:focus-within .entity-chip-popover {
+.entity-chip:focus-within .entity-chip-popover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+@media (hover: hover) {
+  .entity-chip:hover .entity-chip-popover {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
