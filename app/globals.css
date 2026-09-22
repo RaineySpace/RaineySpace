@@ -859,14 +859,6 @@ a.section-heading-row:focus-visible .section-heading-title { border-bottom-color
   transition-duration: 220ms;
   transition-timing-function: ease;
 }
-.home-footer {
-  font-size: var(--fs-xs);
-  line-height: 1.6;
-  color: var(--muted);
-}
-.home-footer a { color: inherit; }
-.home-footer a:hover,
-.home-footer a:focus-visible { color: var(--title); }
 
 /* Shared project / friend cards. Markdown copies use the same markup and classes. */
 .entity-card-list {

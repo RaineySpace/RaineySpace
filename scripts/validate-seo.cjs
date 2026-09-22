@@ -152,11 +152,7 @@ async function main() {
 
   const home = await read('index.html');
   const homeBody = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
-  const homeLinks = tags(homeBody, 'a').map((tag) => tag.href);
-  assert.ok(homeLinks.some((href) => href === '/about/' || href.endsWith('/about/')), 'home footer missing /about/');
-  assert.ok(homeLinks.some((href) => href === '/friends/' || href.endsWith('/friends/')), 'home footer missing /friends/');
-  assert.ok(homeBody.includes('关于我'));
-  assert.ok(homeBody.includes('朋友们'));
+  assert.doesNotMatch(homeBody, /home-footer/);
   assert.doesNotMatch(homeBody, /id="friends"/);
 
   for (const slug of ['xiaofenshen', 'wefeather-copilot']) {
