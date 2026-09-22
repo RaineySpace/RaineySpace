@@ -523,8 +523,8 @@ html[data-theme="dark"] .markdown strong {
   line-height: 1.65;
   color: var(--secondary);
 }
-.markdown .entity-card img,
-.markdown .entity-card-icon {
+.markdown .entity-card img:not([hidden]),
+.markdown .entity-card-icon:not([hidden]) {
   display: block;
   max-width: none;
   height: 48px;
@@ -532,6 +532,9 @@ html[data-theme="dark"] .markdown strong {
   margin: 0;
   border-radius: 12px;
   background: transparent;
+}
+.markdown .entity-card [hidden] {
+  display: none;
 }
 .markdown .entity-card a,
 .markdown .entity-card a:not(:has(img)) {

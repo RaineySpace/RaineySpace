@@ -925,6 +925,9 @@ a.section-heading-row:focus-visible .section-heading-title { border-bottom-color
   object-fit: contain;
   background: transparent;
 }
+.entity-card [hidden] {
+  display: none;
+}
 .entity-card-copy {
   min-width: 0;
   flex: 1;
