@@ -550,11 +550,11 @@ gantt
 
 ---
 
-行内友链：[season](https://seasonx.life "friend:season") 和集合 [全部友链](https://rainey.space/friends/ "friend:*")。
+行内友链：[Season](https://seasonx.life "friend:Season") 和集合 [全部友链](https://rainey.space/friends/ "friend:*")。
 
 独立友链卡：
 
-[season](https://seasonx.life "friend:season")
+[Season](https://seasonx.life "friend:Season")
 
 全部友链：
 
@@ -562,9 +562,9 @@ gantt
 
 列表、引用中保持行内：
 
-- [season](https://seasonx.life "friend:season")
+- [Season](https://seasonx.life "friend:Season")
 
-> [season](https://seasonx.life "friend:season")
+> [Season](https://seasonx.life "friend:Season")
 
 ---
 
