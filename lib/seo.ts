@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import * as config from './config';
 import type { Post } from './posts';
-import { loadEntities } from './registry.mjs';
 
 export interface PageInfo {
   pathname: string;
@@ -10,10 +9,11 @@ export interface PageInfo {
 }
 
 export const pages = {
+  friends: { pathname: '/friends/', title: `朋友们 - ${config.title}`, description: 'Rainey 的朋友们' },
   home: { pathname: '/', title: config.title, description: config.description },
-  articles: { pathname: '/articles/', title: `文章 - ${config.title}`, description: 'Rainey 的全部公开文章。' },
-  photography: { pathname: '/photography/', title: `摄影 - ${config.title}`, description: 'Rainey 的摄影记录。' },
-  projects: { pathname: '/projects/', title: `项目 - ${config.title}`, description: 'Rainey 的项目与个人实验。' },
+  articles: { pathname: '/articles/', title: `文章 - ${config.title}`, description: 'Rainey 的全部公开文章' },
+  photography: { pathname: '/photography/', title: `摄影 - ${config.title}`, description: 'Rainey 的摄影记录' },
+  projects: { pathname: '/projects/', title: `项目 - ${config.title}`, description: 'Rainey 的项目与个人实验' },
 } satisfies Record<string, PageInfo>;
 
 export function canonicalUrl(pathname: string): string {
@@ -76,7 +76,7 @@ export function pageMetadata(
 }
 
 export function postMetadata(post: Post): Metadata {
-  const isStandalonePage = post.slug === 'about' || post.slug === 'friends';
+  const isStandalonePage = post.slug === 'about';
   return {
     ...pageMetadata({
       pathname: postUrl(post.slug),
@@ -142,17 +142,6 @@ export function postJsonLd(post: Post): Record<string, unknown> | null {
       inLanguage: 'zh-CN',
     };
   }
-  if (post.slug === 'friends') {
-    return collectionJsonLd({
-      pathname: postUrl(post.slug),
-      title: `${post.title} - ${config.title}`,
-      description: post.summary || config.description,
-    }, loadEntities('friend').map((friend) => ({
-      url: friend.url,
-      name: friend.name,
-      description: friend.description,
-    })));
-  }
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -203,7 +192,7 @@ export function serializeJsonLd(data: Record<string, unknown>): string {
 
 export function sitemapEntries(posts: readonly Post[]) {
   return [
-    ...[pages.home, pages.articles, pages.photography, pages.projects].map((page) => ({
+    ...[pages.home, pages.articles, pages.photography, pages.projects, pages.friends].map((page) => ({
       loc: canonicalUrl(page.pathname),
       lastmod: undefined as string | undefined,
     })),
@@ -219,7 +208,7 @@ function markdownText(value: string): string {
 }
 
 export function llmsText(posts: readonly Post[]): string {
-  const channels = [pages.home, pages.articles, pages.photography, pages.projects];
+  const channels = [pages.home, pages.articles, pages.photography, pages.projects, pages.friends];
   return [
     `# ${config.title}`,
     '',

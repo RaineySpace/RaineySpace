@@ -39,7 +39,8 @@ const registries = {
     {
       id: "example-blog",
       kind: "friend",
-      name: "朋友的博客",
+      name: "朋友",
+      title: "朋友的博客",
       url: "https://example.com",
       description: "记录生活与一些想法",
       image: "/assets/friends/example-blog.png",
@@ -62,12 +63,12 @@ test("only declared project and friend titles are data references", () => {
   assert.throws(() => parseDataRefTitle("project:foo:bar"), /invalid data reference title/);
 });
 
-test("single and collection refs render inline chips or block cards", () => {
+test("single and collection refs render inline links with hover cards or block cards", () => {
   const inlineProject = renderDataRefHtml('最近在做 [小分身](https://xiaofenshen.com "project:xiaofenshen")。', { registries });
   assert.match(inlineProject, /<p>最近在做 <span class="entity-chip">/);
-  assert.match(inlineProject, /entity-chip-name">小分身/);
+  assert.match(inlineProject, /<a href="https:\/\/xiaofenshen.com">小分身<\/a>/);
   assert.match(inlineProject, /entity-chip-popover-panel/);
-  assert.match(inlineProject, /entity-chip-icon" src="https:\/\/xiaofenshen.com\/brand\/xiaofenshen.svg"/);
+  assert.match(inlineProject, /entity-card-icon" src="https:\/\/xiaofenshen.com\/brand\/xiaofenshen.svg"/);
   assert.doesNotMatch(inlineProject, /entity-card-list/);
   assert.doesNotMatch(inlineProject, /<p><article|<p><div/);
 
@@ -79,13 +80,13 @@ test("single and collection refs render inline chips or block cards", () => {
 
   const inlineAll = renderDataRefHtml('看过 [全部项目](https://rainey.space/projects/ "project:*")。', { registries });
   assert.equal([...inlineAll.matchAll(/class="entity-chip"/g)].length, 2);
-  assert.match(inlineAll, /entity-chip-name">小分身<\/span>[\s\S]*、[\s\S]*entity-chip-name">微羽助手/);
+  assert.match(inlineAll, />小分身<\/a>[\s\S]*、[\s\S]*>微羽助手<\/a>/);
 
   const blockAll = renderDataRefHtml('[全部项目](https://rainey.space/projects/ "project:*")', { registries });
   assert.equal([...blockAll.matchAll(/class="entity-card"/g)].length, 2);
 
   const inlineFriend = renderDataRefHtml('去 [朋友的博客](https://example.com "friend:example-blog") 坐坐。', { registries });
-  assert.match(inlineFriend, /entity-chip-name">朋友的博客/);
+  assert.match(inlineFriend, /<a href="https:\/\/example.com">朋友<\/a>/);
   assert.match(inlineFriend, /entity-chip-popover/);
 
   const blockFriend = renderDataRefHtml('[朋友的博客](https://example.com "friend:example-blog")', { registries });
@@ -130,10 +131,10 @@ test("headings, lists, quotes and tables keep inline chips", () => {
     "",
   ].join("\n"), { registries });
 
-  assert.match(html, /<h2.*>[\s\S]*entity-chip-name">小分身/);
-  assert.match(html, /<li>[\s\S]*entity-chip-name">小分身/);
-  assert.match(html, /<blockquote>[\s\S]*entity-chip-name">小分身/);
-  assert.match(html, /<td>[\s\S]*entity-chip-name">小分身/);
+  assert.match(html, /<h2.*>[\s\S]*<a href="https:\/\/xiaofenshen.com">小分身/);
+  assert.match(html, /<li>[\s\S]*<a href="https:\/\/xiaofenshen.com">小分身/);
+  assert.match(html, /<blockquote>[\s\S]*<a href="https:\/\/xiaofenshen.com">小分身/);
+  assert.match(html, /<td>[\s\S]*<a href="https:\/\/xiaofenshen.com">小分身/);
   assert.doesNotMatch(html, /entity-card-list/);
   assert.equal(stripElementsByClass(html.match(/<h2[\s\S]*?<\/h2>/)[0], "entity-chip-popover").includes("训练一个"), false);
 });
@@ -230,4 +231,26 @@ test("plain output uses ordinary links and lists without card markup", () => {
   });
   assert.match(inline, /<p>最近在做 <a href="https:\/\/xiaofenshen.com">小分身<\/a>。<\/p>/);
   assert.doesNotMatch(inline, /entity-chip|entity-card/);
+});
+
+test("friend names are inline while site titles appear in cards and block exports", () => {
+  const inline = '认识 [站点](https://example.com "friend:example-blog")。';
+  const block = '[站点](https://example.com "friend:example-blog")';
+  assert.match(renderDataRefHtml(inline, { registries }), /entity-card-name">朋友的博客/);
+  assert.equal(expandDataRefsInMarkdown(inline, registries), '认识 [朋友](https://example.com)。');
+  assert.match(expandDataRefsInMarkdown(block, registries), /\[朋友的博客\]/);
+  assert.match(renderDataRefHtml(inline, { registries, format: "plain" }), />朋友<\/a>/);
+  assert.match(renderDataRefHtml(block, { registries, format: "plain" }), />朋友的博客<\/a>/);
+});
+
+test("inline references keep ordinary links and isolate card media in the popover", () => {
+  for (const [kind, id] of [["project", "xiaofenshen"], ["friend", "example-blog"]]) {
+    const item = registries[kind][0];
+    const html = renderDataRefHtml(`认识 [示例](${item.url} "${kind}:${id}")。`, { registries });
+    const visible = stripElementsByClass(html, "entity-chip-popover");
+    assert.equal(visible, `<p>认识 <span class="entity-chip"><a href="${item.url}">${item.name}</a></span>。</p>\n`);
+    assert.doesNotMatch(html, /entity-chip-(link|media|icon|fallback|name)/);
+    assert.match(html, /entity-chip-popover/);
+    assert.match(html, /entity-card-icon/);
+  }
 });

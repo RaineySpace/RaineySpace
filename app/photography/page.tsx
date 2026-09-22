@@ -10,7 +10,7 @@ export default async function PhotographyPage() {
   const albums = await getPhotographyAlbums();
 
   return (
-    <div className="page-content">
+    <div>
       <JsonLd data={collectionJsonLd(pages.photography, albums.map((album) => ({
         url: postUrl(album.slug), name: album.title,
       })))} />

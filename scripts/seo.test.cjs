@@ -9,6 +9,7 @@ const load = require('./load-typescript.cjs');
 const seo = load('lib/seo.ts');
 const { getPosts, getPostBySlug, getListedPosts, getIndexablePosts, getPostTagCounts, generateFeed } = load('lib/posts.ts');
 const { parseUpdatedDate } = require('../lib/post-dates.mjs');
+const { loadEntities } = require('../lib/registry.mjs');
 const { generateHeaders } = require('./generate-headers.cjs');
 const projectRoot = path.resolve(__dirname, '..');
 
@@ -64,7 +65,7 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   assert.equal(about.title, "自定义关于页 - Rainey's Blog");
   assert.equal(about.description, '关于页摘要');
   assert.equal(about.openGraph.type, 'website');
-  const friendsPage = seo.postMetadata(post({ slug: 'friends', title: '朋友们', summary: '去朋友那里坐坐。', hidden: true, showHeader: false }));
+  const friendsPage = seo.pageMetadata(seo.pages.friends);
   assert.equal(friendsPage.title, "朋友们 - Rainey's Blog");
   assert.equal(friendsPage.description, '去朋友那里坐坐。');
   assert.equal(friendsPage.openGraph.type, 'website');
@@ -105,11 +106,13 @@ test('structured data uses real content and safely handles a script-closing titl
   assert.equal(about['@type'], 'AboutPage');
   assert.equal(about.name, "作者介绍 - Rainey's Blog");
   assert.equal(about.description, '自定义摘要');
-  const friends = seo.postJsonLd(post({ slug: 'friends', hidden: true, title: '朋友们', summary: '去朋友那里坐坐。', date: null, dateText: '' }));
+  const friends = seo.collectionJsonLd(seo.pages.friends, loadEntities('friend').map((friend) => ({ url: friend.url, name: friend.title, description: friend.description })));
   assert.equal(friends['@type'], 'CollectionPage');
   assert.equal(friends.name, "朋友们 - Rainey's Blog");
   assert.equal(friends.description, '去朋友那里坐坐。');
-  assert.equal(friends.mainEntity.numberOfItems, 0);
+  const registeredFriends = loadEntities('friend');
+  assert.equal(friends.mainEntity.numberOfItems, registeredFriends.length);
+  assert.deepEqual(friends.mainEntity.itemListElement.map((item) => item.name), registeredFriends.map((item) => item.title));
   assert.equal(JSON.parse(seo.serializeJsonLd(seo.postJsonLd(post()))).dateModified, undefined);
   const items = [{ url: 'https://example.com/', name: '项目' }, { url: seo.postUrl('hidden-album'), name: '摄影' }];
   const collection = seo.collectionJsonLd(seo.pages.projects, items).mainEntity;
@@ -120,9 +123,10 @@ test('structured data uses real content and safely handles a script-closing titl
 test('sitemap and llms include hidden indexable content without inventing dates', () => {
   const source = [post(), post({ slug: 'revised', updated: new Date('2024-02-29') }), post({ slug: 'about', hidden: true, date: null, dateText: '' }), post({ slug: 'excluded', noindex: true })];
   const entries = seo.sitemapEntries(source);
-  assert.ok(entries.slice(0, 4).every((entry) => entry.lastmod === undefined));
-  assert.deepEqual(entries.slice(4).map((entry) => entry.lastmod), ['2024-02-01T00:00:00.000Z', '2024-02-29T00:00:00.000Z', undefined]);
+  assert.ok(entries.slice(0, 5).every((entry) => entry.lastmod === undefined));
+  assert.deepEqual(entries.slice(5).map((entry) => entry.lastmod), ['2024-02-01T00:00:00.000Z', '2024-02-29T00:00:00.000Z', undefined]);
   assert.ok(entries.some((entry) => entry.loc.includes('/about/')));
+  assert.equal(entries.filter((entry) => entry.loc === seo.canonicalUrl(seo.pages.friends.pathname)).length, 1);
   assert.ok(!entries.some((entry) => entry.loc.includes('/excluded/')));
   assert.equal(seo.sitemapEntries([post({ date: null })]).at(-1).lastmod, undefined);
   const llms = seo.llmsText(source);
@@ -130,6 +134,8 @@ test('sitemap and llms include hidden indexable content without inventing dates'
   assert.ok(llms.includes('[原文](https://rainey.space/sample/)'));
   assert.ok(llms.includes('更新 2024-02-29'));
   assert.ok(llms.includes('## 内容'));
+  assert.ok(llms.includes('https://rainey.space/friends/'));
+  assert.ok(!llms.includes('https://rainey.space/friends.md'));
   assert.ok(llms.includes('https://rainey.space/about.md): 文章摘要 [原文]'));
   assert.ok(!llms.includes('/excluded/'));
   assert.equal(seo.llmsText(source), llms);

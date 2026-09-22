@@ -548,9 +548,23 @@ gantt
 
 > [小分身](https://xiaofenshen.com "project:xiaofenshen")
 
-空友链集合：
+---
 
-[朋友们](https://rainey.space/friends/ "friend:*")
+行内友链：[season](https://seasonx.life, "friend:seasonx") 和集合 [全部友链](https://seasonx.life, "friend:*")。
+
+独立项目卡：
+
+[season](https://seasonx.life, "friend:seasonx")
+
+全部友链：
+
+[全部友链](https://seasonx.life, "friend:*")
+
+列表、引用中保持行内：
+
+- [season](https://seasonx.life, "friend:seasonx")
+
+> [season](https://seasonx.life, "friend:seasonx")
 
 ---
 

@@ -5,6 +5,7 @@ import { useState } from "react";
 export interface EntityCardItem {
   id: string;
   name: string;
+  title?: string;
   url: string;
   description?: string;
   icon?: string;
@@ -26,6 +27,7 @@ export default function EntityCard({
   visitLabel,
 }: EntityCardProps) {
   const Heading = headingLevel;
+  const title = item.title ?? item.name;
   const [iconFailed, setIconFailed] = useState(false);
   const showIcon = Boolean(item.icon) && !iconFailed;
 
@@ -35,7 +37,7 @@ export default function EntityCard({
         href={item.url}
         target="_blank"
         rel="noreferrer"
-        aria-label={`${visitLabel}：${item.name}`}
+        aria-label={`${visitLabel}：${title}`}
         className="entity-card-hit"
       />
 
@@ -52,12 +54,12 @@ export default function EntityCard({
               onError={() => setIconFailed(true)}
             />
           ) : (
-            <span className="entity-card-fallback">{getInitial(item.name)}</span>
+            <span className="entity-card-fallback">{getInitial(title)}</span>
           )}
         </span>
 
         <div className="entity-card-copy">
-          <Heading className="entity-card-name">{item.name}</Heading>
+          <Heading className="entity-card-name">{title}</Heading>
           {item.description ? <p className="entity-card-description">{item.description}</p> : null}
         </div>
       </div>

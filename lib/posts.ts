@@ -348,6 +348,11 @@ export async function getAboutContent(): Promise<string> {
   return renderMarkdown(readme).html;
 }
 
+export async function getEndContent(): Promise<string> {
+  const end = await fs.readFile(path.join(process.cwd(), 'END.md'), 'utf8');
+  return renderMarkdown(end).html;
+}
+
 export async function getPostBySlug(slug: string): Promise<Post> {
   const fileContents = await fs.readFile(postMarkdownPath(path.join(process.cwd(), 'public'), slug), 'utf8');
   const { data, content, matter: frontmatter } = matter(fileContents);

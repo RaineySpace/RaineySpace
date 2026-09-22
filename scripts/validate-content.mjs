@@ -12,7 +12,7 @@ import { parseRegistry, PROJECT_KIND, FRIEND_KIND, readRegistryJson, registryFil
 const publicDir = path.join(process.cwd(), "public");
 const requiredFields = ["title", "date", "summary"];
 const booleanFields = ["hidden", "pinned", "photography"];
-const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "_optimized", "llms.txt", "robots.txt", "sitemap.xml", "rss.xml", "atom.xml"]);
+const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "friends", "_optimized", "llms.txt", "robots.txt", "sitemap.xml", "rss.xml", "atom.xml"]);
 const exifExtensions = new Set([".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".heic"]);
 const deprecatedProjectFields = [
   "projectId",

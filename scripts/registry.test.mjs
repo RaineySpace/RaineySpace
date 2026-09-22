@@ -24,6 +24,7 @@ function project(id, overrides = {}) {
 function friend(id, overrides = {}) {
   return {
     name: id,
+    title: `${id} blog`,
     url: `https://friends.example/${id}`,
     date: "2026-02-01",
     ...overrides,
@@ -109,5 +110,16 @@ test("content validator uses the shared registry rules", async () => {
     assert.match(check.stderr, /content\/projects\.json:alpha: "date" must be a YYYY-MM-DD date/);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("friends require a separate site title and preserve their name", () => {
+  const valid = parseRegistry("friend", { alpha: friend("alpha", { title: " Alpha Blog " }) });
+  assert.deepEqual(valid.errors, []);
+  assert.equal(valid.entities[0].name, "alpha");
+  assert.equal(valid.entities[0].title, "Alpha Blog");
+  for (const title of [undefined, null, "", "  ", 42]) {
+    const invalid = parseRegistry("friend", { alpha: friend("alpha", { title }) });
+    assert.match(invalid.errors.join("\n"), /"title" must be a non-empty string/);
   }
 });

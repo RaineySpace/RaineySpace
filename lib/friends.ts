@@ -3,6 +3,7 @@ import { formatDateText, FRIEND_KIND, getEntityById, loadEntities } from "@/lib/
 export interface Friend {
   id: string;
   name: string;
+  title: string;
   url: string;
   description?: string;
   icon?: string;
@@ -14,6 +15,7 @@ export interface Friend {
 function toFriend(entity: {
   id: string;
   name: string;
+  title?: string;
   url: string;
   description?: string;
   image?: string;
@@ -24,6 +26,7 @@ function toFriend(entity: {
   return {
     id: entity.id,
     name: entity.name,
+    title: entity.title!,
     url: entity.url,
     description: entity.description,
     icon: entity.image,

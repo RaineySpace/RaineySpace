@@ -290,8 +290,8 @@ function LightboxSlide({
       {isActive && !isOpening && !full.ready && (hasPreview || !failed) && (
         <span className="image-lightbox-loading">
           {!failed && <span className="image-lightbox-loading-ring" aria-hidden="true" />}
-          <span className="image-lightbox-loading-copy">
-            <span className="image-lightbox-loading-heading">
+          <span className="flex flex-col gap-0.5">
+            <span className="flex items-baseline gap-[9px] font-semibold">
               <span role="status">{failed ? "原图加载失败" : download.status === "ready" ? "解码中" : "加载中"}</span>
               {!failed && percent !== undefined && <span className="image-lightbox-loading-percent" role="progressbar" aria-label="原图下载进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>{percent}%</span>}
             </span>
@@ -301,7 +301,7 @@ function LightboxSlide({
           </span>
         </span>
       )}
-      {failed && !hasPreview && <p className="image-lightbox-error" role="status">图片加载失败</p>}
+      {failed && !hasPreview && <p className="absolute inset-0 z-[2] m-0 flex items-center justify-center text-[0.75rem] text-gray-400" role="status">图片加载失败</p>}
       {openingPreview && (
         <img
           ref={fallback.ref}
@@ -586,14 +586,14 @@ export default function ImageLightbox({
             <CloseIcon />
           </button>
 
-          <p className="image-lightbox-title-row">
-            <span className="image-lightbox-title">{activeImage.alt}</span>
+          <p className="m-0 hidden w-full shrink-0 flex-wrap items-baseline justify-center gap-x-2 gap-y-[0.35rem] px-12 text-center sm:flex">
+            <span className="min-w-0 text-[0.75rem] font-semibold leading-[1.4] text-white">{activeImage.alt}</span>
             {activeImage.sourceHref && activeImage.sourceLabel && (
               <>
-                <span className="image-lightbox-title-sep" aria-hidden="true">
+                <span className="text-gray-400" aria-hidden="true">
                   ·
                 </span>
-                <a href={activeImage.sourceHref} className="image-lightbox-album">
+                <a href={activeImage.sourceHref} className="text-[0.75rem] text-gray-300 underline decoration-gray-500 underline-offset-4 hover:text-white">
                   {activeImage.sourceLabel}
                 </a>
               </>
@@ -645,7 +645,7 @@ export default function ImageLightbox({
             )}
           </div>
 
-          <div className="image-lightbox-caption">
+          <div className="flex w-full shrink-0 flex-col items-center gap-3 px-1 text-center">
             {showMore && (
               <div className="image-lightbox-meta image-lightbox-meta-summary">
                 {locationText && (
@@ -722,7 +722,7 @@ export default function ImageLightbox({
 
           {hasMultipleImages && (
             <div className="image-lightbox-thumbnails">
-              <p className="image-lightbox-count">
+              <p className="m-0 mb-[0.15rem] text-center text-[0.75rem] text-gray-400">
                 {activeIndex + 1} / {images.length}
               </p>
               <div
@@ -768,11 +768,11 @@ export default function ImageLightbox({
           className="image-lightbox-sheet"
           returnFocusRef={moreButtonRef}
           renderHeader={(close) => (
-            <div className="image-lightbox-sheet-header">
-              <span className="image-lightbox-sheet-title">{titleText || "图片详情"}</span>
+            <div className="mb-[0.85rem] flex items-center gap-3">
+              <span className="min-w-0 flex-1 truncate text-[1rem] font-semibold text-white">{titleText || "图片详情"}</span>
               <button
                 type="button"
-                className="image-lightbox-sheet-close"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-300 hover:bg-white/[0.08] focus-visible:bg-white/[0.08] focus-visible:outline-none"
                 aria-label="关闭详情"
                 onClick={close}
               >
@@ -781,7 +781,7 @@ export default function ImageLightbox({
             </div>
           )}
         >
-          <div className="image-lightbox-sheet-grid">
+          <div className="grid grid-cols-[1fr_1fr] gap-[0.6rem]">
             {locationText && (
               <SheetCard label="地点">
                 {hasGps(activeImage) ? (
