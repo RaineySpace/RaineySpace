@@ -28,6 +28,8 @@ interface MarkdownContentProps {
 }
 
 const EMPTY_IMAGES: ArticleImageMeta[] = [];
+const ENTITY_CHIP_POPOVER_GAP = 8;
+const ENTITY_CARD_BLEED = 12;
 
 function previewImageFromEvent(target: EventTarget | null): HTMLImageElement | null {
   if (!(target instanceof Element)) return null;
@@ -78,6 +80,40 @@ function previewFieldsFromPostImage(
   };
 }
 
+function alignEntityChipPopovers(root: HTMLElement) {
+  const chips = root.querySelectorAll<HTMLElement>(".entity-chip");
+  if (chips.length === 0) return;
+
+  const box = root.getBoundingClientRect();
+  const width = Math.max(0, Math.round(box.width + ENTITY_CARD_BLEED * 2));
+  const viewportHeight = window.innerHeight;
+
+  chips.forEach((chip) => {
+    const popover = chip.querySelector<HTMLElement>(".entity-chip-popover");
+    if (!popover) return;
+
+    const chipRect = chip.getBoundingClientRect();
+    const panel = popover.querySelector<HTMLElement>(".entity-chip-popover-panel");
+    const height = panel?.offsetHeight ?? 0;
+    const spaceBelow = viewportHeight - chipRect.bottom - ENTITY_CHIP_POPOVER_GAP;
+    const spaceAbove = chipRect.top - ENTITY_CHIP_POPOVER_GAP;
+    const placeAbove = height > 0 && spaceBelow < height && spaceAbove > spaceBelow;
+
+    popover.style.left = `${Math.round(box.left - chipRect.left - ENTITY_CARD_BLEED)}px`;
+    popover.style.width = `${width}px`;
+    popover.style.right = "auto";
+    popover.style.maxWidth = "none";
+
+    if (placeAbove) {
+      popover.style.top = "auto";
+      popover.style.bottom = `calc(100% + ${ENTITY_CHIP_POPOVER_GAP}px)`;
+    } else {
+      popover.style.top = `calc(100% + ${ENTITY_CHIP_POPOVER_GAP}px)`;
+      popover.style.bottom = "auto";
+    }
+  });
+}
+
 export default function MarkdownContent({
   html,
   images: postImages = EMPTY_IMAGES,
@@ -121,6 +157,27 @@ export default function MarkdownContent({
     setImages(previewImages.filter((image) => image.src));
     setActiveIndex(null);
   }, [date, html, location, postImages]);
+
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+
+    const align = () => alignEntityChipPopovers(content);
+    align();
+
+    const observer = new ResizeObserver(align);
+    observer.observe(content);
+    content.addEventListener("pointerenter", align, true);
+    content.addEventListener("focusin", align);
+    window.addEventListener("resize", align);
+
+    return () => {
+      observer.disconnect();
+      content.removeEventListener("pointerenter", align, true);
+      content.removeEventListener("focusin", align);
+      window.removeEventListener("resize", align);
+    };
+  }, [html]);
 
   useEffect(() => {
     const content = contentRef.current;

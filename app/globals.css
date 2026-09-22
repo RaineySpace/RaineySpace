@@ -966,6 +966,7 @@ a.section-heading-row:focus-visible .section-heading-title { border-bottom-color
   position: relative;
   display: inline-flex;
   max-width: 100%;
+  overflow: visible;
   vertical-align: middle;
 }
 .entity-chip-link {
@@ -1025,19 +1026,27 @@ a.section-heading-row:focus-visible .section-heading-title { border-bottom-color
   top: calc(100% + 8px);
   left: 0;
   z-index: 40;
-  width: min(22rem, calc(100vw - 40px));
+  box-sizing: border-box;
+  width: calc(100% + 24px);
+  max-width: none;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition: opacity 200ms ease, visibility 200ms ease;
 }
-.entity-chip-popover::before {
+.entity-chip-popover::before,
+.entity-chip-popover::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 100%;
   height: 8px;
+}
+.entity-chip-popover::before {
+  bottom: 100%;
+}
+.entity-chip-popover::after {
+  top: 100%;
 }
 .entity-chip-popover-panel {
   display: block;

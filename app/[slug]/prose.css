@@ -503,7 +503,6 @@ html[data-theme="dark"] .markdown strong {
   margin-top: 16px;
   margin-bottom: 16px;
 }
-.markdown .entity-card,
 .markdown .entity-card p,
 .markdown .entity-card h2,
 .markdown .entity-card h3 {
@@ -554,6 +553,10 @@ html[data-theme="dark"] .markdown strong {
 }
 .markdown .entity-chip {
   margin: 0 0.1em;
+  overflow: visible;
+}
+.markdown table:has(.entity-chip) {
+  overflow: visible;
 }
 .markdown .entity-chip img:not([hidden]),
 .markdown .entity-chip-icon:not([hidden]) {
