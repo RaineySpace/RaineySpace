@@ -15,6 +15,8 @@ import {
   toOriginalSrc,
 } from './optimized-images';
 import { listPostSlugs, postMarkdownPath } from './post-files.mjs';
+import { loadRegistries } from './registry.mjs';
+import { stripElementsByClass, transformDataRefTokens } from './markdown-refs.mjs';
 
 // 配置 marked 使用 highlight.js
 marked.use(
@@ -46,9 +48,9 @@ export interface Post {
   noindex: boolean;
   pinned: boolean;
   photography: boolean;
-  projectId: string;
   images: PostImage[];
   content: string;
+  plainContent: string;
   headings: Heading[];
 }
 
@@ -283,17 +285,20 @@ function createHeadingId(text: string, counts: Map<string, number>): string {
 function renderMarkdown(
   content: string,
   options?: {
-    slug: string;
-    displayByRelativePath: Map<string, DisplayImage>;
+    slug?: string;
+    displayByRelativePath?: Map<string, DisplayImage>;
     liveVideoSrcByRelativePath?: Map<string, string>;
+    dataRefFormat?: 'card' | 'plain';
+    registries?: ReturnType<typeof loadRegistries>;
   },
 ): { html: string; headings: Heading[] } {
   const headings: Heading[] = [];
   const counts = new Map<string, number>();
   const renderer = new Renderer();
+  const registries = options?.registries || loadRegistries();
 
   renderer.heading = (text, level) => {
-    const plainText = stripHtml(String(text));
+    const plainText = stripHtml(stripElementsByClass(String(text), 'entity-chip-popover'));
     if (level === 2 || level === 3) {
       const id = createHeadingId(plainText, counts);
       headings.push({ id, text: plainText, level });
@@ -306,13 +311,13 @@ function renderMarkdown(
     const hrefValue = href || '';
     const alt = escapeHtml(stripHtml(String(text || '')));
     const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-    const relativePath = options ? normalizeRelativeImagePath(hrefValue) : null;
+    const relativePath = options?.slug ? normalizeRelativeImagePath(hrefValue) : null;
 
-    if (!options || !relativePath) {
+    if (!options?.slug || !relativePath) {
       return `<img src="${escapeHtml(hrefValue)}" alt="${alt}"${titleAttr} loading="lazy">`;
     }
 
-    const display = options.displayByRelativePath.get(relativePath);
+    const display = options.displayByRelativePath?.get(relativePath);
     const originalSrc = display?.originalSrc || toOriginalSrc(options.slug, relativePath);
     const displaySrc = display?.displaySrc || originalSrc;
     const dimensions = display?.width && display.height ? ` width="${display.width}" height="${display.height}"` : '';
@@ -324,13 +329,28 @@ function renderMarkdown(
     return `<span class="live-photo" data-live-src="${escapeHtml(liveVideoSrc)}">${image}${LIVE_PHOTO_BADGE_HTML}</span>`;
   };
 
-  const html = marked.parse(content, { renderer }) as string;
+  const tokens = marked.lexer(content);
+  transformDataRefTokens(tokens, {
+    registries,
+    format: options?.dataRefFormat || 'card',
+    source: options?.slug,
+  });
+  const walkTokens = marked.defaults.walkTokens;
+  if (walkTokens) {
+    marked.walkTokens(tokens, walkTokens);
+  }
+  const html = marked.parser(tokens, { renderer }) as string;
   return { html, headings };
 }
 
 export async function getAboutContent(): Promise<string> {
   const readme = await fs.readFile(path.join(process.cwd(), 'README.md'), 'utf8');
   return renderMarkdown(readme).html;
+}
+
+export async function getEndContent(): Promise<string> {
+  const end = await fs.readFile(path.join(process.cwd(), 'END.md'), 'utf8');
+  return renderMarkdown(end).html;
 }
 
 export async function getPostBySlug(slug: string): Promise<Post> {
@@ -349,7 +369,10 @@ export async function getPostBySlug(slug: string): Promise<Post> {
     content,
     slug,
   );
-  const rendered = renderMarkdown(content, { slug, displayByRelativePath, liveVideoSrcByRelativePath });
+  const registries = loadRegistries();
+  const renderOptions = { slug, displayByRelativePath, liveVideoSrcByRelativePath, registries };
+  const rendered = renderMarkdown(content, { ...renderOptions, dataRefFormat: 'card' });
+  const plain = renderMarkdown(content, { ...renderOptions, dataRefFormat: 'plain' });
   const { cover, coverDisplaySrc, coverImage } = await resolveCover(slug, data.cover);
 
   return {
@@ -370,9 +393,9 @@ export async function getPostBySlug(slug: string): Promise<Post> {
     hidden: !!data.hidden,
     pinned: !!data.pinned,
     photography: !!data.photography,
-    projectId: data.projectId ? String(data.projectId).trim() : '',
     images,
     content: rendered.html,
+    plainContent: plain.html,
     headings: rendered.headings,
   };
 }
@@ -444,8 +467,8 @@ export async function generateFeed() {
       author: [{ name: config.author, email: config.email, link: config.siteUrl }],
       category: post.tags.map((tag) => ({ name: tag })),
       date: post.date || new Date(),
-      description: post.summary || stripHtml(post.content).substring(0, 200) + '...',
-      content: post.content,
+      description: post.summary || stripHtml(post.plainContent || post.content).substring(0, 200) + '...',
+      content: post.plainContent || post.content,
       id: `${config.siteUrl}/${post.slug}/`,
       image: post.cover ? toAbsoluteUrl(post.cover) : undefined,
       link: `${config.siteUrl}/${post.slug}/`,

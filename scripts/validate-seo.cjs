@@ -65,8 +65,9 @@ async function main() {
   const posts = await getPosts();
   const listedPosts = posts.filter((post) => !post.hidden);
   const indexablePosts = posts.filter((post) => !post.noindex);
+  const friendRegistry = JSON.parse(await fs.readFile('content/friends.json', 'utf8'));
   const projectRegistry = JSON.parse(await fs.readFile('content/projects.json', 'utf8'));
-  for (const page of [pages.home, pages.articles, pages.photography, pages.projects]) {
+  for (const page of [pages.home, pages.articles, pages.photography, pages.projects, pages.friends]) {
     const html = await read(`${page.pathname.slice(1)}index.html`);
     const { data } = verifyPage(html, { ...page, url: canonicalUrl(page.pathname) });
     assert.equal(data.length, 1, `${page.pathname}: expected one JSON-LD block`);
@@ -81,6 +82,10 @@ async function main() {
     if (page === pages.articles) assert.deepEqual(items.map((item) => item.url), listedPosts.map((post) => postUrl(post.slug)));
     if (page === pages.photography) assert.deepEqual(items.map((item) => item.url), posts.filter((post) => post.photography && post.images.length).map((post) => postUrl(post.slug)));
     if (page === pages.projects) assert.deepEqual(items.map((item) => item.url).sort(), Object.values(projectRegistry).map((project) => project.url).sort());
+    if (page === pages.friends) {
+      assert.deepEqual(items.map((item) => item.url).sort(), Object.values(friendRegistry).map((friend) => friend.url).sort());
+      assert.deepEqual(items.map((item) => item.name).sort(), Object.values(friendRegistry).map((friend) => friend.title).sort());
+    }
     const body = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
     const hrefs = tags(body, 'a').map((tag) => new URL(tag.href, config.siteUrl).href.replace(/\/$/, ''));
     for (const item of items) assert.ok(hrefs.includes(item.url.replace(/\/$/, '')), `${page.pathname}: JSON-LD item has no rendered link: ${item.url}`);
@@ -140,12 +145,31 @@ async function main() {
     assert.doesNotMatch(published, /!?\[[^\]]*\]\(\.\//, `${post.slug}: published Markdown still uses relative destinations`);
   }
 
+  const home = await read('index.html');
+  const homeBody = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+  assert.match(homeBody, /<footer(?:\s[^>]*)?>/);
+  assert.doesNotMatch(homeBody, /id="friends"/);
+
+  for (const slug of ['xiaofenshen', 'wefeather-copilot']) {
+    await assert.rejects(fs.access(path.join(output, slug, 'index.html')), { code: 'ENOENT' }, `deleted post still exported: ${slug}`);
+    await assert.rejects(fs.access(path.join(output, `${slug}.md`)), { code: 'ENOENT' }, `deleted Markdown still exported: ${slug}`);
+    await assert.rejects(fs.access(path.join(output, slug, 'cover.webp')), { code: 'ENOENT' }, `deleted cover still exported: ${slug}`);
+  }
+
+  const friendsHtml = await read('friends/index.html');
+  assert.doesNotMatch(friendsHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, ''), /friend:\*|project:/);
+  if (Object.keys(friendRegistry).length === 0) assert.match(friendsHtml, /暂时还没有添加朋友。/);
+  await assert.rejects(fs.access(path.join(output, 'friends.md')), { code: 'ENOENT' });
+  const friendsBody = friendsHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+  assert.doesNotMatch(friendsBody, /<aside\b|aria-label="阅读设置"/);
+  assert.doesNotMatch(friendsBody.split('<main>')[0], /<header\b/);
+
   const sitemap = await read('sitemap.xml');
   const entries = Array.from(sitemap.matchAll(/<url>([\s\S]*?)<\/url>/g), (match) => ({
     url: decode(match[1].match(/<loc>(.*?)<\/loc>/)?.[1] || ''),
     lastmod: match[1].match(/<lastmod>(.*?)<\/lastmod>/)?.[1],
   }));
-  assert.deepEqual(entries.map((entry) => entry.url).sort(), [pages.home, pages.articles, pages.photography, pages.projects].map((page) => canonicalUrl(page.pathname)).concat(indexablePosts.map((post) => postUrl(post.slug))).sort());
+  assert.deepEqual(entries.map((entry) => entry.url).sort(), [pages.home, pages.articles, pages.photography, pages.projects, pages.friends].map((page) => canonicalUrl(page.pathname)).concat(indexablePosts.map((post) => postUrl(post.slug))).sort());
   for (const entry of entries) {
     const post = indexablePosts.find((post) => postUrl(post.slug) === entry.url);
     assert.equal(entry.lastmod, post ? (post.updated || post.date)?.toISOString() : undefined, entry.url);
@@ -164,6 +188,13 @@ async function main() {
   for (const post of posts.filter((post) => post.noindex)) assert.ok(!links.includes(postUrl(post.slug)) && !links.includes(markdownUrl(post.slug)), `${post.slug}: noindex entry in llms.txt`);
   assert.ok(llms.includes('## 内容'));
   assert.ok(llms.includes('不允许将内容用于模型训练'));
+  assert.ok(sitemap.includes(postUrl('friends')));
+  assert.ok(!sitemap.includes(postUrl('xiaofenshen')));
+  assert.ok(!sitemap.includes(postUrl('wefeather-copilot')));
+  assert.ok(llms.includes(canonicalUrl(pages.friends.pathname)));
+  assert.ok(!llms.includes(markdownUrl('friends')));
+  assert.ok(!llms.includes(markdownUrl('xiaofenshen')));
+  assert.ok(!llms.includes(markdownUrl('wefeather-copilot')));
 
   const robots = await read('robots.txt');
   assert.match(robots, /Content-Signal: search=yes, ai-input=yes, ai-train=no/);
@@ -183,6 +214,10 @@ async function main() {
     for (const post of listedPosts) assert.ok(xml.includes(postUrl(post.slug)), `${feed}: missing ${post.slug}`);
     const ids = Array.from(xml.matchAll(/<(?:id|guid)(?:\s[^>]*)?>([^<]+)<\/(?:id|guid)>/g), (match) => match[1]);
     for (const post of posts.filter((post) => post.hidden)) assert.ok(!ids.includes(postUrl(post.slug)), `${feed}: hidden entry ${post.slug}`);
+    assert.doesNotMatch(xml, /entity-card/);
+    assert.doesNotMatch(xml, /"(project|friend):/);
+    assert.ok(!xml.includes('/xiaofenshen/'), `${feed}: deleted xiaofenshen`);
+    assert.ok(!xml.includes('/wefeather-copilot/'), `${feed}: deleted wefeather-copilot`);
   }
   console.log(`SEO validation passed for ${posts.length + 4} HTML pages, ${indexablePosts.length} indexable Markdown entries, sitemap, feeds, robots.txt and _headers.`);
 }

@@ -18,7 +18,7 @@ export default async function ArticlesPage() {
   }));
 
   return (
-    <div className="page-content">
+    <div>
       <JsonLd data={collectionJsonLd(pages.articles, posts.map((post) => ({
         url: postUrl(post.slug), name: post.title, description: post.summary,
       })))} />

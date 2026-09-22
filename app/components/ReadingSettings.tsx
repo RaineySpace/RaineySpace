@@ -169,11 +169,11 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
   }, []);
 
   return (
-    <div ref={containerRef} className="reading-settings">
+    <div ref={containerRef} className="relative inline-flex">
       <button
         ref={triggerRef}
         type="button"
-        className="reading-settings-trigger"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[14px] font-medium leading-none tracking-[0.01em] text-[--muted] transition-[color,background-color] duration-200 ease-[ease] hover:bg-[--surface-muted] hover:text-[--title] focus-visible:bg-[--surface-muted] focus-visible:text-[--title] focus-visible:outline-offset-2 aria-expanded:bg-[--surface-muted] aria-expanded:text-[--title]"
         aria-label="阅读设置"
         title="调整文字大小"
         aria-haspopup="dialog"

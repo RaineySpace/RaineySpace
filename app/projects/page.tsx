@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import BackButton from "@/app/components/BackButton";
 import ProjectList from "@/app/components/ProjectList";
 import { getProjects } from "@/lib/projects";
 import JsonLd from "@/app/components/JsonLd";
@@ -10,17 +11,20 @@ export default async function ProjectsPage() {
   const projects = await getProjects();
 
   return (
-    <div className="page-content">
+    <div>
       <JsonLd data={collectionJsonLd(pages.projects, projects.map((project) => ({
         url: project.url, name: project.name, description: project.description,
       })))} />
       <header className="mb-3">
-        <h1 className="page-title">项目</h1>
+        <div className="flex items-center gap-2">
+          <BackButton iconOnly />
+          <h1 className="page-title">项目</h1>
+        </div>
         <p className="page-description">
           做过的一些产品、工具与个人实验。
         </p>
       </header>
-      <ProjectList projects={projects} headingLevel="h2" showCount />
+      <ProjectList projects={projects} headingLevel="h2" />
     </div>
   );
 }

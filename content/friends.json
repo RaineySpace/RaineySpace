@@ -1,0 +1,20 @@
+{
+  "Season": {
+    "name": "Season",
+    "title": "SeasonX",
+    "url": "https://seasonx.life/",
+    "date": "2026-09-22",
+    "description": "个人博客 · 技术、思考与生活",
+    "icon": "https://seasonx.life/favicon.svg",
+    "pinned": true
+  },
+  "AwesomeYang": {
+    "name": "AwesomeYang",
+    "title": "老杨的知识荒原 ",
+    "url": "https://awesomeyang.com/",
+    "date": "2026-09-22",
+    "description": "在知识的荒原上野蛮生长:编程、出海、AI、效率工具、阅读与生活感想——把实践中学到的写成文章,把想法做成产品。",
+    "icon": "https://awesomeyang.com/favicon-32.png",
+    "pinned": false
+  }
+}

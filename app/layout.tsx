@@ -35,7 +35,7 @@ export default function RootLayout({
       <body className="mx-auto max-w-2xl bg-[--bg] px-5 py-8 sm:py-12 text-[--text]">
         <SiteHeader />
         <main>
-        {children}
+          {children}
         </main>
       </body>
     </html>

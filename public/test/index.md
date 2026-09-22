@@ -530,6 +530,44 @@ gantt
 
 ---
 
+## 数据引用
+
+行内项目：[小分身](https://xiaofenshen.com "project:xiaofenshen") 和集合 [全部项目](https://rainey.space/projects/ "project:*")。
+
+独立项目卡：
+
+[小分身](https://xiaofenshen.com "project:xiaofenshen")
+
+全部项目卡：
+
+[全部项目](https://rainey.space/projects/ "project:*")
+
+列表、引用中保持行内：
+
+- [微羽助手](https://www.wefeather.cn "project:wefeather-copilot")
+
+> [小分身](https://xiaofenshen.com "project:xiaofenshen")
+
+---
+
+行内友链：[season](https://seasonx.life, "friend:seasonx") 和集合 [全部友链](https://seasonx.life, "friend:*")。
+
+独立项目卡：
+
+[season](https://seasonx.life, "friend:seasonx")
+
+全部友链：
+
+[全部友链](https://seasonx.life, "friend:*")
+
+列表、引用中保持行内：
+
+- [season](https://seasonx.life, "friend:seasonx")
+
+> [season](https://seasonx.life, "friend:seasonx")
+
+---
+
 ## 结束
 
 感谢阅读！如有问题，欢迎在 [GitHub](https://github.com/RaineySpace) 上联系我。

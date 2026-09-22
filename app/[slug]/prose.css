@@ -497,3 +497,67 @@ html[data-theme="dark"] .markdown strong {
 .markdown del, .markdown s { color: inherit; background: none; }
 .markdown mark { background: var(--surface-muted); color: inherit; }
 .markdown input[type="checkbox"] { accent-color: var(--title); }
+
+/* Project / friend cards keep their own layout and must not inherit prose decorations. */
+.markdown .entity-card-list {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+.markdown .entity-card p,
+.markdown .entity-card h2,
+.markdown .entity-card h3 {
+  margin: 0;
+}
+.markdown .entity-card-name {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--title);
+}
+.markdown .entity-card-description {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--secondary);
+}
+.markdown .entity-card img:not([hidden]),
+.markdown .entity-card-icon:not([hidden]) {
+  display: block;
+  max-width: none;
+  height: 48px;
+  width: 48px;
+  margin: 0;
+  border-radius: 12px;
+  background: transparent;
+}
+.markdown .entity-card [hidden] {
+  display: none;
+}
+.markdown .entity-card a,
+.markdown .entity-card a:not(:has(img)) {
+  overflow-wrap: normal;
+  word-wrap: normal;
+  white-space: normal;
+  hyphens: manual;
+  word-break: normal;
+  border-bottom: none;
+  padding-bottom: 0;
+  color: inherit;
+}
+.markdown .entity-card a::after,
+.markdown .entity-card a:not(:has(img))::after {
+  content: none;
+  display: none;
+}
+.markdown table:has(.entity-chip) {
+  overflow: visible;
+}
+.markdown .entity-chip-popover .entity-card,
+.markdown .entity-chip-popover .entity-card-name {
+  margin: 0;
+}
+.markdown .entity-chip-popover .entity-card-description {
+  margin-top: 4px;
+}

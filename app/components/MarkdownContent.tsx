@@ -28,6 +28,8 @@ interface MarkdownContentProps {
 }
 
 const EMPTY_IMAGES: ArticleImageMeta[] = [];
+const ENTITY_CHIP_POPOVER_GAP = 8;
+const ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN = 20;
 
 function previewImageFromEvent(target: EventTarget | null): HTMLImageElement | null {
   if (!(target instanceof Element)) return null;
@@ -78,6 +80,51 @@ function previewFieldsFromPostImage(
   };
 }
 
+function alignEntityChipPopovers(root: HTMLElement) {
+  const chips = root.querySelectorAll<HTMLElement>(".entity-chip");
+  if (chips.length === 0) return;
+
+  const box = root.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  const minLeft = Math.max(ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN, box.left);
+  const maxRight = Math.min(
+    window.innerWidth - ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN,
+    box.right,
+  );
+
+  chips.forEach((chip) => {
+    const popover = chip.querySelector<HTMLElement>(".entity-chip-popover");
+    if (!popover) return;
+
+    const chipRect = chip.getBoundingClientRect();
+    const panel = popover.querySelector<HTMLElement>(".entity-chip-popover-panel");
+    const width = panel?.offsetWidth || popover.offsetWidth;
+    const height = panel?.offsetHeight ?? 0;
+    const spaceBelow = viewportHeight - chipRect.bottom - ENTITY_CHIP_POPOVER_GAP;
+    const spaceAbove = chipRect.top - ENTITY_CHIP_POPOVER_GAP;
+    const placeAbove = height > 0 && spaceBelow < height && spaceAbove > spaceBelow;
+
+    let left = 0;
+    const overflowRight = chipRect.left + left + width - maxRight;
+    if (overflowRight > 0) left -= overflowRight;
+    const overflowLeft = minLeft - (chipRect.left + left);
+    if (overflowLeft > 0) left += overflowLeft;
+
+    popover.style.left = `${Math.round(left)}px`;
+    popover.style.right = "auto";
+    popover.style.width = "";
+    popover.style.maxWidth = "";
+
+    if (placeAbove) {
+      popover.style.top = "auto";
+      popover.style.bottom = `calc(100% + ${ENTITY_CHIP_POPOVER_GAP}px)`;
+    } else {
+      popover.style.top = `calc(100% + ${ENTITY_CHIP_POPOVER_GAP}px)`;
+      popover.style.bottom = "auto";
+    }
+  });
+}
+
 export default function MarkdownContent({
   html,
   images: postImages = EMPTY_IMAGES,
@@ -98,7 +145,7 @@ export default function MarkdownContent({
     const imageElements = Array.from(content.querySelectorAll("img"));
 
     imageElements.forEach((image) => {
-      if (image.closest("a")) return;
+      if (image.closest("a, .entity-card, .entity-chip")) return;
 
       const index = previewImages.length;
       const alt = image.alt.trim() || `文章图片 ${index + 1}`;
@@ -122,6 +169,27 @@ export default function MarkdownContent({
     setActiveIndex(null);
   }, [date, html, location, postImages]);
 
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+
+    const align = () => alignEntityChipPopovers(content);
+    align();
+
+    const observer = new ResizeObserver(align);
+    observer.observe(content);
+    content.addEventListener("pointerenter", align, true);
+    content.addEventListener("focusin", align);
+    window.addEventListener("resize", align);
+
+    return () => {
+      observer.disconnect();
+      content.removeEventListener("pointerenter", align, true);
+      content.removeEventListener("focusin", align);
+      window.removeEventListener("resize", align);
+    };
+  }, [html]);
+
   useEffect(() => {
     const content = contentRef.current;
     if (!content) return;
@@ -134,7 +202,7 @@ export default function MarkdownContent({
       image.removeAttribute("tabindex");
       image.removeAttribute("aria-label");
 
-      if (image.closest("a")) return;
+      if (image.closest("a, .entity-card, .entity-chip")) return;
       const previewImage = images[previewIndex];
       if (!previewImage) return;
 
@@ -183,7 +251,7 @@ export default function MarkdownContent({
           if (index === null) return null;
           const previewableImages = Array.from(
             contentRef.current?.querySelectorAll<HTMLImageElement>("img") || [],
-          ).filter((image) => !image.closest("a"));
+          ).filter((image) => !image.closest("a, .entity-card, .entity-chip"));
           return previewableImages[index] || null;
         }}
       />

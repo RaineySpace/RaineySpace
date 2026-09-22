@@ -10,6 +10,8 @@
 - `app/sitemap.xml/route.ts`、`app/robots.txt/route.ts`：搜索引擎入口。
 - `app/llms.txt/route.ts`：允许索引内容的 AI 阅读导航。
 - `lib/posts.ts`：文章读取、frontmatter 归一化、Markdown 渲染、日期格式、文章频道／允许索引内容筛选和 feed 数据逻辑。
+- `lib/registry.mjs`：项目与友链注册表读取、校验字段、排序。
+- `lib/markdown-refs.mjs`：识别 `project:` / `friend:` 链接 title，并生成卡片、行内图标名称、悬停预览和公开 Markdown 展开结果。
 - `lib/seo.ts`：规范网址、页面元数据、JSON-LD、sitemap 条目和 llms.txt 内容。
 - `lib/config.ts`：站点 URL、标题、作者、头像、关键词等全局配置。
 - `scripts/new-post.mjs`：新建文章脚本。
@@ -74,7 +76,7 @@ hidden: true
 
 隐藏文章仍会被静态生成，所以 `/about/` 这类页面可以继续作为独立页面使用。
 
-`hidden` 默认为 `false`，不控制索引或访问权限。摄影和项目的集合成员资格仍与 `hidden` 无关；它们的频道 JSON-LD 与实际展示的条目一致。sitemap 和 `llms.txt` 按独立的 `noindex` 字段筛选，允许索引的隐藏页面也会被列出。
+`hidden` 默认为 `false`，不控制索引或访问权限。摄影集合仍与 `hidden` 无关；项目和友链来自注册表，也不依赖文章引用。它们的频道 JSON-LD 与实际展示的条目一致。sitemap 和 `llms.txt` 按独立的 `noindex` 字段筛选，允许索引的隐藏页面也会被列出。
 
 ## 索引与页头开关
 
@@ -83,9 +85,9 @@ noindex: true
 showHeader: false
 ```
 
-`noindex` 默认为 `false`。设为 `true` 时，HTML 声明 `noindex, follow`，Markdown 原文声明 `X-Robots-Tag: noindex`，同时不进入 sitemap、`llms.txt` 或详情页 JSON-LD；页面仍可直达，文章列表、订阅和摄影／项目集合不因此隐藏。当前只有语法测试页显式设置为 `true`，索引规则不再根据 `test` 目录名判断。不要用 robots.txt 禁止抓取这些页面，否则搜索引擎无法读取索引声明。
+`noindex` 默认为 `false`。设为 `true` 时，HTML 声明 `noindex, follow`，Markdown 原文声明 `X-Robots-Tag: noindex`，同时不进入 sitemap、`llms.txt` 或详情页 JSON-LD；页面仍可直达，文章列表、订阅和摄影集合不因此隐藏。当前只有语法测试页显式设置为 `true`，索引规则不再根据 `test` 目录名判断。不要用 robots.txt 禁止抓取这些页面，否则搜索引擎无法读取索引声明。
 
-`showHeader` 默认为 `true`。设为 `false` 时隐藏自动生成的标题、日期、地点、标签和摘要，但这些数据仍用于 SEO。封面、正文和目录保持原有行为。关于页和测试页填写完整标题与摘要，再通过这个开关保持当前正文起始布局；不需要为它们补造发布日期。
+`showHeader` 默认为 `true`。设为 `false` 时隐藏自动生成的标题、日期、地点、标签和摘要，但这些数据仍用于 SEO。封面、正文和目录保持原有行为。关于页、朋友们页面和测试页填写完整标题与摘要，再通过这个开关保持当前正文起始布局；不需要为它们补造发布日期。
 
 两个字段只接受 YAML 布尔值，字符串 `"false"`、空值和其他类型会使读取、内容校验或响应头生成失败。共享解析位于 `lib/post-options.mjs`。常规新文章模板省略这两个默认开关；完整字段说明见 [内容集合维护](./content-collections.md)。
 
@@ -93,7 +95,7 @@ showHeader: false
 
 首页、文章、摄影、项目和详情页各自提供标题、描述、canonical、Open Graph 与 Twitter 元数据。页面规范网址统一为 `https://rainey.space/` 下带尾斜杠的 HTML 地址；`/articles/?tag=摄影` 等筛选链接的 canonical 始终是 `/articles/`，不额外生成标签索引页。聚合页不声明无法确认的 `lastmod`。
 
-首页提供 `WebSite` 与 `Person`，允许索引的普通内容提供 `BlogPosting`（包括隐藏内容），频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`。`noindex: true` 的详情页不输出 JSON-LD。详情页标题与摘要统一读取 Markdown，包括关于页；作者身份和已公开的个人资料链接来自 `lib/config.ts`。结构化数据只使用实际内容，有明确封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
+首页提供 `WebSite` 与 `Person`，允许索引的普通内容提供 `BlogPosting`（包括隐藏内容），频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`，朋友们页面提供与当前友链一致的 `CollectionPage`。`noindex: true` 的详情页不输出 JSON-LD。详情页标题与摘要统一读取 Markdown，包括关于页和朋友们页面；作者身份和已公开的个人资料链接来自 `lib/config.ts`。结构化数据只使用实际内容，有明确封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
 
 每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。源文件仍是 `public/<slug>/index.md`，构建时发布为 `/<slug>.md`，不维护第二份源文件。发布稿会把 `./cover.webp` 这类相对资源改写成 `/<slug>/cover.webp`，让根路径 Markdown 对搜索引擎和 AI 抓取仍能解析图片；源文件继续使用相对路径。构建后删除 `out/<slug>/index.md`，避免同一篇文章出现两份公开 Markdown。
 
@@ -155,6 +157,8 @@ pnpm validate:content
 - `noindex` 和 `showHeader` 是否为布尔值
 - 本地封面文件是否存在
 - Markdown 本地图片是否存在
+- 项目／友链注册表必填字段、日期、网址、图标路径、重复网址和空注册表
+- Markdown 中已声明的 `project:` / `friend:` 标记是否格式正确、ID 是否存在
 
 缺失图片以当次校验输出为准，发布前应逐项检查 warning。
 
@@ -200,7 +204,7 @@ pnpm deploy:cf
 
 `pnpm test:seo` 检查日期、元数据和结构化数据序列化，通过临时 Markdown 覆盖 `hidden/noindex` 四种组合、新字段默认值与非法类型、非测试页的索引声明、重命名或删除后的响应头清理，以及图片长期缓存和页面校验的匹配范围。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、自动页头与封面、sitemap、feed、Markdown 原文、llms.txt 链接及完整 `_headers` 索引规则；运行前必须完成当前版本的 `pnpm build`。这些脚本复用现有 TypeScript 编译器和 Node.js，不引入浏览器端依赖。
 
-`pnpm verify` 依次执行内容校验、SEO 测试、图片管线及预加载调度测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留、哈希稳定性、同名替换、构建缓存修复、派生文件清理，以及下载字节进度、总大小缺失、流失败、共享请求与 Blob 释放、预加载优先级、并发去重、网络策略、后台暂停和路由清理；产物校验检查静态内链、测试页 noindex、文件内容与哈希的一致性、版本化原图字节、图片候选尺寸、正文占位尺寸、封面灯箱入口及缓存响应头。
+`pnpm verify` 依次执行内容校验、注册表与 Markdown 数据标记测试、SEO 测试、图片管线及预加载调度测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留、哈希稳定性、同名替换、构建缓存修复、派生文件清理，以及下载字节进度、总大小缺失、流失败、共享请求与 Blob 释放、预加载优先级、并发去重、网络策略、后台暂停和路由清理；产物校验检查静态内链、测试页 noindex、文件内容与哈希的一致性、版本化原图字节、图片候选尺寸、正文占位尺寸、封面灯箱入口及缓存响应头。
 
 `pnpm deploy:cf` 和 GitHub Actions 共用 `pnpm verify`，任一步失败都会停止部署。CI 通过 mise-action 读取仓库 `mise.toml` 安装 Node.js 和 pnpm，与本地使用同一版本来源。验证成功后才通过 Wrangler 或现有 Pages action 部署 `out/` 到 Cloudflare Pages。
 

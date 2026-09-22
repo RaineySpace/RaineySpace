@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import HomeLink from "./HomeLink";
 import AboutLink from "./AboutLink";
 import BackButton from "./BackButton";
@@ -8,9 +8,12 @@ import ReadingSettings from "./ReadingSettings";
 
 export default function SiteHeader() {
   const params = useParams<{ slug?: string }>();
+  const pathname = usePathname().replace(/\/+$/, "");
+
+  if (pathname === "/friends" || pathname === "/projects") return null;
 
   return (
-    <header className={`site-header flex min-h-8 items-center justify-between ${params.slug ? "article-back-header xl:hidden" : ""}`}>
+    <header className={`flex min-h-8 items-center justify-between ${params.slug ? "mb-6 xl:hidden" : "mb-8 sm:mb-10"}`}>
       {params.slug ? (
         <>
           <BackButton />

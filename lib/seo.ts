@@ -9,10 +9,11 @@ export interface PageInfo {
 }
 
 export const pages = {
+  friends: { pathname: '/friends/', title: `朋友们 - ${config.title}`, description: 'Rainey 的朋友们' },
   home: { pathname: '/', title: config.title, description: config.description },
-  articles: { pathname: '/articles/', title: `文章 - ${config.title}`, description: 'Rainey 的全部公开文章。' },
-  photography: { pathname: '/photography/', title: `摄影 - ${config.title}`, description: 'Rainey 的摄影记录。' },
-  projects: { pathname: '/projects/', title: `项目 - ${config.title}`, description: 'Rainey 的项目与个人实验。' },
+  articles: { pathname: '/articles/', title: `文章 - ${config.title}`, description: 'Rainey 的全部公开文章' },
+  photography: { pathname: '/photography/', title: `摄影 - ${config.title}`, description: 'Rainey 的摄影记录' },
+  projects: { pathname: '/projects/', title: `项目 - ${config.title}`, description: 'Rainey 的项目与个人实验' },
 } satisfies Record<string, PageInfo>;
 
 export function canonicalUrl(pathname: string): string {
@@ -75,7 +76,7 @@ export function pageMetadata(
 }
 
 export function postMetadata(post: Post): Metadata {
-  const isAbout = post.slug === 'about';
+  const isStandalonePage = post.slug === 'about';
   return {
     ...pageMetadata({
       pathname: postUrl(post.slug),
@@ -84,7 +85,7 @@ export function postMetadata(post: Post): Metadata {
     }, {
       markdown: markdownUrl(post.slug),
       image: post.cover || config.ogImage,
-      ...(!isAbout ? {
+      ...(!isStandalonePage ? {
         article: {
           publishedTime: post.date?.toISOString(),
           modifiedTime: post.updated?.toISOString(),
@@ -191,7 +192,7 @@ export function serializeJsonLd(data: Record<string, unknown>): string {
 
 export function sitemapEntries(posts: readonly Post[]) {
   return [
-    ...[pages.home, pages.articles, pages.photography, pages.projects].map((page) => ({
+    ...[pages.home, pages.articles, pages.photography, pages.projects, pages.friends].map((page) => ({
       loc: canonicalUrl(page.pathname),
       lastmod: undefined as string | undefined,
     })),
@@ -207,7 +208,7 @@ function markdownText(value: string): string {
 }
 
 export function llmsText(posts: readonly Post[]): string {
-  const channels = [pages.home, pages.articles, pages.photography, pages.projects];
+  const channels = [pages.home, pages.articles, pages.photography, pages.projects, pages.friends];
   return [
     `# ${config.title}`,
     '',
