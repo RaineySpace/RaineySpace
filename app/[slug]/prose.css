@@ -568,9 +568,7 @@ html[data-theme="dark"] .markdown strong {
 .markdown .entity-chip [hidden] {
   display: none;
 }
-.markdown .entity-chip-link,
-.markdown .entity-chip a,
-.markdown .entity-chip a:not(:has(img)) {
+.markdown .entity-chip-link {
   overflow-wrap: normal;
   word-wrap: normal;
   white-space: nowrap;
@@ -580,15 +578,14 @@ html[data-theme="dark"] .markdown strong {
   padding-bottom: 0;
   color: inherit;
 }
-.markdown .entity-chip a::after,
-.markdown .entity-chip a:not(:has(img))::after {
+.markdown .entity-chip-link::after {
   content: none;
   display: none;
 }
 .markdown .entity-chip-popover .entity-card,
-.markdown .entity-chip-popover .entity-card p,
-.markdown .entity-chip-popover .entity-card h2,
-.markdown .entity-chip-popover .entity-card h3,
 .markdown .entity-chip-popover .entity-card-name {
   margin: 0;
+}
+.markdown .entity-chip-popover .entity-card-description {
+  margin-top: 4px;
 }

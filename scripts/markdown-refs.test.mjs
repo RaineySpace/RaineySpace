@@ -66,7 +66,7 @@ test("single and collection refs render inline chips or block cards", () => {
   const inlineProject = renderDataRefHtml('最近在做 [小分身](https://xiaofenshen.com "project:xiaofenshen")。', { registries });
   assert.match(inlineProject, /<p>最近在做 <span class="entity-chip">/);
   assert.match(inlineProject, /entity-chip-name">小分身/);
-  assert.match(inlineProject, /entity-chip-popover/);
+  assert.match(inlineProject, /entity-chip-popover-panel/);
   assert.match(inlineProject, /entity-chip-icon" src="https:\/\/xiaofenshen.com\/brand\/xiaofenshen.svg"/);
   assert.doesNotMatch(inlineProject, /entity-card-list/);
   assert.doesNotMatch(inlineProject, /<p><article|<p><div/);
