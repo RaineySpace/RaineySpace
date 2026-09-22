@@ -1,5 +1,5 @@
 {
-  "Season": {
+  "season": {
     "name": "Season",
     "title": "SeasonX",
     "url": "https://seasonx.life/",
@@ -10,7 +10,7 @@
   },
   "AwesomeYang": {
     "name": "AwesomeYang",
-    "title": "老杨的知识荒原 ",
+    "title": "老杨的知识荒原",
     "url": "https://awesomeyang.com/",
     "date": "2026-09-22",
     "description": "在知识的荒原上野蛮生长:编程、出海、AI、效率工具、阅读与生活感想——把实践中学到的写成文章,把想法做成产品。",
