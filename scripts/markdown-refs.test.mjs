@@ -6,6 +6,7 @@ import {
   expandDataRefsInMarkdown,
   parseDataRefTitle,
   renderDataRefHtml,
+  renderEntityCardHtml,
 } from "../lib/markdown-refs.mjs";
 
 const registries = {
@@ -192,6 +193,17 @@ test("unknown or malformed data refs are reported with the source", () => {
     () => renderDataRefHtml('[失踪](https://missing.example "project:missing")', { registries, source: "demo" }),
     /demo: unknown project "missing"/,
   );
+});
+
+test("missing icons show a name initial and failed images keep a hidden fallback", () => {
+  const noIcon = { ...registries.friend[0], image: undefined };
+  const missing = renderEntityCardHtml(noIcon);
+  assert.match(missing, /entity-card-fallback">朋<\/span>/);
+  assert.doesNotMatch(missing, /<img/);
+
+  const withIcon = renderEntityCardHtml(registries.friend[0]);
+  assert.match(withIcon, /onerror="this.hidden=true;this.nextElementSibling.hidden=false"/);
+  assert.match(withIcon, /entity-card-fallback" hidden>朋<\/span>/);
 });
 
 test("plain output uses ordinary links and lists without card markup", () => {
