@@ -16,7 +16,7 @@ import {
 } from './optimized-images';
 import { listPostSlugs, postMarkdownPath } from './post-files.mjs';
 import { loadRegistries } from './registry.mjs';
-import { transformDataRefTokens } from './markdown-refs.mjs';
+import { stripElementsByClass, transformDataRefTokens } from './markdown-refs.mjs';
 
 // 配置 marked 使用 highlight.js
 marked.use(
@@ -298,7 +298,7 @@ function renderMarkdown(
   const registries = options?.registries || loadRegistries();
 
   renderer.heading = (text, level) => {
-    const plainText = stripHtml(String(text));
+    const plainText = stripHtml(stripElementsByClass(String(text), 'entity-chip-popover'));
     if (level === 2 || level === 3) {
       const id = createHeadingId(plainText, counts);
       headings.push({ id, text: plainText, level });

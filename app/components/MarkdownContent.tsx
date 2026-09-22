@@ -98,7 +98,7 @@ export default function MarkdownContent({
     const imageElements = Array.from(content.querySelectorAll("img"));
 
     imageElements.forEach((image) => {
-      if (image.closest("a, .entity-card")) return;
+      if (image.closest("a, .entity-card, .entity-chip")) return;
 
       const index = previewImages.length;
       const alt = image.alt.trim() || `文章图片 ${index + 1}`;
@@ -134,7 +134,7 @@ export default function MarkdownContent({
       image.removeAttribute("tabindex");
       image.removeAttribute("aria-label");
 
-      if (image.closest("a, .entity-card")) return;
+      if (image.closest("a, .entity-card, .entity-chip")) return;
       const previewImage = images[previewIndex];
       if (!previewImage) return;
 
@@ -183,7 +183,7 @@ export default function MarkdownContent({
           if (index === null) return null;
           const previewableImages = Array.from(
             contentRef.current?.querySelectorAll<HTMLImageElement>("img") || [],
-          ).filter((image) => !image.closest("a, .entity-card"));
+          ).filter((image) => !image.closest("a, .entity-card, .entity-chip"));
           return previewableImages[index] || null;
         }}
       />

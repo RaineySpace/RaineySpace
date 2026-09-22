@@ -7,6 +7,7 @@ import {
   parseDataRefTitle,
   renderDataRefHtml,
   renderEntityCardHtml,
+  stripElementsByClass,
 } from "../lib/markdown-refs.mjs";
 
 const registries = {
@@ -61,10 +62,14 @@ test("only declared project and friend titles are data references", () => {
   assert.throws(() => parseDataRefTitle("project:foo:bar"), /invalid data reference title/);
 });
 
-test("single and collection refs render inline or as cards", () => {
+test("single and collection refs render inline chips or block cards", () => {
   const inlineProject = renderDataRefHtml('最近在做 [小分身](https://xiaofenshen.com "project:xiaofenshen")。', { registries });
-  assert.match(inlineProject, /<p>最近在做 <a href="https:\/\/xiaofenshen.com">小分身<\/a>。<\/p>/);
-  assert.doesNotMatch(inlineProject, /entity-card/);
+  assert.match(inlineProject, /<p>最近在做 <span class="entity-chip">/);
+  assert.match(inlineProject, /entity-chip-name">小分身/);
+  assert.match(inlineProject, /entity-chip-popover/);
+  assert.match(inlineProject, /entity-chip-icon" src="https:\/\/xiaofenshen.com\/brand\/xiaofenshen.svg"/);
+  assert.doesNotMatch(inlineProject, /entity-card-list/);
+  assert.doesNotMatch(inlineProject, /<p><article|<p><div/);
 
   const blockProject = renderDataRefHtml('[小分身](https://xiaofenshen.com "project:xiaofenshen")', { registries });
   assert.match(blockProject, /entity-card-list/);
@@ -73,13 +78,15 @@ test("single and collection refs render inline or as cards", () => {
   assert.doesNotMatch(blockProject, /<p><div class="entity-card-list"/);
 
   const inlineAll = renderDataRefHtml('看过 [全部项目](https://rainey.space/projects/ "project:*")。', { registries });
-  assert.match(inlineAll, /<a href="https:\/\/xiaofenshen.com">小分身<\/a>、<a href="https:\/\/www.wefeather.cn">微羽助手<\/a>/);
+  assert.equal([...inlineAll.matchAll(/class="entity-chip"/g)].length, 2);
+  assert.match(inlineAll, /entity-chip-name">小分身<\/span>[\s\S]*、[\s\S]*entity-chip-name">微羽助手/);
 
   const blockAll = renderDataRefHtml('[全部项目](https://rainey.space/projects/ "project:*")', { registries });
   assert.equal([...blockAll.matchAll(/class="entity-card"/g)].length, 2);
 
   const inlineFriend = renderDataRefHtml('去 [朋友的博客](https://example.com "friend:example-blog") 坐坐。', { registries });
-  assert.match(inlineFriend, /<a href="https:\/\/example.com">朋友的博客<\/a>/);
+  assert.match(inlineFriend, /entity-chip-name">朋友的博客/);
+  assert.match(inlineFriend, /entity-chip-popover/);
 
   const blockFriend = renderDataRefHtml('[朋友的博客](https://example.com "friend:example-blog")', { registries });
   assert.match(blockFriend, /entity-card-name">朋友的博客/);
@@ -92,6 +99,7 @@ test("single and collection refs render inline or as cards", () => {
 test("empty collections keep an inline entry and show a short block empty state", () => {
   const inline = renderDataRefHtml('去 [朋友们](https://rainey.space/friends/ "friend:*") 看看。', { registries: emptyFriends });
   assert.match(inline, /<a href="https:\/\/rainey.space\/friends\/">朋友们<\/a>/);
+  assert.doesNotMatch(inline, /entity-chip/);
   assert.doesNotMatch(inline, /暂时还没有添加朋友/);
 
   const block = renderDataRefHtml('[朋友们](https://rainey.space/friends/ "friend:*")', { registries: emptyFriends });
@@ -101,14 +109,14 @@ test("empty collections keep an inline entry and show a short block empty state"
 
 test("line breaks stay inline, isolated paragraphs become cards", () => {
   const wrapped = renderDataRefHtml('[小分身](https://xiaofenshen.com "project:xiaofenshen")\n还在同一段', { registries });
-  assert.match(wrapped, /<p><a href="https:\/\/xiaofenshen.com">小分身<\/a>/);
-  assert.doesNotMatch(wrapped, /entity-card/);
+  assert.match(wrapped, /<p><span class="entity-chip">/);
+  assert.doesNotMatch(wrapped, /entity-card-list/);
 
   const isolated = renderDataRefHtml('前文\n\n[小分身](https://xiaofenshen.com "project:xiaofenshen")\n\n后文', { registries });
   assert.match(isolated, /entity-card-list/);
 });
 
-test("headings, lists, quotes and tables keep inline refs", () => {
+test("headings, lists, quotes and tables keep inline chips", () => {
   const html = renderDataRefHtml([
     '## [小分身](https://xiaofenshen.com "project:xiaofenshen")',
     "",
@@ -122,11 +130,12 @@ test("headings, lists, quotes and tables keep inline refs", () => {
     "",
   ].join("\n"), { registries });
 
-  assert.match(html, /<h2.*>.*<a href="https:\/\/xiaofenshen.com">小分身<\/a>/);
-  assert.match(html, /<li>.*<a href="https:\/\/xiaofenshen.com">小分身<\/a>/);
-  assert.match(html, /<blockquote>[\s\S]*<a href="https:\/\/xiaofenshen.com">小分身<\/a>/);
-  assert.match(html, /<td>.*<a href="https:\/\/xiaofenshen.com">小分身<\/a>/);
-  assert.doesNotMatch(html, /entity-card/);
+  assert.match(html, /<h2.*>[\s\S]*entity-chip-name">小分身/);
+  assert.match(html, /<li>[\s\S]*entity-chip-name">小分身/);
+  assert.match(html, /<blockquote>[\s\S]*entity-chip-name">小分身/);
+  assert.match(html, /<td>[\s\S]*entity-chip-name">小分身/);
+  assert.doesNotMatch(html, /entity-card-list/);
+  assert.equal(stripElementsByClass(html.match(/<h2[\s\S]*?<\/h2>/)[0], "entity-chip-popover").includes("训练一个"), false);
 });
 
 test("reference links work, while code and escaped text stay literal", () => {
@@ -213,5 +222,12 @@ test("plain output uses ordinary links and lists without card markup", () => {
   });
   assert.match(html, /<ul>/);
   assert.match(html, /<a href="https:\/\/xiaofenshen.com">小分身<\/a>：训练一个会越来越像你的写手分身。/);
-  assert.doesNotMatch(html, /entity-card/);
+  assert.doesNotMatch(html, /entity-card|entity-chip/);
+
+  const inline = renderDataRefHtml('最近在做 [小分身](https://xiaofenshen.com "project:xiaofenshen")。', {
+    registries,
+    format: "plain",
+  });
+  assert.match(inline, /<p>最近在做 <a href="https:\/\/xiaofenshen.com">小分身<\/a>。<\/p>/);
+  assert.doesNotMatch(inline, /entity-chip|entity-card/);
 });
