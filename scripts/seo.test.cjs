@@ -67,7 +67,7 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   assert.equal(about.openGraph.type, 'website');
   const friendsPage = seo.pageMetadata(seo.pages.friends);
   assert.equal(friendsPage.title, "朋友们 - Rainey's Blog");
-  assert.equal(friendsPage.description, '去朋友那里坐坐。');
+  assert.equal(friendsPage.description, 'Rainey 的朋友们');
   assert.equal(friendsPage.openGraph.type, 'website');
   assert.equal(about.openGraph.images, 'https://rainey.space/og.jpg');
   assert.equal(about.robots, undefined);
@@ -109,7 +109,7 @@ test('structured data uses real content and safely handles a script-closing titl
   const friends = seo.collectionJsonLd(seo.pages.friends, loadEntities('friend').map((friend) => ({ url: friend.url, name: friend.title, description: friend.description })));
   assert.equal(friends['@type'], 'CollectionPage');
   assert.equal(friends.name, "朋友们 - Rainey's Blog");
-  assert.equal(friends.description, '去朋友那里坐坐。');
+  assert.equal(friends.description, 'Rainey 的朋友们');
   const registeredFriends = loadEntities('friend');
   assert.equal(friends.mainEntity.numberOfItems, registeredFriends.length);
   assert.deepEqual(friends.mainEntity.itemListElement.map((item) => item.name), registeredFriends.map((item) => item.title));
