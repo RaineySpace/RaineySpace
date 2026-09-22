@@ -6,32 +6,22 @@ import exifr from "exifr";
 import { parseUpdatedDate } from "../lib/post-dates.mjs";
 import { parsePostOptions } from "../lib/post-options.mjs";
 import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.mjs";
+import { collectDataRefErrors } from "../lib/markdown-refs.mjs";
+import { parseRegistry, PROJECT_KIND, FRIEND_KIND, readRegistryJson, registryFile } from "../lib/registry.mjs";
 
 const publicDir = path.join(process.cwd(), "public");
-const projectsPath = path.join(process.cwd(), "content", "projects.json");
 const requiredFields = ["title", "date", "summary"];
 const booleanFields = ["hidden", "pinned", "photography"];
 const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "_optimized", "llms.txt", "robots.txt", "sitemap.xml", "rss.xml", "atom.xml"]);
 const exifExtensions = new Set([".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".heic"]);
 const deprecatedProjectFields = [
+  "projectId",
   "project",
   "projectUrl",
   "projectName",
   "projectDescription",
   "projectCover",
 ];
-const allowedProjectFields = new Set([
-  "name",
-  "url",
-  "date",
-  "description",
-  "cover",
-  "pinned",
-]);
-
-function isDateText(value) {
-  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim()) && isValidDate(value);
-}
 
 function isLocalReference(value) {
   return value && !/^(https?:)?\/\//.test(value) && !value.startsWith("data:");
@@ -41,52 +31,6 @@ function isValidDate(value) {
   if (!value) return false;
   const date = value instanceof Date ? value : new Date(String(value));
   return !Number.isNaN(date.getTime());
-}
-
-function isHttpUrl(value) {
-  try {
-    const url = new URL(String(value));
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isHttpsUrl(value) {
-  try {
-    return new URL(String(value)).protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isPlainObject(value) {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function normalizeProjectUrl(value) {
-  if (!isHttpUrl(value)) return null;
-  const url = new URL(String(value));
-  url.hash = "";
-  if (url.pathname !== "/") url.pathname = url.pathname.replace(/\/+$/, "");
-  return url.toString();
-}
-
-function resolvePublicAsset(value) {
-  const href = String(value).trim().split(/[?#]/, 1)[0];
-  if (!href.startsWith("/") || href.startsWith("//") || href.includes("\\")) return null;
-
-  let decodedHref;
-  try {
-    decodedHref = decodeURIComponent(href);
-  } catch {
-    return null;
-  }
-
-  if (decodedHref.includes("\\") || decodedHref.split("/").includes("..")) return null;
-  const normalized = path.posix.normalize(decodedHref);
-  if (normalized === "/" || !normalized.startsWith("/")) return null;
-  return path.join(publicDir, normalized.slice(1));
 }
 
 function normalizeRelativeImagePath(value) {
@@ -177,82 +121,23 @@ async function hasCaptureTime(filePath) {
   }
 }
 
-async function validateProjectRegistry(errors) {
-  let registry;
+async function validateRegistry(kind, errors) {
+  let parsed;
   try {
-    registry = JSON.parse(await fs.readFile(projectsPath, "utf8"));
+    const { file, value } = readRegistryJson(kind);
+    parsed = parseRegistry(kind, value, { file, publicDir });
   } catch (error) {
-    errors.push(`content/projects.json: cannot be read as JSON (${error.message})`);
-    return new Set();
+    errors.push(error.message);
+    return [];
   }
 
-  if (!isPlainObject(registry)) {
-    errors.push("content/projects.json: root value must be an object keyed by project ID");
-    return new Set();
-  }
-
-  const projectIds = new Set(Object.keys(registry));
-  const urls = new Map();
-
-  for (const [projectId, definition] of Object.entries(registry)) {
-    const prefix = `content/projects.json:${projectId}`;
-    if (!projectId.trim()) errors.push(`${prefix}: project ID must not be empty`);
-    if (!isPlainObject(definition)) {
-      errors.push(`${prefix}: project definition must be an object`);
-      continue;
-    }
-
-    for (const field of Object.keys(definition)) {
-      if (!allowedProjectFields.has(field)) errors.push(`${prefix}: unknown field "${field}"`);
-    }
-
-    for (const field of ["name", "url"]) {
-      if (typeof definition[field] !== "string" || !definition[field].trim()) {
-        errors.push(`${prefix}: "${field}" must be a non-empty string`);
-      }
-    }
-
-    if (!isDateText(definition.date)) {
-      errors.push(`${prefix}: "date" must be a YYYY-MM-DD date`);
-    }
-
-    if (typeof definition.url === "string" && definition.url.trim()) {
-      const normalizedUrl = normalizeProjectUrl(definition.url);
-      if (!normalizedUrl) {
-        errors.push(`${prefix}: invalid HTTP(S) url "${definition.url}"`);
-      } else if (urls.has(normalizedUrl)) {
-        errors.push(`${prefix}: url duplicates project "${urls.get(normalizedUrl)}"`);
-      } else {
-        urls.set(normalizedUrl, projectId);
-      }
-    }
-
-    if (
-      definition.description !== undefined &&
-      (typeof definition.description !== "string" || !definition.description.trim())
-    ) {
-      errors.push(`${prefix}: "description" must be a non-empty string when provided`);
-    }
-
-    if (definition.cover !== undefined) {
-      if (typeof definition.cover !== "string" || !definition.cover.trim()) {
-        errors.push(`${prefix}: "cover" must be a non-empty string when provided`);
-      } else if (!isHttpsUrl(definition.cover)) {
-        const coverPath = resolvePublicAsset(definition.cover);
-        if (!coverPath) {
-          errors.push(`${prefix}: cover must be an HTTPS URL or a site-absolute public path`);
-        } else if (!(await exists(coverPath))) {
-          errors.push(`${prefix}: missing cover asset ${definition.cover}`);
-        }
-      }
-    }
-
-    if (definition.pinned !== undefined && typeof definition.pinned !== "boolean") {
-      errors.push(`${prefix}: "pinned" must be a boolean`);
+  errors.push(...parsed.errors);
+  for (const asset of parsed.localImages) {
+    if (!(await exists(asset.path))) {
+      errors.push(`${registryFile(kind)}:${asset.id}: missing ${asset.field} asset ${asset.value}`);
     }
   }
-
-  return projectIds;
+  return parsed.entities;
 }
 
 async function main() {
@@ -260,10 +145,10 @@ async function main() {
   const seen = new Set();
   const errors = [];
   const warnings = [];
-  const projectIds = await validateProjectRegistry(errors);
-  const referencedProjectIds = new Set();
+  const projects = await validateRegistry(PROJECT_KIND, errors);
+  const friends = await validateRegistry(FRIEND_KIND, errors);
+  const registries = { project: projects, friend: friends };
   let photographyCount = 0;
-  let projectArticleCount = 0;
   let photoCount = 0;
 
   for (const slug of slugs) {
@@ -285,7 +170,7 @@ async function main() {
     } catch (error) {
       errors.push(`${slug}: ${error.message}`);
     }
-    const participatesInAList = !data.hidden || data.photography === true || data.projectId !== undefined;
+    const participatesInAList = !data.hidden || data.photography === true;
 
     if (participatesInAList) {
       for (const field of requiredFields) {
@@ -301,21 +186,12 @@ async function main() {
 
     for (const field of deprecatedProjectFields) {
       if (data[field] !== undefined) {
-        errors.push(`${slug}: frontmatter "${field}" is deprecated; reference a registered project with "projectId"`);
+        errors.push(`${slug}: frontmatter "${field}" is deprecated`);
       }
     }
 
-    if (data.projectId !== undefined) {
-      if (typeof data.projectId !== "string" || !data.projectId.trim()) {
-        errors.push(`${slug}: frontmatter "projectId" must be a non-empty string`);
-      } else {
-        const projectId = data.projectId.trim();
-        projectArticleCount += 1;
-        referencedProjectIds.add(projectId);
-        if (!projectIds.has(projectId)) {
-          errors.push(`${slug}: unknown projectId "${projectId}"`);
-        }
-      }
+    for (const error of collectDataRefErrors(content, registries)) {
+      errors.push(`${slug}: ${error}`);
     }
 
     if (data.date && !isValidDate(data.date)) errors.push(`${slug}: invalid date "${data.date}"`);
@@ -388,12 +264,6 @@ async function main() {
     }
   }
 
-  for (const projectId of projectIds) {
-    if (!referencedProjectIds.has(projectId)) {
-      errors.push(`content/projects.json:${projectId}: project is not referenced by any post`);
-    }
-  }
-
   warnings.forEach((warning) => console.warn(`WARN ${warning}`));
   if (errors.length > 0) {
     errors.forEach((error) => console.error(`ERROR ${error}`));
@@ -401,7 +271,7 @@ async function main() {
   }
 
   console.log(
-    `Content validation passed for ${slugs.length} posts, ${photographyCount} photography posts (${photoCount} photos), and ${projectIds.size} projects referenced by ${projectArticleCount} posts with ${warnings.length} warning(s).`,
+    `Content validation passed for ${slugs.length} posts, ${photographyCount} photography posts (${photoCount} photos), ${projects.length} projects, and ${friends.length} friends with ${warnings.length} warning(s).`,
   );
 }
 

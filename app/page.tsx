@@ -8,6 +8,7 @@ import { getAboutContent, getListedPosts } from '@/lib/posts';
 import { getFeaturedProjects } from '@/lib/projects';
 import JsonLd from '@/app/components/JsonLd';
 import { homeJsonLd, pageMetadata, pages } from '@/lib/seo';
+import Link from 'next/link';
 import './[slug]/prose.css';
 
 export const metadata = pageMetadata(pages.home);
@@ -42,6 +43,12 @@ export default async function Home() {
       <HomeSection id="projects" title="项目" href="/projects" linkLabel="全部项目" description="做过的产品、工具与个人实验">
         <ProjectList projects={featuredProjects} />
       </HomeSection>
+
+      <footer className="home-footer">
+        <Link href="/about/">关于我</Link>
+        {' / '}
+        <Link href="/friends/">朋友们</Link>
+      </footer>
     </div>
   );
 }

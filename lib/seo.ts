@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import * as config from './config';
 import type { Post } from './posts';
+import { loadEntities } from './registry.mjs';
 
 export interface PageInfo {
   pathname: string;
@@ -75,7 +76,7 @@ export function pageMetadata(
 }
 
 export function postMetadata(post: Post): Metadata {
-  const isAbout = post.slug === 'about';
+  const isStandalonePage = post.slug === 'about' || post.slug === 'friends';
   return {
     ...pageMetadata({
       pathname: postUrl(post.slug),
@@ -84,7 +85,7 @@ export function postMetadata(post: Post): Metadata {
     }, {
       markdown: markdownUrl(post.slug),
       image: post.cover || config.ogImage,
-      ...(!isAbout ? {
+      ...(!isStandalonePage ? {
         article: {
           publishedTime: post.date?.toISOString(),
           modifiedTime: post.updated?.toISOString(),
@@ -140,6 +141,17 @@ export function postJsonLd(post: Post): Record<string, unknown> | null {
       mainEntity: authorJsonLd(),
       inLanguage: 'zh-CN',
     };
+  }
+  if (post.slug === 'friends') {
+    return collectionJsonLd({
+      pathname: postUrl(post.slug),
+      title: `${post.title} - ${config.title}`,
+      description: post.summary || config.description,
+    }, loadEntities('friend').map((friend) => ({
+      url: friend.url,
+      name: friend.name,
+      description: friend.description,
+    })));
   }
   return {
     '@context': 'https://schema.org',

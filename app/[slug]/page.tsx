@@ -7,8 +7,6 @@ import JsonLd from '@/app/components/JsonLd';
 import TableOfContents from './TableOfContents';
 import MarkdownContent from '@/app/components/MarkdownContent';
 import PostCover from '@/app/components/PostCover';
-import ProjectCard from '@/app/components/ProjectCard';
-import { getProjectById } from '@/lib/projects';
 
 export async function generateMetadata({
   params,
@@ -30,7 +28,6 @@ export default async function PostPage({
   params: { slug: string };
 }) {
   const post = await getPostBySlug(decodeURIComponent(params.slug));
-  const project = getProjectById(post.projectId);
   // Photography covers are share/OG only; album pages keep the gallery-first layout.
   const showCover = Boolean(post.coverDisplaySrc && !post.photography);
 
@@ -78,11 +75,6 @@ export default async function PostPage({
           date={post.photography ? post.dateText : undefined}
         />
       </article>
-      {project && (
-        <aside aria-label={`关于项目：${project.name}`} className="mt-10">
-          <ProjectCard project={project} headingLevel="h2" />
-        </aside>
-      )}
     </div>
   );
 }

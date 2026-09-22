@@ -64,6 +64,10 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   assert.equal(about.title, "自定义关于页 - Rainey's Blog");
   assert.equal(about.description, '关于页摘要');
   assert.equal(about.openGraph.type, 'website');
+  const friendsPage = seo.postMetadata(post({ slug: 'friends', title: '朋友们', summary: '去朋友那里坐坐。', hidden: true, showHeader: false }));
+  assert.equal(friendsPage.title, "朋友们 - Rainey's Blog");
+  assert.equal(friendsPage.description, '去朋友那里坐坐。');
+  assert.equal(friendsPage.openGraph.type, 'website');
   assert.equal(about.openGraph.images, 'https://rainey.space/og.jpg');
   assert.equal(about.robots, undefined);
   assert.equal(seo.postMetadata(post({ slug: 'test', hidden: true })).robots, undefined);
@@ -101,6 +105,11 @@ test('structured data uses real content and safely handles a script-closing titl
   assert.equal(about['@type'], 'AboutPage');
   assert.equal(about.name, "作者介绍 - Rainey's Blog");
   assert.equal(about.description, '自定义摘要');
+  const friends = seo.postJsonLd(post({ slug: 'friends', hidden: true, title: '朋友们', summary: '去朋友那里坐坐。', date: null, dateText: '' }));
+  assert.equal(friends['@type'], 'CollectionPage');
+  assert.equal(friends.name, "朋友们 - Rainey's Blog");
+  assert.equal(friends.description, '去朋友那里坐坐。');
+  assert.equal(friends.mainEntity.numberOfItems, 0);
   assert.equal(JSON.parse(seo.serializeJsonLd(seo.postJsonLd(post()))).dateModified, undefined);
   const items = [{ url: 'https://example.com/', name: '项目' }, { url: seo.postUrl('hidden-album'), name: '摄影' }];
   const collection = seo.collectionJsonLd(seo.pages.projects, items).mainEntity;
@@ -135,6 +144,7 @@ async function withContentFixture(run) {
   try {
     for (const name of ['public', 'content', 'out']) await fs.mkdir(path.join(directory, name));
     await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
+    await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
     process.chdir(directory);
     await run(directory);
   } finally {
@@ -263,6 +273,7 @@ test('content reader and CLI both enforce updated on real Markdown fixtures', as
     await fs.mkdir(path.join(directory, 'public', 'sample'), { recursive: true });
     await fs.mkdir(path.join(directory, 'content'));
     await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
+    await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
     process.chdir(directory);
     for (const [updated, error] of [['2024-02-29', null], ['2024-02-30', /valid YYYY-MM-DD/], ['2024-01-31', /earlier than/]]) {
       await fs.writeFile(path.join(directory, 'public/sample/index.md'), `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);

@@ -101,6 +101,16 @@ async function main() {
       assert.equal(data[0].name, expected.title);
       assert.equal(data[0].description, post.summary || undefined);
     }
+    else if (post.slug === 'friends') {
+      assert.equal(data.length, 1);
+      assert.equal(data[0]['@type'], 'CollectionPage');
+      assert.equal(data[0].name, expected.title);
+      assert.equal(data[0].description, post.summary || undefined);
+      const friends = JSON.parse(await fs.readFile('content/friends.json', 'utf8'));
+      const items = data[0].mainEntity.itemListElement;
+      assert.equal(data[0].mainEntity.numberOfItems, items.length);
+      assert.deepEqual(items.map((item) => item.url).sort(), Object.values(friends).map((friend) => friend.url).sort());
+    }
     else {
       assert.equal(data.length, 1);
       assert.equal(data[0]['@type'], 'BlogPosting');
@@ -140,6 +150,29 @@ async function main() {
     assert.doesNotMatch(published, /!?\[[^\]]*\]\(\.\//, `${post.slug}: published Markdown still uses relative destinations`);
   }
 
+  const home = await read('index.html');
+  const homeBody = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+  const homeLinks = tags(homeBody, 'a').map((tag) => tag.href);
+  assert.ok(homeLinks.some((href) => href === '/about/' || href.endsWith('/about/')), 'home footer missing /about/');
+  assert.ok(homeLinks.some((href) => href === '/friends/' || href.endsWith('/friends/')), 'home footer missing /friends/');
+  assert.ok(homeBody.includes('关于我'));
+  assert.ok(homeBody.includes('朋友们'));
+  assert.doesNotMatch(homeBody, /id="friends"/);
+
+  for (const slug of ['xiaofenshen', 'wefeather-copilot']) {
+    await assert.rejects(fs.access(path.join(output, slug, 'index.html')), { code: 'ENOENT' }, `deleted post still exported: ${slug}`);
+    await assert.rejects(fs.access(path.join(output, `${slug}.md`)), { code: 'ENOENT' }, `deleted Markdown still exported: ${slug}`);
+    await assert.rejects(fs.access(path.join(output, slug, 'cover.webp')), { code: 'ENOENT' }, `deleted cover still exported: ${slug}`);
+  }
+
+  const friendsHtml = await read('friends/index.html');
+  assert.doesNotMatch(friendsHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, ''), /friend:\*|project:/);
+  assert.match(friendsHtml, /暂时还没有添加朋友。/);
+
+  const friendsMarkdown = await read('friends.md');
+  assert.doesNotMatch(friendsMarkdown, /"(project|friend):/);
+  assert.match(friendsMarkdown, /暂时还没有添加朋友。/);
+
   const sitemap = await read('sitemap.xml');
   const entries = Array.from(sitemap.matchAll(/<url>([\s\S]*?)<\/url>/g), (match) => ({
     url: decode(match[1].match(/<loc>(.*?)<\/loc>/)?.[1] || ''),
@@ -164,6 +197,12 @@ async function main() {
   for (const post of posts.filter((post) => post.noindex)) assert.ok(!links.includes(postUrl(post.slug)) && !links.includes(markdownUrl(post.slug)), `${post.slug}: noindex entry in llms.txt`);
   assert.ok(llms.includes('## 内容'));
   assert.ok(llms.includes('不允许将内容用于模型训练'));
+  assert.ok(sitemap.includes(postUrl('friends')));
+  assert.ok(!sitemap.includes(postUrl('xiaofenshen')));
+  assert.ok(!sitemap.includes(postUrl('wefeather-copilot')));
+  assert.ok(llms.includes(markdownUrl('friends')));
+  assert.ok(!llms.includes(markdownUrl('xiaofenshen')));
+  assert.ok(!llms.includes(markdownUrl('wefeather-copilot')));
 
   const robots = await read('robots.txt');
   assert.match(robots, /Content-Signal: search=yes, ai-input=yes, ai-train=no/);
@@ -183,6 +222,10 @@ async function main() {
     for (const post of listedPosts) assert.ok(xml.includes(postUrl(post.slug)), `${feed}: missing ${post.slug}`);
     const ids = Array.from(xml.matchAll(/<(?:id|guid)(?:\s[^>]*)?>([^<]+)<\/(?:id|guid)>/g), (match) => match[1]);
     for (const post of posts.filter((post) => post.hidden)) assert.ok(!ids.includes(postUrl(post.slug)), `${feed}: hidden entry ${post.slug}`);
+    assert.doesNotMatch(xml, /entity-card/);
+    assert.doesNotMatch(xml, /"(project|friend):/);
+    assert.ok(!xml.includes('/xiaofenshen/'), `${feed}: deleted xiaofenshen`);
+    assert.ok(!xml.includes('/wefeather-copilot/'), `${feed}: deleted wefeather-copilot`);
   }
   console.log(`SEO validation passed for ${posts.length + 4} HTML pages, ${indexablePosts.length} indexable Markdown entries, sitemap, feeds, robots.txt and _headers.`);
 }
