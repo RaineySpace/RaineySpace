@@ -29,7 +29,7 @@ interface MarkdownContentProps {
 
 const EMPTY_IMAGES: ArticleImageMeta[] = [];
 const ENTITY_CHIP_POPOVER_GAP = 8;
-const ENTITY_CARD_BLEED = 12;
+const ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN = 20;
 
 function previewImageFromEvent(target: EventTarget | null): HTMLImageElement | null {
   if (!(target instanceof Element)) return null;
@@ -85,8 +85,12 @@ function alignEntityChipPopovers(root: HTMLElement) {
   if (chips.length === 0) return;
 
   const box = root.getBoundingClientRect();
-  const width = Math.max(0, Math.round(box.width + ENTITY_CARD_BLEED * 2));
   const viewportHeight = window.innerHeight;
+  const minLeft = Math.max(ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN, box.left);
+  const maxRight = Math.min(
+    window.innerWidth - ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN,
+    box.right,
+  );
 
   chips.forEach((chip) => {
     const popover = chip.querySelector<HTMLElement>(".entity-chip-popover");
@@ -94,15 +98,22 @@ function alignEntityChipPopovers(root: HTMLElement) {
 
     const chipRect = chip.getBoundingClientRect();
     const panel = popover.querySelector<HTMLElement>(".entity-chip-popover-panel");
+    const width = panel?.offsetWidth || popover.offsetWidth;
     const height = panel?.offsetHeight ?? 0;
     const spaceBelow = viewportHeight - chipRect.bottom - ENTITY_CHIP_POPOVER_GAP;
     const spaceAbove = chipRect.top - ENTITY_CHIP_POPOVER_GAP;
     const placeAbove = height > 0 && spaceBelow < height && spaceAbove > spaceBelow;
 
-    popover.style.left = `${Math.round(box.left - chipRect.left - ENTITY_CARD_BLEED)}px`;
-    popover.style.width = `${width}px`;
+    let left = 0;
+    const overflowRight = chipRect.left + left + width - maxRight;
+    if (overflowRight > 0) left -= overflowRight;
+    const overflowLeft = minLeft - (chipRect.left + left);
+    if (overflowLeft > 0) left += overflowLeft;
+
+    popover.style.left = `${Math.round(left)}px`;
     popover.style.right = "auto";
-    popover.style.maxWidth = "none";
+    popover.style.width = "";
+    popover.style.maxWidth = "";
 
     if (placeAbove) {
       popover.style.top = "auto";
