@@ -4,18 +4,21 @@ import PhotoGallery from '@/app/components/PhotoGallery';
 import PostCard from '@/app/components/PostCard';
 import { author } from '@/lib/config';
 import { getFeaturedPhotos } from '@/lib/photography';
+import { getProjects } from '@/lib/projects';
 import { getAboutContent, getListedPosts } from '@/lib/posts';
 import JsonLd from '@/app/components/JsonLd';
 import { homeJsonLd, pageMetadata, pages } from '@/lib/seo';
+import ProjectList from '@/app/components/ProjectList';
 import './[slug]/prose.css';
 
 export const metadata = pageMetadata(pages.home);
 
 export default async function Home() {
-  const [aboutContent, posts, featuredPhotos] = await Promise.all([
+  const [aboutContent, posts, featuredPhotos, projects] = await Promise.all([
     getAboutContent(),
     getListedPosts(),
     getFeaturedPhotos(6),
+    getProjects(),
   ]);
 
   // 抵消共享 layout 的底部留白，保持首页页脚的位置与页面总高度。
@@ -36,6 +39,10 @@ export default async function Home() {
 
       <HomeSection id="photography" title="凝固时间" href="/photography" linkLabel="全部摄影" description="留下日常里偶然遇见的光">
         <PhotoGallery photos={featuredPhotos} variant="strip" />
+      </HomeSection>
+
+      <HomeSection id="projects" title="做点东西" href="/projects" linkLabel="全部项目" description="把一些想法，慢慢变成真的">
+        <ProjectList projects={projects} />
       </HomeSection>
 
       <footer className="flex h-8 flex-wrap items-center justify-between border-t border-dashed border-[--border] text-sm leading-[var(--lh-body)] text-[--muted] sm:h-12">
