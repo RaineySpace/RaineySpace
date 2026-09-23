@@ -4,13 +4,41 @@ import {
   entityTitle,
   escapeEntityHtml as escapeHtml,
   renderEntityHtml,
-} from "./entity-rendering.mjs";
+} from "./entity-rendering.ts";
 
-export { emptyCollectionMessage } from "./entity-rendering.mjs";
+export { emptyCollectionMessage } from "./entity-rendering.ts";
+
+import type { Entity, EntityKind } from "./entities.ts";
+import type { loadRegistries } from "./registry.ts";
+
+type Registries = ReturnType<typeof loadRegistries>;
+interface DataRef { kind: EntityKind; id: string }
+interface ResolvedDataRef extends DataRef { items: Entity[] }
+// A mutable view of marked tokens: a data reference is rewritten into an HTML token.
+interface MutableToken {
+  type: string;
+  raw: string;
+  text?: string;
+  href?: string;
+  title?: string | null;
+  tokens?: MutableToken[];
+  items?: MutableToken[];
+  header?: { tokens?: MutableToken[] }[];
+  rows?: { tokens?: MutableToken[] }[][];
+  pre?: boolean;
+  block?: boolean;
+}
+interface RefOptions {
+  registries: Registries;
+  format?: "card" | "plain";
+  source?: string;
+  blockAllowed?: boolean;
+}
+interface Replacement { raw: string; next: string }
 
 const DATA_REF_TITLE = /^(project|friend):(\*|[^\s:]+)$/;
 
-export function parseDataRefTitle(title) {
+export function parseDataRefTitle(title: unknown): DataRef | null {
   if (title == null || title === "") return null;
   const trimmed = String(title).trim();
   if (!trimmed.startsWith("project:") && !trimmed.startsWith("friend:")) return null;
@@ -18,10 +46,10 @@ export function parseDataRefTitle(title) {
   if (!match) {
     throw new Error(`invalid data reference title "${title}"`);
   }
-  return { kind: match[1], id: match[2] };
+  return { kind: match[1] as EntityKind, id: match[2] };
 }
 
-export function resolveDataRef(ref, registries) {
+export function resolveDataRef(ref: DataRef, registries: Registries): ResolvedDataRef {
   const list = registries[ref.kind] || [];
   if (ref.id === "*") return { ...ref, items: list };
   const item = list.find((entity) => entity.id === ref.id);
@@ -29,11 +57,11 @@ export function resolveDataRef(ref, registries) {
   return { ...ref, items: [item] };
 }
 
-function escapeMarkdownLinkText(value) {
+function escapeMarkdownLinkText(value: string) {
   return String(value).replace(/\\/g, "\\\\").replace(/\[/g, "\\[").replace(/\]/g, "\\]");
 }
 
-function withSource(source, error) {
+function withSource(source: string | undefined, error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   if (source && !message.startsWith(`${source}:`)) {
     return new Error(`${source}: ${message}`);
@@ -41,15 +69,15 @@ function withSource(source, error) {
   return error instanceof Error ? error : new Error(message);
 }
 
-function isInsignificantInline(token) {
+function isInsignificantInline(token: MutableToken) {
   if (!token) return true;
   if (token.type === "space" || token.type === "br") return true;
   if (token.type === "text" && !String(token.text).replace(/\s/g, "")) return true;
   return false;
 }
 
-export function getSoleDataRefLink(paragraph) {
-  let link = null;
+export function getSoleDataRefLink(paragraph: MutableToken) {
+  let link: MutableToken | null = null;
   for (const token of paragraph.tokens || []) {
     if (isInsignificantInline(token)) continue;
     if (token.type !== "link") return null;
@@ -61,7 +89,7 @@ export function getSoleDataRefLink(paragraph) {
   return link;
 }
 
-function visitChildTokenLists(token, visit) {
+function visitChildTokenLists(token: MutableToken, visit: (tokens: MutableToken[]) => void) {
   if (Array.isArray(token.tokens)) visit(token.tokens);
   if (Array.isArray(token.items)) {
     for (const item of token.items) visitChildTokenLists(item, visit);
@@ -76,17 +104,17 @@ function visitChildTokenLists(token, visit) {
   }
 }
 
-export function collectDataRefErrors(content, registries) {
-  const errors = [];
+export function collectDataRefErrors(content: string, registries: Registries) {
+  const errors: string[] = [];
 
-  const visit = (tokens) => {
+  const visit = (tokens: MutableToken[]) => {
     for (const token of tokens || []) {
       if (token.type === "link") {
         try {
           const ref = parseDataRefTitle(token.title);
           if (ref) resolveDataRef(ref, registries);
         } catch (error) {
-          errors.push(error.message);
+          errors.push((error instanceof Error ? error.message : String(error)));
         }
         continue;
       }
@@ -98,7 +126,7 @@ export function collectDataRefErrors(content, registries) {
   return errors;
 }
 
-export function stripElementsByClass(html, className) {
+export function stripElementsByClass(html: string, className: string) {
   const openPattern = new RegExp(`<([a-zA-Z][\\w-]*)\\b[^>]*\\b${className}\\b[^>]*>`);
   let output = String(html);
   for (;;) {
@@ -134,7 +162,7 @@ export function stripElementsByClass(html, className) {
   return output;
 }
 
-function renderInlineMarkdown(resolved, token) {
+function renderInlineMarkdown(resolved: ResolvedDataRef, token: MutableToken) {
   if (resolved.id === "*" && resolved.items.length === 0) {
     return `[${token.text}](${token.href})`;
   }
@@ -143,7 +171,7 @@ function renderInlineMarkdown(resolved, token) {
     .join("、");
 }
 
-function renderBlockMarkdown(resolved) {
+function renderBlockMarkdown(resolved: ResolvedDataRef) {
   if (resolved.items.length === 0) return emptyCollectionMessage[resolved.kind];
   return resolved.items
     .map((item) => {
@@ -153,7 +181,7 @@ function renderBlockMarkdown(resolved) {
     .join("\n");
 }
 
-function renderPlainInlineHtml(resolved, token) {
+function renderPlainInlineHtml(resolved: ResolvedDataRef, token: MutableToken) {
   if (resolved.id === "*" && resolved.items.length === 0) {
     return `<a href="${escapeHtml(token.href)}">${escapeHtml(token.text)}</a>`;
   }
@@ -162,7 +190,7 @@ function renderPlainInlineHtml(resolved, token) {
     .join("、");
 }
 
-function renderInlineHtml(resolved, token, format = "card") {
+function renderInlineHtml(resolved: ResolvedDataRef, token: MutableToken, format: "card" | "plain" = "card") {
   if (format === "plain") return renderPlainInlineHtml(resolved, token);
   if (resolved.id === "*" && resolved.items.length === 0) {
     return `<a href="${escapeHtml(token.href)}">${escapeHtml(token.text)}</a>`;
@@ -170,7 +198,7 @@ function renderInlineHtml(resolved, token, format = "card") {
   return resolved.items.map((item) => renderEntityHtml(item, { variant: "inline", newTab: false })).join("、");
 }
 
-function renderBlockHtml(resolved, format) {
+function renderBlockHtml(resolved: ResolvedDataRef, format: "card" | "plain") {
   if (resolved.items.length === 0) {
     return `<p>${emptyCollectionMessage[resolved.kind]}</p>\n`;
   }
@@ -187,7 +215,7 @@ function renderBlockHtml(resolved, format) {
   return `<div class="entity-card-list">${cards}</div>\n`;
 }
 
-function assignHtmlToken(token, html, block) {
+function assignHtmlToken(token: MutableToken, html: string, block: boolean) {
   token.type = "html";
   token.raw = html;
   token.text = html;
@@ -199,27 +227,18 @@ function assignHtmlToken(token, html, block) {
   delete token.items;
 }
 
-/**
- * @param {unknown[]} tokens
- * @param {{
- *   registries: { project: object[], friend: object[] },
- *   format?: "card" | "plain",
- *   source?: string,
- *   blockAllowed?: boolean,
- * }} [options]
- */
-export function transformDataRefTokens(tokens, {
+export function transformDataRefTokens(tokens: MutableToken[], {
   registries,
   format = "card",
   source,
   blockAllowed = true,
-} = {}) {
+}: RefOptions) {
   for (const token of tokens || []) {
     try {
       if (token.type === "paragraph" && blockAllowed) {
         const link = getSoleDataRefLink(token);
         if (link) {
-          const resolved = resolveDataRef(parseDataRefTitle(link.title), registries);
+          const resolved = resolveDataRef(parseDataRefTitle(link.title)!, registries);
           assignHtmlToken(token, renderBlockHtml(resolved, format), true);
           continue;
         }
@@ -243,7 +262,7 @@ export function transformDataRefTokens(tokens, {
   }
 }
 
-function applyReplacements(source, replacements) {
+function applyReplacements(source: string, replacements: Replacement[]) {
   let output = source;
   let searchFrom = 0;
   for (const { raw, next } of replacements) {
@@ -255,13 +274,13 @@ function applyReplacements(source, replacements) {
   return output;
 }
 
-function collectExpansions(tokens, registries, source, blockAllowed, replacements) {
+function collectExpansions(tokens: MutableToken[], registries: Registries, source: string | undefined, blockAllowed: boolean, replacements: Replacement[]) {
   for (const token of tokens || []) {
     try {
       if (token.type === "paragraph" && blockAllowed) {
         const link = getSoleDataRefLink(token);
         if (link) {
-          const resolved = resolveDataRef(parseDataRefTitle(link.title), registries);
+          const resolved = resolveDataRef(parseDataRefTitle(link.title)!, registries);
           const trailing = token.raw.match(/\n*$/)?.[0] || "";
           replacements.push({ raw: token.raw, next: `${renderBlockMarkdown(resolved)}${trailing}` });
           continue;
@@ -286,27 +305,27 @@ function collectExpansions(tokens, registries, source, blockAllowed, replacement
   }
 }
 
-function stripDataRefDefinitions(source) {
+function stripDataRefDefinitions(source: string) {
   return source.replace(
     /^[ \t]*\[(?:[^\]]+)\]:[ \t]+\S+[ \t]+(?:"(?:project|friend):[^"]*"|'(?:project|friend):[^']*'|\((?:project|friend):[^)]*\))[ \t]*\r?\n?/gm,
     "",
   );
 }
 
-function splitFrontmatter(source) {
+function splitFrontmatter(source: string) {
   const match = String(source).match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
   if (!match) return { frontmatter: "", body: source };
   return { frontmatter: match[0], body: source.slice(match[0].length) };
 }
 
-export function expandDataRefsInMarkdown(source, registries, sourceLabel) {
+export function expandDataRefsInMarkdown(source: string, registries: Registries, sourceLabel?: string) {
   const { frontmatter, body } = splitFrontmatter(source);
-  const replacements = [];
+  const replacements: Replacement[] = [];
   collectExpansions(marked.lexer(body), registries, sourceLabel, true, replacements);
   return frontmatter + stripDataRefDefinitions(applyReplacements(body, replacements));
 }
 
-export function renderDataRefHtml(content, { registries, format = "card", source } = {}) {
+export function renderDataRefHtml(content: string, { registries, format = "card", source }: RefOptions) {
   const tokens = marked.lexer(content);
   transformDataRefTokens(tokens, { registries, format, source });
   return marked.parser(tokens);

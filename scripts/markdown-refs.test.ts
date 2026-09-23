@@ -7,10 +7,12 @@ import {
   parseDataRefTitle,
   renderDataRefHtml as renderSharedDataRefHtml,
   stripElementsByClass,
-} from "../lib/markdown-refs.mjs";
-import { renderEntityCardHtml } from "../lib/entity-rendering.mjs";
+} from "../lib/markdown-refs.ts";
+import { renderEntityCardHtml } from "../lib/entity-rendering.ts";
 
-const registries = {
+import type { loadRegistries } from "../lib/registry.ts";
+
+const registries: ReturnType<typeof loadRegistries> = {
   project: [
     {
       id: "xiaofenshen",
@@ -20,6 +22,7 @@ const registries = {
       description: "训练一个会越来越像你的写手分身。",
       icon: "https://xiaofenshen.com/brand/xiaofenshen.svg",
       pinned: false,
+      extensions: {},
       date: new Date("2026-05-07T00:00:00.000Z"),
       dateText: "2026-05-07",
     },
@@ -31,6 +34,7 @@ const registries = {
       description: "公众号运营效率提升工具",
       icon: "https://www.wefeather.cn/logo.png",
       pinned: false,
+      extensions: {},
       date: new Date("2024-10-27T00:00:00.000Z"),
       dateText: "2024-10-27",
     },
@@ -45,19 +49,20 @@ const registries = {
       description: "记录生活与一些想法",
       icon: "/assets/friends/example-blog.png",
       pinned: false,
+      extensions: {},
       date: new Date("2026-09-22T00:00:00.000Z"),
       dateText: "2026-09-22",
     },
   ],
 };
 
-function withoutInlinePresentation(html) {
+function withoutInlinePresentation(html: string) {
   return html
     .replace(/ class="entity-inline-link entity-inline-link--text"/g, "")
     .replace(/<span class="entity-inline-name">([^<]*)<\/span>/g, "$1");
 }
 
-function renderDataRefHtml(content, options) {
+function renderDataRefHtml(content: string, options: Parameters<typeof renderSharedDataRefHtml>[1]) {
   return withoutInlinePresentation(renderSharedDataRefHtml(content, options));
 }
 
@@ -146,7 +151,9 @@ test("headings, lists, quotes and tables keep inline chips", () => {
   assert.match(html, /<blockquote>[\s\S]*<a href="https:\/\/xiaofenshen.com">小分身/);
   assert.match(html, /<td>[\s\S]*<a href="https:\/\/xiaofenshen.com">小分身/);
   assert.doesNotMatch(html, /entity-card-list/);
-  assert.equal(stripElementsByClass(html.match(/<h2[\s\S]*?<\/h2>/)[0], "entity-chip-popover").includes("训练一个"), false);
+  const heading = html.match(/<h2[\s\S]*?<\/h2>/);
+  assert.ok(heading);
+  assert.equal(stripElementsByClass(heading[0], "entity-chip-popover").includes("训练一个"), false);
 });
 
 test("reference links work, while code and escaped text stay literal", () => {
@@ -254,7 +261,7 @@ test("friend names are inline while site titles appear in cards and block export
 });
 
 test("inline references keep ordinary links and isolate card media in the popover", () => {
-  for (const [kind, id] of [["project", "xiaofenshen"], ["friend", "example-blog"]]) {
+  for (const [kind, id] of [["project", "xiaofenshen"], ["friend", "example-blog"]] as const) {
     const item = registries[kind][0];
     const html = renderDataRefHtml(`认识 [示例](${item.url} "${kind}:${id}")。`, { registries });
     const visible = stripElementsByClass(html, "entity-chip-popover");

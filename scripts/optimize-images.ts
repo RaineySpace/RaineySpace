@@ -5,7 +5,10 @@ import { createHash } from "node:crypto";
 import matter from "gray-matter";
 import { marked } from "marked";
 import sharp from "sharp";
-import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.mjs";
+import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.ts";
+
+import type { ImageManifest, OptimizedImage } from "../lib/optimized-images.ts";
+import { isPlainObject } from "../lib/registry.ts";
 
 const publicDir = path.join(process.cwd(), "public");
 const OPTIMIZED_DIR = "_optimized";
@@ -14,22 +17,22 @@ const MAX_EDGE = 1600;
 const WEBP_QUALITY = 80;
 const WIDTHS = [320, 640, 960];
 const IMAGE_DIR = `${OPTIMIZED_DIR}/images`;
-const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const digest = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 // Toolchain changes invalidate the build cache, but public URLs always hash the output bytes.
 const pipelineHash = digest(Buffer.concat([
   await fs.readFile(fileURLToPath(import.meta.url)),
   Buffer.from(JSON.stringify(sharp.versions)),
 ]));
 
-function assetUrl(relativePath) {
+function assetUrl(relativePath: string) {
   return `/${relativePath.split('/').map(encodeURIComponent).join('/')}`;
 }
 
-function isRasterImagePath(relativePath) {
+function isRasterImagePath(relativePath: string) {
   return RASTER_EXTENSIONS.has(path.posix.extname(relativePath).toLowerCase());
 }
 
-function normalizeRelativeImagePath(value) {
+function normalizeRelativeImagePath(value: unknown) {
   const href = String(value).trim().split(/[?#]/, 1)[0];
   if (
     !href ||
@@ -56,15 +59,15 @@ function normalizeRelativeImagePath(value) {
   return normalized;
 }
 
-function extractImageTokens(content) {
-  const images = [];
+function extractImageTokens(content: string) {
+  const images: string[] = [];
 
-  const visit = (value) => {
+  const visit = (value: unknown): void => {
     if (Array.isArray(value)) {
       value.forEach(visit);
       return;
     }
-    if (!value || typeof value !== "object") return;
+    if (!isPlainObject(value)) return;
     if (value.type === "image") {
       images.push(String(value.href || ""));
       return;
@@ -76,7 +79,7 @@ function extractImageTokens(content) {
   return images;
 }
 
-async function exists(filePath) {
+async function exists(filePath: string) {
   try {
     await fs.access(filePath);
     return true;
@@ -119,7 +122,7 @@ async function collectPostImages() {
   return jobs;
 }
 
-async function writeVersionedImage(bytes, filename, expectedOutputs) {
+async function writeVersionedImage(bytes: Buffer, filename: string, expectedOutputs: Set<string>) {
   const relativeOutput = `${IMAGE_DIR}/${digest(bytes)}/${filename}`;
   const outputPath = path.join(publicDir, relativeOutput);
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
@@ -128,7 +131,7 @@ async function writeVersionedImage(bytes, filename, expectedOutputs) {
   return assetUrl(relativeOutput);
 }
 
-async function generateOptimized(bytes, width) {
+async function generateOptimized(bytes: Buffer, width: number) {
   return sharp(bytes, { failOn: "none" })
     .rotate()
     .resize({
@@ -139,9 +142,9 @@ async function generateOptimized(bytes, width) {
     .toBuffer({ resolveWithObject: true });
 }
 
-async function reusableOutputs(entry, sourceHash) {
+async function reusableOutputs(entry: OptimizedImage | undefined, sourceHash: string) {
   if (entry?.sourceHash !== sourceHash || entry?.pipelineHash !== pipelineHash || !entry.originalSrc) return null;
-  const urls = new Set([entry.originalSrc, entry.displaySrc, entry.thumbnailSrc].filter(Boolean));
+  const urls = new Set([entry.originalSrc, entry.displaySrc, entry.thumbnailSrc].filter((url): url is string => Boolean(url)));
   for (const candidate of (entry.srcSet || '').split(', ').filter(Boolean)) urls.add(candidate.split(' ')[0]);
   const files = [];
   for (const url of urls) {
@@ -151,7 +154,7 @@ async function reusableOutputs(entry, sourceHash) {
     try {
       if (digest(await fs.readFile(filename)) !== match[1]) return null;
     } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
+      if ((error instanceof Error && 'code' in error ? error.code : undefined) !== 'ENOENT') throw error;
       return null;
     }
     files.push(filename);
@@ -159,13 +162,13 @@ async function reusableOutputs(entry, sourceHash) {
   return files;
 }
 
-async function removeOrphans(expectedOutputs) {
+async function removeOrphans(expectedOutputs: Set<string>) {
   const optimizedRoot = path.join(publicDir, OPTIMIZED_DIR);
   if (!(await exists(optimizedRoot))) return 0;
 
   let removed = 0;
 
-  const walk = async (dir) => {
+  const walk = async (dir: string): Promise<void> => {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
@@ -189,9 +192,9 @@ async function removeOrphans(expectedOutputs) {
 async function main() {
   const jobs = await collectPostImages();
   const manifestPath = path.join(publicDir, OPTIMIZED_DIR, 'manifest.json');
-  const previous = await exists(manifestPath) ? JSON.parse(await fs.readFile(manifestPath, 'utf8')) : {};
+  const previous: ImageManifest = await exists(manifestPath) ? JSON.parse(await fs.readFile(manifestPath, 'utf8')) : {};
   const expectedOutputs = new Set([manifestPath]);
-  const manifest = {};
+  const manifest: ImageManifest = {};
   const counts = { generated: 0, reused: 0, skippedAnimated: 0 };
 
   for (const job of jobs) {
@@ -208,14 +211,14 @@ async function main() {
       continue;
     }
     const metadata = await sharp(bytes, { animated: true, failOn: 'none' }).metadata();
-    const rotated = metadata.orientation >= 5 && metadata.orientation <= 8;
+    const rotated = metadata.orientation !== undefined && metadata.orientation >= 5 && metadata.orientation <= 8;
     const sourceHeight = metadata.pageHeight || metadata.height;
     const width = rotated ? sourceHeight : metadata.width;
     const height = rotated ? metadata.width : sourceHeight;
     if (!width || !height) throw new Error(`Missing image dimensions: ${job.sourcePath}`);
     const filename = path.posix.basename(job.relativePath);
     const originalSrc = await writeVersionedImage(bytes, filename, expectedOutputs);
-    if (metadata.pages > 1 || metadata.delay?.length > 1) {
+    if ((metadata.pages ?? 1) > 1 || (metadata.delay?.length ?? 0) > 1) {
       counts.skippedAnimated += 1;
       // Preserve animation instead of replacing it with a still frame.
       manifest[sourceUrl] = { originalSrc, displaySrc: originalSrc, width, height, sourceHash, pipelineHash };
@@ -232,6 +235,7 @@ async function main() {
       variants.push({ src, width: info.width, height: info.height });
     }
     const largest = variants.at(-1);
+    if (!largest) throw new Error(`No optimized variants: ${job.sourcePath}`);
     const display = variants.find((variant) => variant.width >= 640) || largest;
     manifest[sourceUrl] = {
       originalSrc,

@@ -24,7 +24,7 @@ export default function PostCover({ src, originalSrc, thumbnailSrc, srcSet, titl
         type="button"
         aria-label={`查看封面原图：${title}`}
         onClick={() => setOpen(true)}
-        className={`block w-full cursor-zoom-in overflow-hidden rounded-xl bg-[--surface-muted] ring-1 ring-[--border] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[--lightLink] ${className}`.trim()}
+        className={`block w-full cursor-zoom-in overflow-hidden rounded-xl bg-(--surface-muted) ring-1 ring-(--border) focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--lightLink) ${className}`.trim()}
       >
         {/* Covers may be local files or remote URLs, so they cannot use a fixed Next Image allowlist. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

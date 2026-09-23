@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import * as config from './config';
-import type { Post } from './posts';
+import * as config from './config.ts';
+import type { Post } from './posts.ts';
 
 export interface PageInfo {
   pathname: string;
@@ -39,7 +39,7 @@ export function pageMetadata(
     markdown?: string;
     article?: { publishedTime?: string; modifiedTime?: string; tags: string[] };
   } = {},
-): Metadata {
+) {
   const url = canonicalUrl(page.pathname);
   const image = new URL(options.image || config.ogImage, config.siteUrl).href;
   return {
@@ -72,10 +72,10 @@ export function pageMetadata(
       description: page.description,
       images: image,
     },
-  };
+  } satisfies Metadata;
 }
 
-export function postMetadata(post: Post): Metadata {
+export function postMetadata(post: Post) {
   const isStandalonePage = post.slug === 'about';
   return {
     ...pageMetadata({
@@ -95,7 +95,7 @@ export function postMetadata(post: Post): Metadata {
     }),
     keywords: [...new Set([...config.keywords, ...post.keywords, ...post.tags])],
     ...(post.noindex ? { robots: { index: false, follow: true } } : {}),
-  };
+  } satisfies Metadata;
 }
 
 function authorJsonLd() {

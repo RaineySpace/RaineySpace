@@ -1,12 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { listPostSlugs, postMarkdownPath, publishedMarkdownName } from "../lib/post-files.mjs";
-import { rewritePublishedMarkdown } from "../lib/published-markdown.mjs";
+import { listPostSlugs, postMarkdownPath, publishedMarkdownName } from "../lib/post-files.ts";
+import { rewritePublishedMarkdown } from "../lib/published-markdown.ts";
 
 const publicDir = path.join(process.cwd(), "public");
 const outputDir = path.join(process.cwd(), "out");
 
-async function exportPost(slug) {
+async function exportPost(slug: string) {
   const source = await fs.readFile(postMarkdownPath(publicDir, slug), "utf8");
   await fs.writeFile(
     path.join(outputDir, publishedMarkdownName(slug)),
@@ -16,7 +16,7 @@ async function exportPost(slug) {
   try {
     await fs.unlink(path.join(outputDir, slug, "index.md"));
   } catch (error) {
-    if (error.code !== "ENOENT") throw error;
+    if ((error instanceof Error && 'code' in error ? error.code : undefined) !== "ENOENT") throw error;
   }
 }
 

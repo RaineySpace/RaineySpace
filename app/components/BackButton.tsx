@@ -69,7 +69,7 @@ export default function BackButton({ iconOnly = false }: { iconOnly?: boolean })
       type="button"
       aria-label="返回上一页"
       onClick={goBack}
-      className={`inline-flex items-center justify-center rounded-lg text-sm text-[--muted] transition-colors duration-200 ease-in-out hover:bg-[--surface-muted] hover:text-[--title] focus-visible:bg-[--surface-muted] focus-visible:text-[--title] motion-reduce:transition-none ${iconOnly ? "h-8 w-8 shrink-0 p-0" : "gap-2 px-2 py-1"}`}
+      className={`inline-flex items-center justify-center rounded-lg text-sm text-(--muted) transition-colors duration-200 ease-in-out hover:bg-(--surface-muted) hover:text-(--title) focus-visible:bg-(--surface-muted) focus-visible:text-(--title) motion-reduce:transition-none ${iconOnly ? "h-8 w-8 shrink-0 p-0" : "gap-2 px-2 py-1"}`}
     >
       <span aria-hidden="true">←</span>
       {!iconOnly && <span>返回</span>}

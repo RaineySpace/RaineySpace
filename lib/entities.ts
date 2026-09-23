@@ -7,8 +7,12 @@ export interface EntityExtensions {
 }
 
 // Each kind can add typed, optional fields here without changing the shared renderer.
-export interface ProjectExtensions extends EntityExtensions {}
-export interface FriendExtensions extends EntityExtensions {}
+export interface ProjectExtensions {
+  [key: string]: JsonValue | undefined;
+}
+export interface FriendExtensions {
+  [key: string]: JsonValue | undefined;
+}
 
 export interface EntityExtensionsByKind {
   project: ProjectExtensions;

@@ -1,5 +1,4 @@
-/** @param {unknown} value @param {string} field @param {boolean} fallback */
-function booleanOption(value, field, fallback) {
+function booleanOption(value: unknown, field: string, fallback: boolean) {
   if (value === undefined) return fallback;
   if (typeof value !== 'boolean') {
     throw new Error(`frontmatter "${field}" must be a boolean`);
@@ -7,10 +6,7 @@ function booleanOption(value, field, fallback) {
   return value;
 }
 
-/** Shared by the content reader, validator and static header generator.
- * @param {Record<string, unknown>} data
- */
-export function parsePostOptions(data) {
+export function parsePostOptions(data: Record<string, unknown>) {
   return {
     noindex: booleanOption(data.noindex, 'noindex', false),
     showHeader: booleanOption(data.showHeader, 'showHeader', true),

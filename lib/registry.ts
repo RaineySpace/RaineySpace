@@ -1,3 +1,4 @@
+import type { Entity, EntityKind, EntityExtensionsByKind, JsonValue } from "./entities.ts";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -17,22 +18,22 @@ const KIND_CONFIG = {
 
 const ENTITY_FIELDS = new Set(["name", "title", "url", "date", "description", "icon", "pinned", "extensions"]);
 
-export function registryFile(kind) {
+export function registryFile(kind: EntityKind) {
   const config = KIND_CONFIG[kind];
   if (!config) throw new Error(`Unknown registry kind "${kind}"`);
   return config.file;
 }
 
-export function registryPath(kind, cwd = process.cwd()) {
+export function registryPath(kind: EntityKind, cwd = process.cwd()) {
   return path.join(cwd, registryFile(kind));
 }
 
-export function isPlainObject(value) {
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" &&
     (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
 }
 
-function isJsonValue(value, ancestors = new Set()) {
+function isJsonValue(value: unknown, ancestors = new Set<object>()): value is JsonValue {
   if (value === null || typeof value === "string" || typeof value === "boolean") return true;
   if (typeof value === "number") return Number.isFinite(value);
   if ((!Array.isArray(value) && !isPlainObject(value)) || ancestors.has(value)) return false;
@@ -42,7 +43,7 @@ function isJsonValue(value, ancestors = new Set()) {
   return valid;
 }
 
-export function isHttpUrl(value) {
+export function isHttpUrl(value: unknown) {
   try {
     const url = new URL(String(value));
     return url.protocol === "http:" || url.protocol === "https:";
@@ -51,7 +52,7 @@ export function isHttpUrl(value) {
   }
 }
 
-export function isHttpsUrl(value) {
+export function isHttpsUrl(value: unknown) {
   try {
     return new URL(String(value)).protocol === "https:";
   } catch {
@@ -59,7 +60,7 @@ export function isHttpsUrl(value) {
   }
 }
 
-export function normalizeHttpUrl(value) {
+export function normalizeHttpUrl(value: unknown) {
   if (!isHttpUrl(value)) return null;
   const url = new URL(String(value));
   url.hash = "";
@@ -67,7 +68,7 @@ export function normalizeHttpUrl(value) {
   return url.toString();
 }
 
-export function parseDateText(value) {
+export function parseDateText(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return null;
   const text = value.trim();
   const date = new Date(`${text}T00:00:00.000Z`);
@@ -75,12 +76,12 @@ export function parseDateText(value) {
   return date;
 }
 
-export function formatDateText(date) {
+export function formatDateText(date: Date | null) {
   if (!date || Number.isNaN(date.getTime())) return "";
   return date.toISOString().slice(0, 10);
 }
 
-export function resolvePublicAsset(value, publicDir = path.join(process.cwd(), "public")) {
+export function resolvePublicAsset(value: unknown, publicDir = path.join(process.cwd(), "public")) {
   const href = String(value).trim().split(/[?#]/, 1)[0];
   if (!href.startsWith("/") || href.startsWith("//") || href.includes("\\")) return null;
 
@@ -97,8 +98,7 @@ export function resolvePublicAsset(value, publicDir = path.join(process.cwd(), "
   return path.join(publicDir, normalized.slice(1));
 }
 
-/** @param {import("./entities").Entity} a @param {import("./entities").Entity} b */
-export function compareEntities(a, b) {
+export function compareEntities(a: Entity, b: Entity) {
   if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
   const dateA = a.date ? a.date.getTime() : 0;
   const dateB = b.date ? b.date.getTime() : 0;
@@ -106,28 +106,20 @@ export function compareEntities(a, b) {
   return a.id.localeCompare(b.id);
 }
 
-/** @template {import("./entities").Entity} T @param {T[]} entities @returns {T[]} */
-export function sortEntities(entities) {
+export function sortEntities<T extends Entity>(entities: T[]): T[] {
   return [...entities].sort(compareEntities);
 }
 
-/**
- * @template {import("./entities").EntityKind} Kind
- * @param {Kind} kind
- * @param {unknown} raw
- * @param {{file?: string, publicDir?: string}} [options]
- */
-export function parseRegistry(kind, raw, options = {}) {
+export function parseRegistry<Kind extends EntityKind>(kind: Kind, raw: unknown, options: { file?: string; publicDir?: string } = {}) {
   const config = KIND_CONFIG[kind];
   if (!config) throw new Error(`Unknown registry kind "${kind}"`);
 
   const file = options.file || config.file;
   const publicDir = options.publicDir || path.join(process.cwd(), "public");
-  const errors = [];
-  /** @type {import("./entities").Entity<Kind>[]} */
-  const entities = [];
-  const localImages = [];
-  const urls = new Map();
+  const errors: string[] = [];
+  const entities: Entity<Kind>[] = [];
+  const localImages: { id: string; field: string; value: string; path: string }[] = [];
+  const urls = new Map<string, string>();
 
   if (!isPlainObject(raw)) {
     errors.push(`${file}: root value must be an object keyed by ${config.label} ID`);
@@ -198,7 +190,7 @@ export function parseRegistry(kind, raw, options = {}) {
       errors.push(`${prefix}: "pinned" must be a boolean`);
     }
 
-    let extensions = {};
+    let extensions: EntityExtensionsByKind[Kind] = {};
     if (definition.extensions !== undefined) {
       if (!isPlainObject(definition.extensions) || !isJsonValue(definition.extensions)) {
         errors.push(`${prefix}: "extensions" must be a JSON object`);
@@ -229,18 +221,17 @@ export function parseRegistry(kind, raw, options = {}) {
   return { entities: sortEntities(entities), errors, localImages };
 }
 
-export function readRegistryJson(kind, cwd = process.cwd()) {
+export function readRegistryJson(kind: EntityKind, cwd = process.cwd()) {
   const file = registryFile(kind);
   const filePath = path.join(cwd, file);
   try {
-    return { file, value: JSON.parse(fs.readFileSync(filePath, "utf8")) };
+    return { file, value: JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown };
   } catch (error) {
-    throw new Error(`${file}: cannot be read as JSON (${error.message})`);
+    throw new Error(`${file}: cannot be read as JSON (${(error instanceof Error ? error.message : String(error))})`);
   }
 }
 
-/** @template {import("./entities").EntityKind} Kind @param {Kind} kind */
-export function loadEntities(kind, cwd = process.cwd()) {
+export function loadEntities<Kind extends EntityKind>(kind: Kind, cwd = process.cwd()) {
   const { file, value } = readRegistryJson(kind, cwd);
   const { entities, errors } = parseRegistry(kind, value, {
     file,
@@ -257,8 +248,7 @@ export function loadRegistries(cwd = process.cwd()) {
   };
 }
 
-/** @template {import("./entities").EntityKind} Kind @param {Kind} kind @param {string} id */
-export function getEntityById(kind, id, cwd = process.cwd()) {
+export function getEntityById<Kind extends EntityKind>(kind: Kind, id: string, cwd = process.cwd()) {
   if (!id) return null;
   const entity = loadEntities(kind, cwd).find((item) => item.id === id);
   if (!entity) {

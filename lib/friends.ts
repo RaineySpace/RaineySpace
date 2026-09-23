@@ -1,5 +1,5 @@
-import { FRIEND_KIND, getEntityById, loadEntities } from "@/lib/registry.mjs";
-import type { Entity } from "@/lib/entities";
+import { FRIEND_KIND, getEntityById, loadEntities } from "./registry.ts";
+import type { Entity } from "./entities.ts";
 
 export type Friend = Entity<"friend">;
 

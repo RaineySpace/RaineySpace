@@ -1,21 +1,23 @@
-const assert = require('node:assert/strict');
-const test = require('node:test');
-const fs = require('node:fs/promises');
-const os = require('node:os');
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
-const { createHash } = require('node:crypto');
-const sharp = require('sharp');
-const load = require('./load-typescript.cjs');
-const { getPostBySlug } = load('lib/posts.ts');
+import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
+import test from 'node:test';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import sharp from 'sharp';
+import { getPostBySlug } from '../lib/posts.ts';
+
+import type { ImageManifest } from "../lib/optimized-images.ts";
 
 test('image pipeline serves responsive previews, preserves originals and handles orientation and animation', async () => {
   const root = process.cwd();
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-images-'));
   const postDir = path.join(directory, 'public/sample');
-  const picture = (width, height) => sharp({ create: { width, height, channels: 3, background: '#b2c3d4' } });
+  const picture = (width: number, height: number) => sharp({ create: { width, height, channels: 3, background: '#b2c3d4' } });
   const optimize = () => {
-    const result = spawnSync(process.execPath, [path.join(root, 'scripts/optimize-images.mjs')], { cwd: directory, encoding: 'utf8' });
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./optimize-images.ts', import.meta.url))], { cwd: directory, encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
     return result.stdout;
   };
@@ -38,19 +40,21 @@ test('image pipeline serves responsive previews, preserves originals and handles
     await fs.writeFile(path.join(postDir, 'index.md'), markdown);
     await fs.writeFile(path.join(postDir, 'photo.mov'), 'live photo fixture');
     optimize();
-    const manifest = JSON.parse(await fs.readFile(path.join(directory, 'public/_optimized/manifest.json')));
+    const manifest: ImageManifest = JSON.parse(await fs.readFile(path.join(directory, 'public/_optimized/manifest.json'), 'utf8'));
     for (const [originalSrc, display] of Object.entries(manifest)) {
       const originalBytes = await fs.readFile(path.join(directory, 'public', decodeURIComponent(originalSrc)));
       assert.match(display.originalSrc, /^\/_optimized\/images\/[a-f0-9]{64}\//);
       assert.deepEqual(await fs.readFile(path.join(directory, 'public', decodeURIComponent(display.originalSrc))), originalBytes);
       if (originalSrc.endsWith('.gif')) continue;
       assert.notEqual(display.displaySrc, originalSrc);
+      assert.ok(display.srcSet);
       for (const candidate of display.srcSet.split(', ')) {
         const [url, descriptor] = candidate.split(' ');
         const size = await sharp(path.join(directory, 'public', decodeURIComponent(url))).metadata();
         const bytes = await fs.readFile(path.join(directory, 'public', decodeURIComponent(url)));
         assert.equal(url.split('/')[3], createHash('sha256').update(bytes).digest('hex'));
         assert.equal(size.width, Number(descriptor.slice(0, -1)));
+        assert.ok(size.width && size.height);
         assert.ok(Math.max(size.width, size.height) <= 1600);
         assert.equal(size.orientation, undefined);
       }
@@ -58,7 +62,7 @@ test('image pipeline serves responsive previews, preserves originals and handles
     assert.deepEqual([manifest['/sample/rotated.jpg'].width, manifest['/sample/rotated.jpg'].height], [600, 1200]);
     assert.deepEqual([manifest['/sample/small.png'].width, manifest['/sample/small.png'].height], [160, 80]);
     assert.notEqual(manifest['/sample/photo.jpg'].displaySrc, manifest['/sample/photo.png'].displaySrc);
-    assert.ok(manifest['/sample/%E4%B8%AD%E6%96%87%20image%2C1.png'].srcSet.includes('%20image%2C1.png'));
+    assert.ok(manifest['/sample/%E4%B8%AD%E6%96%87%20image%2C1.png'].srcSet?.includes('%20image%2C1.png'));
     assert.equal(manifest['/sample/animated.gif'].displaySrc, manifest['/sample/animated.gif'].originalSrc);
     assert.equal(manifest['/sample/animated.gif'].height, 8);
     assert.equal(manifest['/sample/animated.gif'].srcSet, undefined);
@@ -69,6 +73,7 @@ test('image pipeline serves responsive previews, preserves originals and handles
     const post = await getPostBySlug('sample');
     assert.equal(post.cover, manifest['/sample/photo.jpg'].originalSrc);
     assert.equal(post.coverDisplaySrc, manifest['/sample/photo.jpg'].displaySrc);
+    assert.ok(post.coverImage);
     assert.equal(post.coverImage.srcSet, manifest['/sample/photo.jpg'].srcSet);
     assert.match(post.content, /srcset="[^\"]+320w/);
     assert.match(post.content, /width="1600" height="800"/);
@@ -81,7 +86,7 @@ test('image pipeline serves responsive previews, preserves originals and handles
 
     await fs.writeFile(path.join(postDir, 'index.md'), '---\nhidden: true\n---\n![Small](./small.png)');
     optimize();
-    const cleaned = JSON.parse(await fs.readFile(path.join(directory, 'public/_optimized/manifest.json')));
+    const cleaned = JSON.parse(await fs.readFile(path.join(directory, 'public/_optimized/manifest.json'), 'utf8'));
     assert.deepEqual(Object.keys(cleaned), ['/sample/small.png']);
     await assert.rejects(fs.access(path.join(directory, 'public', manifest['/sample/photo.jpg'].displaySrc)), { code: 'ENOENT' });
     await assert.rejects(fs.access(path.join(directory, 'public', manifest['/sample/photo.jpg'].originalSrc)), { code: 'ENOENT' });
@@ -93,17 +98,16 @@ test('image pipeline serves responsive previews, preserves originals and handles
 });
 
 test('content versions survive rebuilds and timestamp changes, change on replacement, and repair damaged outputs', async () => {
-  const root = process.cwd();
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-image-versions-'));
   const publicDir = path.join(directory, 'public');
   const postDir = path.join(publicDir, 'sample');
   const source = path.join(postDir, 'photo.jpg');
   const manifestPath = path.join(publicDir, '_optimized/manifest.json');
-  const file = (url) => path.join(publicDir, decodeURIComponent(url));
-  const optimize = async () => {
-    const result = spawnSync(process.execPath, [path.join(root, 'scripts/optimize-images.mjs')], { cwd: directory, encoding: 'utf8' });
+  const file = (url: string) => path.join(publicDir, decodeURIComponent(url));
+  const optimize = async (): Promise<ImageManifest> => {
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./optimize-images.ts', import.meta.url))], { cwd: directory, encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
-    return JSON.parse(await fs.readFile(manifestPath));
+    return JSON.parse(await fs.readFile(manifestPath, 'utf8'));
   };
   try {
     await fs.mkdir(postDir, { recursive: true });
@@ -125,7 +129,7 @@ test('content versions survive rebuilds and timestamp changes, change on replace
     await fs.writeFile(source, replacement);
     await fs.utimes(source, stat.atime, stat.mtime);
     const second = await optimize();
-    for (const field of ['originalSrc', 'displaySrc', 'thumbnailSrc', 'srcSet']) {
+    for (const field of ['originalSrc', 'displaySrc', 'thumbnailSrc', 'srcSet'] as const) {
       assert.notEqual(second['/sample/photo.jpg'][field], first['/sample/photo.jpg'][field], field);
       assert.equal(second['/sample/other.jpg'][field], first['/sample/other.jpg'][field], 'unmodified photo: ' + field);
     }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import BackButton from "@/app/components/BackButton";
 import EntityList from "@/app/components/EntityList";
-import { emptyCollectionMessage, entityTitle } from "@/lib/entity-rendering.mjs";
+import { emptyCollectionMessage, entityTitle } from "@/lib/entity-rendering.ts";
 import { getProjects } from "@/lib/projects";
 import JsonLd from "@/app/components/JsonLd";
 import { collectionJsonLd, pageMetadata, pages } from "@/lib/seo";

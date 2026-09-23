@@ -140,9 +140,11 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
     if (restoreFocus) triggerRef.current?.focus({ preventScroll: true });
   }, []);
 
-  useEffect(() => {
+  const [previousPathname, setPreviousPathname] = useState(pathname);
+  if (previousPathname !== pathname) {
+    setPreviousPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     if (!open || !isDesktop) return;
@@ -173,7 +175,7 @@ export default function ReadingSettings({ align = "end" }: ReadingSettingsProps)
       <button
         ref={triggerRef}
         type="button"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[14px] font-medium leading-none tracking-[0.01em] text-[--muted] transition-[color,background-color] duration-200 ease-[ease] hover:bg-[--surface-muted] hover:text-[--title] focus-visible:bg-[--surface-muted] focus-visible:text-[--title] focus-visible:outline-offset-2 aria-expanded:bg-[--surface-muted] aria-expanded:text-[--title]"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[14px] font-medium leading-none tracking-[0.01em] text-(--muted) transition-[color,background-color] duration-200 ease-[ease] hover:bg-(--surface-muted) hover:text-(--title) focus-visible:bg-(--surface-muted) focus-visible:text-(--title) focus-visible:outline-offset-2 aria-expanded:bg-(--surface-muted) aria-expanded:text-(--title)"
         aria-label="阅读设置"
         title="调整文字大小"
         aria-haspopup="dialog"

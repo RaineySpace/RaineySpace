@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 
 const AXIS_LOCK_PX = 8;
 const VERTICAL_DISTANCE_PX = 96;
@@ -29,8 +29,8 @@ function setTransition(element: HTMLElement | null, value: string) {
 
 interface UseSheetGesturesOptions {
   isOpen: boolean;
-  sheetRef: RefObject<HTMLDivElement>;
-  backdropRef: RefObject<HTMLButtonElement>;
+  sheetRef: RefObject<HTMLDivElement | null>;
+  backdropRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
 }
 
@@ -46,7 +46,7 @@ export function useSheetGestures({
   const settleCleanupRef = useRef<(() => void) | null>(null);
   const onCloseRef = useRef(onClose);
 
-  onCloseRef.current = onClose;
+  useLayoutEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   const resetSheet = useCallback((withTransition = false) => {
     const sheet = sheetRef.current;

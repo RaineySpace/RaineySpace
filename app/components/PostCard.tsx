@@ -13,7 +13,7 @@ export default function PostCard({ post }: PostCardProps) {
       className="post-card -mx-3 block rounded-xl p-3"
     >
       <article>
-        <h2 className="mb-2 text-base font-normal leading-[1.6] text-[--title]">
+        <h2 className="mb-2 text-base font-normal leading-[1.6] text-(--title)">
           {post.title}
         </h2>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 meta">
@@ -28,7 +28,7 @@ export default function PostCard({ post }: PostCardProps) {
           ))}
         </div>
         {post.summary ? (
-          <p className="mt-2 text-sm leading-[1.75] text-[--secondary]">
+          <p className="mt-2 text-sm leading-[1.75] text-(--secondary)">
             {post.summary}
           </p>
         ) : null}

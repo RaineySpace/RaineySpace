@@ -8,7 +8,7 @@ interface EntityListProps extends EntityRenderOptions {
 }
 
 export default function EntityList({ items, emptyLabel = "暂时还没有添加内容。", ...options }: EntityListProps) {
-  if (!items.length) return <p className="text-sm text-[--muted]">{emptyLabel}</p>;
+  if (!items.length) return <p className="text-sm text-(--muted)">{emptyLabel}</p>;
 
   if (options.variant === "inline") {
     return (

@@ -1,23 +1,25 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
-const path = require('node:path');
-const sharp = require('sharp');
-const { createHash } = require('node:crypto');
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import sharp from 'sharp';
+import { createHash } from 'node:crypto';
+
+import type { ImageManifest, OptimizedImage } from "../lib/optimized-images.ts";
 
 const output = path.resolve('out');
-const localFile = (url) => path.join(output, decodeURIComponent(url));
-const attributes = (source) => Object.fromEntries(Array.from(source.matchAll(/([\w:-]+)="([^\"]*)"/g), (match) => [match[1].toLowerCase(), match[2].replace(/&amp;/g, '&').replace(/&quot;/g, '"')]));
-const variants = (srcSet) => srcSet.split(', ').map((part) => {
+const localFile = (url: string) => path.join(output, decodeURIComponent(url));
+const attributes = (source: string) => Object.fromEntries(Array.from(source.matchAll(/([\w:-]+)="([^\"]*)"/g), (match) => [match[1].toLowerCase(), match[2].replace(/&amp;/g, '&').replace(/&quot;/g, '"')]));
+const variants = (srcSet: string) => srcSet.split(', ').map((part) => {
   const [src, width] = part.split(' ');
   return { src, width: Number(width.slice(0, -1)) };
 });
 
 async function main() {
-  const manifest = JSON.parse(await fs.readFile(path.join(output, '_optimized/manifest.json'), 'utf8'));
-  const widths = new Map();
-  const originals = new Map();
-  const checked = new Set();
-  const checkVersion = async (url) => {
+  const manifest: ImageManifest = JSON.parse(await fs.readFile(path.join(output, '_optimized/manifest.json'), 'utf8'));
+  const widths = new Map<string, number>();
+  const originals = new Map<string, OptimizedImage>();
+  const checked = new Set<string>();
+  const checkVersion = async (url: string) => {
     assert.match(url, /^\/_optimized\/images\/[a-f0-9]{64}\/[^/]+$/, 'Image URL must include a content hash: ' + url);
     if (checked.has(url)) return;
     const bytes = await fs.readFile(localFile(url));
@@ -42,17 +44,20 @@ async function main() {
       await checkVersion(candidate.src);
       const metadata = await sharp(localFile(candidate.src)).metadata();
       assert.equal(candidate.width, metadata.width, candidate.src);
+      assert.ok(metadata.width && metadata.height);
       assert.ok(Math.max(metadata.width, metadata.height) <= 1600, candidate.src);
       widths.set(candidate.src, metadata.width);
     }
-    const largest = await sharp(localFile(candidates.at(-1).src)).metadata();
+    const last = candidates.at(-1);
+    assert.ok(last);
+    const largest = await sharp(localFile(last.src)).metadata();
     assert.equal(image.width, largest.width, original);
     assert.equal(image.height, largest.height, original);
   }
 
   let pages = 0;
   let responsiveImages = 0;
-  const walk = async (directory) => {
+  const walk = async (directory: string): Promise<void> => {
     for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
       const filename = path.join(directory, entry.name);
       if (entry.isDirectory()) { await walk(filename); continue; }

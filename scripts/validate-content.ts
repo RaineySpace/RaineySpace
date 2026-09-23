@@ -3,11 +3,14 @@ import path from "node:path";
 import matter from "gray-matter";
 import { marked } from "marked";
 import exifr from "exifr";
-import { parseUpdatedDate } from "../lib/post-dates.mjs";
-import { parsePostOptions } from "../lib/post-options.mjs";
-import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.mjs";
-import { collectDataRefErrors } from "../lib/markdown-refs.mjs";
-import { parseRegistry, PROJECT_KIND, FRIEND_KIND, readRegistryJson, registryFile } from "../lib/registry.mjs";
+import { parseUpdatedDate } from "../lib/post-dates.ts";
+import { parsePostOptions } from "../lib/post-options.ts";
+import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.ts";
+import { collectDataRefErrors } from "../lib/markdown-refs.ts";
+import { parseRegistry, PROJECT_KIND, FRIEND_KIND, readRegistryJson, registryFile } from "../lib/registry.ts";
+
+import type { EntityKind } from "../lib/entities.ts";
+import { isPlainObject } from "../lib/registry.ts";
 
 const publicDir = path.join(process.cwd(), "public");
 const requiredFields = ["title", "date", "summary"];
@@ -23,17 +26,17 @@ const deprecatedProjectFields = [
   "projectCover",
 ];
 
-function isLocalReference(value) {
+function isLocalReference(value: string) {
   return value && !/^(https?:)?\/\//.test(value) && !value.startsWith("data:");
 }
 
-function isValidDate(value) {
+function isValidDate(value: unknown) {
   if (!value) return false;
   const date = value instanceof Date ? value : new Date(String(value));
   return !Number.isNaN(date.getTime());
 }
 
-function normalizeRelativeImagePath(value) {
+function normalizeRelativeImagePath(value: unknown) {
   const href = String(value).trim().split(/[?#]/, 1)[0];
   if (
     !href ||
@@ -57,15 +60,15 @@ function normalizeRelativeImagePath(value) {
   return normalized && normalized !== "." ? normalized : null;
 }
 
-function extractImageTokens(content) {
-  const images = [];
+function extractImageTokens(content: string) {
+  const images: { href: string; alt: string }[] = [];
 
-  const visit = (value) => {
+  const visit = (value: unknown): void => {
     if (Array.isArray(value)) {
       value.forEach(visit);
       return;
     }
-    if (!value || typeof value !== "object") return;
+    if (!isPlainObject(value)) return;
     if (value.type === "image") {
       images.push({ href: String(value.href || ""), alt: String(value.text || "").trim() });
       return;
@@ -77,12 +80,12 @@ function extractImageTokens(content) {
   return images;
 }
 
-function assetStem(relativePath) {
+function assetStem(relativePath: string) {
   const parsed = path.posix.parse(relativePath);
   return path.posix.join(parsed.dir, parsed.name).replace(/^\//, "");
 }
 
-async function collectMovFiles(dir, base = "") {
+async function collectMovFiles(dir: string, base = ""): Promise<string[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const files = [];
 
@@ -100,7 +103,7 @@ async function collectMovFiles(dir, base = "") {
   return files;
 }
 
-async function exists(filePath) {
+async function exists(filePath: string) {
   try {
     await fs.access(filePath);
     return true;
@@ -109,7 +112,7 @@ async function exists(filePath) {
   }
 }
 
-async function hasCaptureTime(filePath) {
+async function hasCaptureTime(filePath: string) {
   try {
     const parsed = await exifr.parse(filePath, {
       pick: ["DateTimeOriginal", "CreateDate"],
@@ -121,13 +124,13 @@ async function hasCaptureTime(filePath) {
   }
 }
 
-async function validateRegistry(kind, errors) {
+async function validateRegistry<Kind extends EntityKind>(kind: Kind, errors: string[]) {
   let parsed;
   try {
     const { file, value } = readRegistryJson(kind);
     parsed = parseRegistry(kind, value, { file, publicDir });
   } catch (error) {
-    errors.push(error.message);
+    errors.push((error instanceof Error ? error.message : String(error)));
     return [];
   }
 
@@ -143,8 +146,8 @@ async function validateRegistry(kind, errors) {
 async function main() {
   const slugs = await listPostSlugs(publicDir);
   const seen = new Set();
-  const errors = [];
-  const warnings = [];
+  const errors: string[] = [];
+  const warnings: string[] = [];
   const projects = await validateRegistry(PROJECT_KIND, errors);
   const friends = await validateRegistry(FRIEND_KIND, errors);
   const registries = { project: projects, friend: friends };
@@ -168,7 +171,7 @@ async function main() {
     try {
       parsePostOptions(data);
     } catch (error) {
-      errors.push(`${slug}: ${error.message}`);
+      errors.push(`${slug}: ${(error instanceof Error ? error.message : String(error))}`);
     }
     const participatesInAList = !data.hidden || data.photography === true;
 
@@ -198,7 +201,7 @@ async function main() {
     try {
       parseUpdatedDate(data.updated, isValidDate(data.date) ? new Date(data.date) : null, frontmatter);
     } catch (error) {
-      errors.push(`${slug}: ${error.message}`);
+      errors.push(`${slug}: ${(error instanceof Error ? error.message : String(error))}`);
     }
     if (data.location !== undefined && typeof data.location !== "string") {
       errors.push(`${slug}: frontmatter "location" must be a string`);

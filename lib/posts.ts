@@ -2,21 +2,21 @@ import fs from 'fs/promises';
 import path from 'node:path';
 import matter from 'gray-matter';
 import { Feed } from 'feed';
-import * as config from './config';
+import * as config from './config.ts';
 import { Renderer, marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
-import { readImageExif, type ImageExif } from './image-exif';
-import { parseUpdatedDate } from './post-dates.mjs';
-import { parsePostOptions } from './post-options.mjs';
+import { readImageExif, type ImageExif } from './image-exif.ts';
+import { parseUpdatedDate } from './post-dates.ts';
+import { parsePostOptions } from './post-options.ts';
 import {
   resolveDisplayImage,
   type DisplayImage,
   toOriginalSrc,
-} from './optimized-images';
-import { listPostSlugs, postMarkdownPath } from './post-files.mjs';
-import { loadRegistries } from './registry.mjs';
-import { stripElementsByClass, transformDataRefTokens } from './markdown-refs.mjs';
+} from './optimized-images.ts';
+import { listPostSlugs, postMarkdownPath } from './post-files.ts';
+import { loadRegistries } from './registry.ts';
+import { stripElementsByClass, transformDataRefTokens } from './markdown-refs.ts';
 
 // 配置 marked 使用 highlight.js
 marked.use(
@@ -297,7 +297,8 @@ function renderMarkdown(
   const renderer = new Renderer();
   const registries = options?.registries || loadRegistries();
 
-  renderer.heading = (text, level) => {
+  renderer.heading = ({ tokens, depth: level }) => {
+    const text = renderer.parser.parseInline(tokens);
     const plainText = stripHtml(stripElementsByClass(String(text), 'entity-chip-popover'));
     if (level === 2 || level === 3) {
       const id = createHeadingId(plainText, counts);
@@ -307,7 +308,7 @@ function renderMarkdown(
     return `<h${level}>${text}</h${level}>`;
   };
 
-  renderer.image = (href, title, text) => {
+  renderer.image = ({ href, title, text }) => {
     const hrefValue = href || '';
     const alt = escapeHtml(stripHtml(String(text || '')));
     const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';

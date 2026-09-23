@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   rewritePublishedMarkdown,
   toSiteAbsoluteAssetPath,
-} from "../lib/published-markdown.mjs";
+} from "../lib/published-markdown.ts";
 
 test("relative assets become site-absolute paths for the published Markdown URL", () => {
   assert.equal(toSiteAbsoluteAssetPath("./cover.webp", "2015"), "/2015/cover.webp");

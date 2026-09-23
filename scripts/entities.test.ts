@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseRegistry, loadRegistries } from "../lib/registry.mjs";
-import { renderEntityHtml } from "../lib/entity-rendering.mjs";
-import { renderDataRefHtml, stripElementsByClass } from "../lib/markdown-refs.mjs";
+import { parseRegistry, loadRegistries } from "../lib/registry.ts";
+import { renderEntityHtml } from "../lib/entity-rendering.ts";
+import { renderDataRefHtml, stripElementsByClass } from "../lib/markdown-refs.ts";
 
-const fixtures = Object.fromEntries(["project", "friend"].map((kind) => [kind, parseRegistry(kind, {
+import type { EntityKind } from "../lib/entities.ts";
+
+const fixtures = { project: fixture("project"), friend: fixture("friend") };
+
+function fixture<Kind extends EntityKind>(kind: Kind) {
+  return parseRegistry(kind, {
   example: {
     name: "Inline name",
     title: "Card title",
@@ -14,10 +19,11 @@ const fixtures = Object.fromEntries(["project", "friend"].map((kind) => [kind, p
     date: "2026-09-23",
     extensions: { internalLabel: "extension-only" },
   },
-}).entities]));
+}).entities;
+}
 
 test("all variants consume either registry directly, with independent icon and hover-card options", () => {
-  for (const kind of ["project", "friend"]) {
+  for (const kind of ["project", "friend"] as const) {
     const item = fixtures[kind][0];
     for (const showIcon of [false, true]) {
       const card = renderEntityHtml(item, { variant: "card", showIcon, headingLevel: "h2" });
@@ -25,7 +31,7 @@ test("all variants consume either registry directly, with independent icon and h
       assert.equal(card.includes("<img"), showIcon);
       assert.equal(card.includes("entity-card-media"), showIcon);
       assert.doesNotMatch(card, /extension-only/);
-      for (const appearance of ["text", "chip"]) {
+      for (const appearance of ["text", "chip"] as const) {
         for (const hoverCard of [false, true]) {
           for (const popoverShowIcon of [false, true]) {
             const html = renderEntityHtml(item, { variant: "inline", appearance, showIcon, hoverCard, popoverShowIcon, placement: "top" });
@@ -46,7 +52,7 @@ test("all variants consume either registry directly, with independent icon and h
 });
 
 test("Markdown uses the same card and inline renderer as Entity components", () => {
-  for (const kind of ["project", "friend"]) {
+  for (const kind of ["project", "friend"] as const) {
     const item = fixtures[kind][0];
     const ref = `[Outdated name](https://old.example "${kind}:example")`;
     assert.equal(renderDataRefHtml(ref, { registries: fixtures }), `<div class="entity-card-list">${renderEntityHtml(item)}</div>\n`);
@@ -59,7 +65,7 @@ test("rendering escapes registry text and never interpolates extension data", ()
     ...fixtures.project[0], name: '<script>alert("x")</script>', title: '<img src=x onerror="bad()">',
     description: '<a href="javascript:bad()">bad</a>', icon: 'https://example.com/a?x=" onload="bad()',
   };
-  for (const variant of ["inline", "card"]) {
+  for (const variant of ["inline", "card"] as const) {
     const html = renderEntityHtml(item, { variant, showIcon: true });
     assert.doesNotMatch(html, /<script>|<img src=x| onload="bad|href="javascript/);
     assert.match(html, /&lt;/);

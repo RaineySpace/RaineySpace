@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { Entity as EntityData, EntityRenderOptions } from "@/lib/entities";
-import { renderEntityHtml } from "@/lib/entity-rendering.mjs";
+import { renderEntityHtml } from "@/lib/entity-rendering.ts";
 import { useEntityPopovers } from "@/app/components/useEntityPopovers";
 
 /** Shared interaction boundary for generated Entity HTML, including Markdown. */

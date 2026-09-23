@@ -52,7 +52,7 @@ function useLivePhotoOnce({
   enabled,
 }: {
   root: HTMLElement | null;
-  videoRef: RefObject<HTMLVideoElement>;
+  videoRef: RefObject<HTMLVideoElement | null>;
   videoSrc?: string;
   enabled: boolean;
 }) {
@@ -182,6 +182,8 @@ export default function LivePhoto({
 
   useEffect(() => {
     if (!root || !containBadge) {
+      // Clear the last DOM measurement when the measured element is detached.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBadgeStyle(undefined);
       return;
     }

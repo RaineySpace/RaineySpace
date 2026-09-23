@@ -1,10 +1,10 @@
-const fs = require('node:fs/promises');
-const path = require('node:path');
-const matter = require('gray-matter');
-const load = require('./load-typescript.cjs');
-const { canonicalUrl, markdownUrl } = load('lib/seo.ts');
-const { listPostSlugs, postMarkdownPath } = require('../lib/post-files.mjs');
-const { parsePostOptions } = require('../lib/post-options.mjs');
+import { fileURLToPath } from 'node:url';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import matter from 'gray-matter';
+import { canonicalUrl, markdownUrl } from '../lib/seo.ts';
+import { listPostSlugs, postMarkdownPath } from '../lib/post-files.ts';
+import { parsePostOptions } from '../lib/post-options.ts';
 
 async function generateHeaders(root = process.cwd()) {
   const publicDir = path.join(root, 'public');
@@ -22,7 +22,7 @@ async function generateHeaders(root = process.cwd()) {
     try {
       options = parsePostOptions(data);
     } catch (error) {
-      throw new Error(`${slug}: ${error.message}`);
+      throw new Error(`${slug}: ${(error instanceof Error ? error.message : String(error))}`);
     }
     if (options.noindex) {
       rules.push(`${new URL(markdownUrl(slug)).pathname}\n  X-Robots-Tag: noindex`);
@@ -35,13 +35,13 @@ async function generateHeaders(root = process.cwd()) {
   return noindexCount;
 }
 
-if (require.main === module) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   generateHeaders().then((count) => {
     console.log(`Generated out/_headers with versioned image caching, page revalidation, Markdown canonical links and ${count} noindex rule(s).`);
   }).catch((error) => {
-    console.error(error.message);
+    console.error((error instanceof Error ? error.message : String(error)));
     process.exitCode = 1;
   });
 }
 
-module.exports = { generateHeaders };
+export { generateHeaders };

@@ -74,7 +74,7 @@ export default function HoverCardList({ children }: { children: ReactNode }) {
     >
       <span
         aria-hidden="true"
-        className="hover-card-highlight pointer-events-none absolute left-0 top-0 -z-10 rounded-xl bg-[--surface-muted]"
+        className="hover-card-highlight pointer-events-none absolute left-0 top-0 -z-10 rounded-xl bg-(--surface-muted)"
         style={{
           width: highlight?.width ?? 0,
           height: highlight?.height ?? 0,

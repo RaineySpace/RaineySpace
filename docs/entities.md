@@ -21,7 +21,7 @@
 
 `name`、`url`、`date` 必填；其余字段可省略。`title` 提供时必须是非空字符串。行内使用 `name`，卡片、集合 JSON-LD 和块级 Markdown 导出使用 `title ?? name`。项目原来的 `cover` 已迁移为 `icon`，不再保留别名；文章 frontmatter 的 `cover` 不受影响。`icon` 支持 HTTPS URL 或站点绝对路径，本地文件由内容校验器检查。
 
-`lib/registry.mjs` 负责统一校验和排序。加载后的 `Entity` 增加 `id`、`kind`、解析后的 `date` 和 `dateText`；`pinned` 默认 `false`，`extensions` 默认 `{}`。`getProjects()`、`getFriends()` 直接返回这份结构，没有 `cover → image → icon` 的转换。排序维持置顶优先、日期倒序、ID 升序。
+`lib/registry.ts` 负责统一校验和排序。加载后的 `Entity` 增加 `id`、`kind`、解析后的 `date` 和 `dateText`；`pinned` 默认 `false`，`extensions` 默认 `{}`。`getProjects()`、`getFriends()` 直接返回这份结构，没有 `cover → image → icon` 的转换。排序维持置顶优先、日期倒序、ID 升序。
 
 ## 各类扩展
 
@@ -64,9 +64,9 @@
 
 ## Markdown 与页面共用渲染
 
-`lib/entity-rendering.mjs` 是唯一 Entity HTML 模板，统一名称选择、图标及占位、外链属性、浮层结构和类名。所有动态文本与属性值均转义；扩展属性不拼接到 HTML。
+`lib/entity-rendering.ts` 是唯一 Entity HTML 模板，统一名称选择、图标及占位、外链属性、浮层结构和类名。所有动态文本与属性值均转义；扩展属性不拼接到 HTML。
 
-React 的 `Entity` 通过 `EntityContent` 挂载这份 HTML；Markdown 的 `lib/markdown-refs.mjs` 使用同一渲染器。HTML 仅由内部渲染器和已有 Markdown 管线生成。`useEntityPopovers` 为页面、首页介绍和 Markdown 统一连接浮层定位，`lib/entity-chip-popovers.ts` 处理边缘避让。显示和图标失败回退不依赖第二份 React 模板。
+React 的 `Entity` 通过 `EntityContent` 挂载这份 HTML；Markdown 的 `lib/markdown-refs.ts` 使用同一渲染器。HTML 仅由内部渲染器和已有 Markdown 管线生成。`useEntityPopovers` 为页面、首页介绍和 Markdown 统一连接浮层定位，`lib/entity-chip-popovers.ts` 处理边缘避让。显示和图标失败回退不依赖第二份 React 模板。
 
 Markdown 引用语法保持不变：独立段落生成卡片，段落内部生成带浮层的文字链接。正文行内不添加图标、胶囊背景或内边距；RSS/Atom 和公开 Markdown 仍导出普通链接、列表与简介。
 

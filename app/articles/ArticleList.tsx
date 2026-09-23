@@ -17,10 +17,10 @@ interface ArticleListContentProps extends ArticleListProps {
 }
 
 function tagButtonClassName(active: boolean) {
-  return `inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--lightLink] dark:focus-visible:outline-[--darkLink] ${
+  return `inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--lightLink) dark:focus-visible:outline-(--darkLink) ${
     active
-      ? "border-[--title] bg-[--surface-muted] font-medium text-[--title]"
-      : "border-transparent bg-[--surface-muted] text-[--secondary] hover:border-[--border]"
+      ? "border-(--title) bg-(--surface-muted) font-medium text-(--title)"
+      : "border-transparent bg-(--surface-muted) text-(--secondary) hover:border-(--border)"
   }`;
 }
 

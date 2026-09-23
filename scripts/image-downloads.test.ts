@@ -1,19 +1,25 @@
-const assert = require('node:assert/strict');
-const test = require('node:test');
-const load = require('./load-typescript.cjs');
-const { ImageDownloads, formatImageBytes } = load('lib/image-downloads.ts');
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { ImageDownloads, formatImageBytes } from '../lib/image-downloads.ts';
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-async function fixture(run) {
+interface Request {
+  src: string;
+  options: RequestInit & { signal: AbortSignal };
+  controller: ReadableStreamDefaultController<Uint8Array>;
+}
+async function fixture(run: (downloads: ImageDownloads, requests: Request[], revoked: string[]) => void | Promise<void>) {
   const previousFetch = global.fetch;
   const previousRevoke = URL.revokeObjectURL;
-  const revoked = [];
+  const revoked: string[] = [];
   URL.revokeObjectURL = url => { revoked.push(url); previousRevoke(url); };
-  const requests = [];
+  const requests: Request[] = [];
   global.fetch = async (src, options) => {
-    let controller;
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
     const body = new ReadableStream({ start(value) { controller = value; } });
-    requests.push({ src, options, controller });
+    assert.equal(typeof src, "string");
+    assert.ok(options?.signal);
+    requests.push({ src: String(src), options: { ...options, signal: options.signal }, controller });
     return new Response(body, { headers: { 'Content-Length': '10', 'Content-Type': 'image/png' } });
   };
   try { await run(new ImageDownloads(), requests, revoked); }
@@ -39,6 +45,7 @@ test('warmup and viewer share bytes, report actual progress, and release the blo
     assert.equal(ready.status, 'ready');
     assert.equal(ready.loaded, 10);
     assert.equal(ready.total, 10);
+    assert.ok(ready.objectUrl);
     assert.match(ready.objectUrl, /^blob:/);
     assert.equal(revoked.length, 0);
     viewer.release();
@@ -69,8 +76,9 @@ test('cancellation and late chunks cannot overwrite a new request for the same i
 
 test('missing or encoded lengths remain indeterminate and completion records actual file size', async () => {
   await fixture(async downloads => {
-    for (const headers of [{}, { 'Content-Length': '4', 'Content-Encoding': 'gzip' }, { 'Content-Length': 'invalid' }]) {
-      let controller;
+    const headerCases: HeadersInit[] = [{}, { 'Content-Length': '4', 'Content-Encoding': 'gzip' }, { 'Content-Length': 'invalid' }];
+    for (const headers of headerCases) {
+      let controller!: ReadableStreamDefaultController<Uint8Array>;
       global.fetch = async () => new Response(new ReadableStream({ start(value) { controller = value; } }), { headers });
       const handle = downloads.acquire('https://example.test/photo.png', 'high');
       await tick();

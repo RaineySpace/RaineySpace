@@ -1,4 +1,4 @@
-import { formatDate, getPosts, type Post, type PostImage } from "@/lib/posts";
+import { formatDate, getPosts, type Post, type PostImage } from "./posts.ts";
 
 export interface Photo {
   id: string;

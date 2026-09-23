@@ -1,10 +1,11 @@
+import { isPlainObject } from "./registry.ts";
 import path from "node:path";
 import matter from "gray-matter";
 import { marked } from "marked";
-import { expandDataRefsInMarkdown } from "./markdown-refs.mjs";
-import { loadRegistries } from "./registry.mjs";
+import { expandDataRefsInMarkdown } from "./markdown-refs.ts";
+import { loadRegistries } from "./registry.ts";
 
-export function normalizeRelativeAssetPath(value) {
+export function normalizeRelativeAssetPath(value: unknown) {
   const href = String(value).trim().split(/[?#]/, 1)[0];
   if (
     !href ||
@@ -31,23 +32,23 @@ export function normalizeRelativeAssetPath(value) {
   return normalized;
 }
 
-export function toSiteAbsoluteAssetPath(href, slug) {
+export function toSiteAbsoluteAssetPath(href: string, slug: string) {
   const relativePath = normalizeRelativeAssetPath(href);
   if (!relativePath) return null;
   return `/${[slug, ...relativePath.split("/")].map(encodeURIComponent).join("/")}`;
 }
 
-function collectRelativeHrefs(source) {
-  const hrefs = new Set();
+function collectRelativeHrefs(source: string) {
+  const hrefs = new Set<string>();
   const { data, content } = matter(source);
   if (data.cover) hrefs.add(String(data.cover).trim());
 
-  const visit = (value) => {
+  const visit = (value: unknown): void => {
     if (Array.isArray(value)) {
       value.forEach(visit);
       return;
     }
-    if (!value || typeof value !== "object") return;
+    if (!isPlainObject(value)) return;
     if ((value.type === "image" || value.type === "link") && typeof value.href === "string") {
       hrefs.add(value.href);
     }
@@ -58,11 +59,11 @@ function collectRelativeHrefs(source) {
   return hrefs;
 }
 
-function escapeRegExp(value) {
+function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function replaceAssetHref(source, href, next) {
+function replaceAssetHref(source: string, href: string, next: string) {
   const escaped = escapeRegExp(href);
   return source
     .replace(new RegExp(`^(cover:\\s*)(['"]?)${escaped}\\2\\s*$`, "m"), `$1$2${next}$2`)
@@ -71,7 +72,7 @@ function replaceAssetHref(source, href, next) {
     .replace(new RegExp(`<${escaped}>`, "g"), `<${next}>`);
 }
 
-export function rewritePublishedMarkdown(source, slug) {
+export function rewritePublishedMarkdown(source: string, slug: string) {
   const expanded = expandDataRefsInMarkdown(source, loadRegistries(), slug);
   const replacements = [];
 

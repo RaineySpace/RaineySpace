@@ -1,46 +1,61 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
-const path = require('node:path');
-const matter = require('gray-matter');
-const { marked } = require('marked');
-const load = require('./load-typescript.cjs');
-const config = load('lib/config.ts');
-const { getPosts } = load('lib/posts.ts');
-const { canonicalUrl, markdownUrl, pages, postUrl } = load('lib/seo.ts');
-const { rewritePublishedMarkdown, toSiteAbsoluteAssetPath } = require('../lib/published-markdown.mjs');
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import matter from 'gray-matter';
+import { marked } from 'marked';
+import * as config from '../lib/config.ts';
+import { getPosts } from '../lib/posts.ts';
+import { canonicalUrl, markdownUrl, pages, postUrl } from '../lib/seo.ts';
+import { rewritePublishedMarkdown, toSiteAbsoluteAssetPath } from '../lib/published-markdown.ts';
+
+import type { EntityDefinition } from '../lib/entities.ts';
+import type { collectionJsonLd } from '../lib/seo.ts';
+
+type Registry = Record<string, EntityDefinition>;
+type ExportedJsonLd = Record<string, unknown> & {
+  '@graph'?: { '@type': string }[];
+  mainEntity?: ReturnType<typeof collectionJsonLd>['mainEntity'];
+};
+interface PageExpectation {
+  url: string;
+  title: string;
+  description: string;
+  markdown?: string;
+  noindex?: boolean;
+}
 
 const output = path.resolve('out');
-const read = (filename) => fs.readFile(path.join(output, filename), 'utf8');
+const read = (filename: string) => fs.readFile(path.join(output, filename), 'utf8');
 
-function decode(value) {
-  const entities = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
-  return value.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_, entity) => {
+function decode(value: string) {
+  const entities: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+  return value.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_, entity: string) => {
     if (entity.startsWith('#')) return String.fromCodePoint(parseInt(entity.slice(entity[1].toLowerCase() === 'x' ? 2 : 1), entity[1].toLowerCase() === 'x' ? 16 : 10));
     return entities[entity.toLowerCase()];
   });
 }
 
 // Inspect the known HTML serialization produced by the static export.
-function attributes(source) {
+function attributes(source: string) {
   return Object.fromEntries(Array.from(source.matchAll(/([\w:-]+)="([^"]*)"/g), (match) => [match[1], decode(match[2])]));
 }
 
-function tags(html, name) {
+function tags(html: string, name: string) {
   return Array.from(html.matchAll(new RegExp(`<${name}\\b([^>]*)>`, 'g')), (match) => attributes(match[1]));
 }
 
-function jsonLd(html) {
+function jsonLd(html: string): ExportedJsonLd[] {
   return Array.from(html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g))
     .filter((match) => attributes(match[1]).type === 'application/ld+json')
     .map((match) => JSON.parse(match[2]));
 }
 
-function verifyPage(html, expected) {
+function verifyPage(html: string, expected: PageExpectation) {
   const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/)?.[1];
   assert.ok(head, `${expected.url}: missing head`);
   const links = tags(head, 'link');
   const metas = tags(head, 'meta');
-  const meta = (key) => metas.find((tag) => tag.name === key || tag.property === key)?.content;
+  const meta = (key: string) => metas.find((tag) => tag.name === key || tag.property === key)?.content;
   assert.equal(decode(head.match(/<title>(.*?)<\/title>/s)?.[1] || ''), expected.title, expected.url);
   assert.deepEqual(links.filter((tag) => tag.rel === 'canonical').map((tag) => tag.href), [expected.url], expected.url);
   assert.equal(meta('description'), expected.description, expected.url);
@@ -65,17 +80,19 @@ async function main() {
   const posts = await getPosts();
   const listedPosts = posts.filter((post) => !post.hidden);
   const indexablePosts = posts.filter((post) => !post.noindex);
-  const friendRegistry = JSON.parse(await fs.readFile('content/friends.json', 'utf8'));
-  const projectRegistry = JSON.parse(await fs.readFile('content/projects.json', 'utf8'));
+  const friendRegistry: Registry = JSON.parse(await fs.readFile('content/friends.json', 'utf8'));
+  const projectRegistry: Registry = JSON.parse(await fs.readFile('content/projects.json', 'utf8'));
   for (const page of [pages.home, pages.articles, pages.photography, pages.projects, pages.friends]) {
     const html = await read(`${page.pathname.slice(1)}index.html`);
     const { data } = verifyPage(html, { ...page, url: canonicalUrl(page.pathname) });
     assert.equal(data.length, 1, `${page.pathname}: expected one JSON-LD block`);
     if (page === pages.home) {
+      assert.ok(data[0]['@graph']);
       assert.deepEqual(data[0]['@graph'].map((item) => item['@type']).sort(), ['Person', 'WebSite']);
       continue;
     }
     assert.equal(data[0]['@type'], 'CollectionPage');
+    assert.ok(data[0].mainEntity);
     const items = data[0].mainEntity.itemListElement;
     assert.equal(data[0].mainEntity.numberOfItems, items.length);
     assert.deepEqual(items.map((item) => item.position), items.map((_, index) => index + 1));
@@ -148,7 +165,7 @@ async function main() {
   const home = await read('index.html');
   const homeBody = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
   assert.match(homeBody, /<footer(?:\s[^>]*)?>/);
-  for (const [id, registry] of [['projects', projectRegistry], ['friends', friendRegistry]]) {
+  for (const [id, registry] of [['projects', projectRegistry], ['friends', friendRegistry]] as const) {
     const section = homeBody.match(new RegExp(`<section id="${id}"[^>]*>([\\s\\S]*?)</section>`));
     assert.ok(section, `homepage missing ${id} section`);
     const entityLinks = tags(section[1], 'a').filter((tag) => tag.class?.split(' ').includes('entity-inline-link'));
@@ -181,7 +198,7 @@ async function main() {
   }
 
   const llms = await read('llms.txt');
-  const links = [];
+  const links: string[] = [];
   marked.walkTokens(marked.lexer(llms), (token) => { if (token.type === 'link') links.push(token.href); });
   assert.deepEqual(links.filter((href) => href.endsWith('.md')).sort(), indexablePosts.map((post) => markdownUrl(post.slug)).sort());
   for (const href of links) {

@@ -32,7 +32,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: READING_SETTINGS_BOOTSTRAP_SCRIPT }} />
       </head>
-      <body className="mx-auto max-w-2xl bg-[--bg] px-5 py-8 sm:py-12 text-[--text]">
+      <body className="mx-auto max-w-2xl bg-(--bg) px-5 py-8 sm:py-12 text-(--text)">
         <SiteHeader />
         <main>
           {children}

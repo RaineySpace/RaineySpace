@@ -14,9 +14,9 @@ The GitHub profile `README.md` is not project documentation. Do not edit `README
 - `app/rss.xml/route.ts` and `app/atom.xml/route.ts` generate feeds.
 - `app/sitemap.xml/route.ts` and `app/robots.txt/route.ts` generate SEO metadata files.
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
-- `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, article-channel/indexable-content filtering, and feed data behavior centralized there. `lib/post-options.mjs` shares `noindex` and `showHeader` parsing with maintenance scripts. `lib/registry.mjs` and `lib/markdown-refs.mjs` share project/friend registry reading, sorting, and Markdown data-reference expansion with pages, validation, and published Markdown export.
-- `content/projects.json` and `content/friends.json` share the Entity schema in `lib/entities.ts`: names, optional titles, links, dates, descriptions, `icon`, pinning, and per-kind `extensions`. `lib/registry.mjs` validates and normalizes both without field adapters.
-- `lib/entity-rendering.mjs` is the single HTML renderer for React `Entity` / `EntityList` and Markdown references. Keep inline, card, hover-card, icon, and no-icon variants there; see `docs/entities.md`.
+- `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, article-channel/indexable-content filtering, and feed data behavior centralized there. `lib/post-options.ts` shares `noindex` and `showHeader` parsing with maintenance scripts. `lib/registry.ts` and `lib/markdown-refs.ts` share project/friend registry reading, sorting, and Markdown data-reference expansion with pages, validation, and published Markdown export.
+- `content/projects.json` and `content/friends.json` share the Entity schema in `lib/entities.ts`: names, optional titles, links, dates, descriptions, `icon`, pinning, and per-kind `extensions`. `lib/registry.ts` validates and normalizes both without field adapters.
+- `lib/entity-rendering.ts` is the single HTML renderer for React `Entity` / `EntityList` and Markdown references. Keep inline, card, hover-card, icon, and no-icon variants there; see `docs/entities.md`.
 - `public/<slug>/index.md` is the source format for posts. The same directory holds referenced assets.
 - `scripts/` contains local maintenance scripts.
 
@@ -61,19 +61,32 @@ A sibling `.mov` / `.MOV` with the same filename as a still image enables Live P
 
 ## Implementation Rules
 
-- Preserve the current static export model in `next.config.js`.
+- Preserve the current static export model in `next.config.ts`.
 - Do not add a CMS, database, server runtime dependency, or dynamic hosting requirement unless explicitly requested.
 - Keep article-channel filtering based on `hidden`; photography membership is independent of `hidden`. Registered projects and friends are shown from their registries and do not depend on post references.
 - Keep date display stable as `YYYY-MM-DD`.
 - Keep tags optional; most existing posts have empty tags.
 - Keep homepage articles and photography ordered by post `pinned` first and post date descending. Keep projects and friends ordered by registry `pinned` first, registry date descending, then ID. Feeds remain strictly date-ordered.
 - Keep the visual style lightweight and personal; avoid broad redesigns unless explicitly requested.
+- Tailwind CSS 4 uses `@tailwindcss/postcss` and explicitly loads `tailwind.config.ts` from `app/globals.css`. Keep element defaults in `@layer base` so utilities can override them. Preserve photography `transform` matrices used by lightbox opening geometry.
 - Do not move Markdown posts out of `public/<slug>/index.md` without an explicit migration request.
+
+## TypeScript and Runtime
+
+- Use Node.js 24.21.0 and pnpm 10.33.0 from `mise.toml`; use `mise exec -- pnpm <command>` if mise is not activated.
+- The package is ESM. All owned shared modules, scripts and tests are TypeScript. Relative imports in `lib/` and `scripts/` include `.ts`; `@/*` is for Next.js application code.
+- Node executes scripts natively without type checking or custom loaders. Keep shared code erasable (no enums or constructor parameter properties).
+- Resolve script locations with `import.meta.url`; resolve content and output from `process.cwd()`.
+- `pnpm typecheck` generates Next route types and checks both the application and NodeNext script configuration. Keep both strict and keep generated Next type files untracked.
+- Only `eslint.config.mjs` and `postcss.config.mjs` remain JavaScript configuration files. Keep ESLint separate from the Next.js build.
 
 ## Commands
 
 ```bash
 pnpm dev
+pnpm typecheck
+pnpm lint
+pnpm verify
 pnpm build
 pnpm validate:content
 pnpm optimize:images

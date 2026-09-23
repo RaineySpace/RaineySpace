@@ -19,7 +19,7 @@ description: 根据用户提供的项目官网、产品页或代码仓库地址�
 
 ## 阶段一：检查当前状态
 
-1. 读取 `content/projects.json`、`lib/projects.ts`、`lib/registry.mjs` 和 `scripts/validate-content.mjs` 中与项目有关的规则；以当前代码为准，不依赖技能内的旧快照。
+1. 读取 `content/projects.json`、`lib/projects.ts`、`lib/registry.ts` 和 `scripts/validate-content.ts` 中与项目有关的规则；以当前代码为准，不依赖技能内的旧快照。
 2. 确认候选 ID 或规范化后的 URL 是否已在注册表中；登记即可展示，不再要求文章通过 frontmatter 关联项目。
 3. 记录工作树状态。保留用户的既有改动，只触碰本次确认范围内的文件。
 4. 规范化输入 URL 用于查重，但保留项目官方使用的 canonical URL 作为展示地址。

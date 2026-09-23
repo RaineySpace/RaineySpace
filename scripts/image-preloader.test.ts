@@ -1,11 +1,16 @@
-const assert = require('node:assert/strict');
-const test = require('node:test');
-const load = require('./load-typescript.cjs');
-const { ImagePreloader, imagePreloadPolicy } = load('lib/image-preloader.ts');
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { ImagePreloader, imagePreloadPolicy } from '../lib/image-preloader.ts';
 
 function harness() {
-  const idle = new Set();
-  const requests = [];
+  interface Request {
+    src: string; canceled: boolean; promoted: boolean;
+    finish(success?: boolean): void;
+    cancel(): void;
+    promote(): void;
+  }
+  const idle = new Set<() => void>();
+  const requests: Request[] = [];
   let inFlight = 0;
   let maxInFlight = 0;
   const preloader = new ImagePreloader({
@@ -42,7 +47,7 @@ function harness() {
       const run = idle.values().next().value;
       if (run) { idle.delete(run); run(); }
     },
-    finish(success = true) { requests.at(-1).finish(success); },
+    finish(success = true) { const last = requests.at(-1); assert.ok(last); last.finish(success); },
   };
 }
 

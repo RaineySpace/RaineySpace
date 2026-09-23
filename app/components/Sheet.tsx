@@ -11,7 +11,7 @@ interface SheetProps {
   closeLabel: string;
   id?: string;
   className?: string;
-  returnFocusRef?: RefObject<HTMLElement>;
+  returnFocusRef?: RefObject<HTMLElement | null>;
   renderHeader?: (close: () => void) => ReactNode;
   children: ReactNode;
 }
@@ -32,7 +32,7 @@ export default function Sheet({
   const backdropRef = useRef<HTMLButtonElement>(null);
   const activeRef = useRef(false);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useLayoutEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   const finishClose = useCallback(() => {
     if (!activeRef.current) return;

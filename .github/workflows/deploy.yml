@@ -49,7 +49,7 @@ jobs:
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
       
-      - name: 校验内容、测试并检查构建产物
+      - name: 类型检查、ESLint、测试与静态产物校验
         run: pnpm verify
       
       - name: 部署到 Cloudflare Pages

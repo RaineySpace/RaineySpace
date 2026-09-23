@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useLightboxGestures } from "@/app/components/useLightboxGestures";
 import Sheet from "@/app/components/Sheet";
@@ -201,6 +201,10 @@ function SheetCard({
 
 type SlideRole = "previous" | "current" | "next";
 
+const subscribePortal = () => () => {};
+const getPortalTarget = () => document.body;
+const getServerPortalTarget = () => null;
+
 function useLightboxImage(src: string | null) {
   const ref = useRef<HTMLImageElement>(null);
   const [result, setResult] = useState<{
@@ -210,8 +214,13 @@ function useLightboxImage(src: string | null) {
     size?: { width: number; height: number };
   } | null>(null);
 
-  useLayoutEffect(() => {
+  const [previousSrc, setPreviousSrc] = useState(src);
+  if (previousSrc !== src) {
+    setPreviousSrc(src);
     setResult(null);
+  }
+
+  useLayoutEffect(() => {
     const img = ref.current;
     if (!img || !src) return;
     let cancelled = false;
@@ -250,13 +259,12 @@ function useLightboxImage(src: string | null) {
   }, [src]);
 
   const current = result?.src === src ? result : null;
-  return {
-    ref,
+  return [ref, {
     ready: current?.ready === true,
     error: current?.ready === false,
     cached: current?.cached,
     size: current?.size,
-  };
+  }] as const;
 }
 
 function LightboxSlide({
@@ -274,11 +282,11 @@ function LightboxSlide({
   const preloaded = usePreloadedImage(image.src);
   const download = useOriginalDownload(image.src, isActive || preloaded, isActive);
   const fullSrc = download.imageSrc;
-  const full = useLightboxImage(fullSrc);
+  const [fullRef, full] = useLightboxImage(fullSrc);
   const failed = full.error || download.status === "error";
   useCurrentImageLoading(image.src, isActive, full.ready, failed);
-  const preview = useLightboxImage(previewSrc);
-  const fallback = useLightboxImage(openingPreview?.src || null);
+  const [previewRef, preview] = useLightboxImage(previewSrc);
+  const [fallbackRef, fallback] = useLightboxImage(openingPreview?.src || null);
   const hasPreview = preview.ready || fallback.ready;
   const naturalSize = full.size || preview.size || fallback.size;
   const showSpinner = !full.ready && !failed && !hasPreview;
@@ -304,7 +312,7 @@ function LightboxSlide({
       {failed && !hasPreview && <p className="absolute inset-0 z-[2] m-0 flex items-center justify-center text-[0.75rem] text-gray-400" role="status">图片加载失败</p>}
       {openingPreview && (
         <img
-          ref={fallback.ref}
+          ref={fallbackRef}
           src={openingPreview.src}
           alt=""
           draggable={false}
@@ -313,7 +321,7 @@ function LightboxSlide({
       )}
       {previewSrc && (
         <img
-          ref={preview.ref}
+          ref={previewRef}
           src={previewSrc}
           alt=""
           draggable={false}
@@ -322,7 +330,7 @@ function LightboxSlide({
         />
       )}
       <img
-        ref={full.ref}
+        ref={fullRef}
         src={fullSrc || undefined}
         alt={isActive ? image.alt : ""}
         aria-busy={isActive && !full.ready && !failed ? true : undefined}
@@ -362,7 +370,7 @@ export default function ImageLightbox({
   returnFocus,
 }: ImageLightboxProps) {
   useImagePreloading(images, activeIndex);
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const portalTarget = useSyncExternalStore(subscribePortal, getPortalTarget, getServerPortalTarget);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -377,10 +385,11 @@ export default function ImageLightbox({
   const openingCleanupRef = useRef<(() => void) | null>(null);
   const openingInputsRef = useRef({ returnFocus, activeSrc: "" });
   const previousActiveSrcRef = useRef<string | null>(null);
-  useEffect(() => { setPortalTarget(document.body); }, []);
   const isOpen = activeIndex !== null;
   const activeImage = activeIndex === null ? null : images[activeIndex];
-  openingInputsRef.current = { returnFocus, activeSrc: activeImage?.src || "" };
+  useLayoutEffect(() => {
+    openingInputsRef.current = { returnFocus, activeSrc: activeImage?.src || "" };
+  }, [returnFocus, activeImage?.src]);
   const hasMultipleImages = images.length > 1;
   const hasOverflowingThumbnails = images.length > 5;
   const previousImage =
@@ -469,6 +478,8 @@ export default function ImageLightbox({
     const dialog = dialogRef.current;
     if (!isOpen) {
       if (dialog?.open) dialog.close();
+      // Reset the DOM-measured opening preview before the next browser paint.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpeningPreview(null);
       setIsOpening(true);
       return;
@@ -545,9 +556,11 @@ export default function ImageLightbox({
     });
   }, [activeIndex, hasOverflowingThumbnails]);
 
-  useEffect(() => {
+  const [previousIndex, setPreviousIndex] = useState(activeIndex);
+  if (previousIndex !== activeIndex) {
+    setPreviousIndex(activeIndex);
     setSheetOpen(false);
-  }, [activeIndex]);
+  }
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 640px)");
@@ -581,7 +594,7 @@ export default function ImageLightbox({
             type="button"
             onClick={closeLightbox}
             aria-label="关闭"
-            className="image-lightbox-close flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="image-lightbox-close flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-xs transition-colors hover:bg-black/80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white"
           >
             <CloseIcon />
           </button>
@@ -629,7 +642,7 @@ export default function ImageLightbox({
                   type="button"
                   onClick={showPrevious}
                   aria-label="上一张"
-                  className="image-lightbox-nav absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:left-4"
+                  className="image-lightbox-nav absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-xs transition-colors hover:bg-black/80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white sm:left-4"
                 >
                   <ChevronIcon direction="left" />
                 </button>
@@ -637,7 +650,7 @@ export default function ImageLightbox({
                   type="button"
                   onClick={showNext}
                   aria-label="下一张"
-                  className="image-lightbox-nav absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-4"
+                  className="image-lightbox-nav absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-xs transition-colors hover:bg-black/80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white sm:right-4"
                 >
                   <ChevronIcon direction="right" />
                 </button>
@@ -772,7 +785,7 @@ export default function ImageLightbox({
               <span className="min-w-0 flex-1 truncate text-[1rem] font-semibold text-white">{titleText || "图片详情"}</span>
               <button
                 type="button"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-300 hover:bg-white/[0.08] focus-visible:bg-white/[0.08] focus-visible:outline-none"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-300 hover:bg-white/[0.08] focus-visible:bg-white/[0.08] focus-visible:outline-hidden"
                 aria-label="关闭详情"
                 onClick={close}
               >

@@ -1,5 +1,5 @@
-import { getEntityById, loadEntities, PROJECT_KIND } from "@/lib/registry.mjs";
-import type { Entity } from "@/lib/entities";
+import { getEntityById, loadEntities, PROJECT_KIND } from "./registry.ts";
+import type { Entity } from "./entities.ts";
 
 export type Project = Entity<"project">;
 

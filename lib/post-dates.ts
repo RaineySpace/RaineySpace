@@ -1,13 +1,5 @@
-/**
- * Validate the optional update date for both the content reader and CLI validator.
- * gray-matter's YAML parser turns bare dates into Date objects and can roll an
- * invalid date into the next month, so retain the original scalar for that case.
- * @param {unknown} value
- * @param {Date | null} published
- * @param {string} frontmatter
- * @returns {Date | null}
- */
-export function parseUpdatedDate(value, published, frontmatter) {
+// YAML may roll invalid bare dates into the next month; validate the original scalar too.
+export function parseUpdatedDate(value: unknown, published: Date | null, frontmatter: string): Date | null {
   if (value === undefined) return null;
 
   const text = value instanceof Date
@@ -17,7 +9,7 @@ export function parseUpdatedDate(value, published, frontmatter) {
     ? new Date(`${text}T00:00:00.000Z`)
     : null;
 
-  if (!updated || Number.isNaN(updated.getTime()) || updated.toISOString().slice(0, 10) !== text) {
+  if (!text || !updated || Number.isNaN(updated.getTime()) || updated.toISOString().slice(0, 10) !== text) {
     throw new Error('frontmatter "updated" must be a valid YYYY-MM-DD date');
   }
   if (!published || Number.isNaN(published.getTime())) {

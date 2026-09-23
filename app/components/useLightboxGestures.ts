@@ -34,9 +34,9 @@ interface UseLightboxGesturesOptions {
   isOpen: boolean;
   activeIndex: number | null;
   hasMultipleImages: boolean;
-  stageRef: RefObject<HTMLDivElement>;
-  trackRef: RefObject<HTMLDivElement>;
-  shellRef: RefObject<HTMLDivElement>;
+  stageRef: RefObject<HTMLDivElement | null>;
+  trackRef: RefObject<HTMLDivElement | null>;
+  shellRef: RefObject<HTMLDivElement | null>;
   onPrevious: () => void;
   onNext: () => void;
   onClose: () => void;
@@ -61,10 +61,12 @@ export function useLightboxGestures({
   const onNextRef = useRef(onNext);
   const onCloseRef = useRef(onClose);
 
-  hasMultipleRef.current = hasMultipleImages;
-  onPreviousRef.current = onPrevious;
-  onNextRef.current = onNext;
-  onCloseRef.current = onClose;
+  useLayoutEffect(() => {
+    hasMultipleRef.current = hasMultipleImages;
+    onPreviousRef.current = onPrevious;
+    onNextRef.current = onNext;
+    onCloseRef.current = onClose;
+  }, [hasMultipleImages, onPrevious, onNext, onClose]);
 
   const resetTrack = useCallback((withTransition = false) => {
     const track = trackRef.current;

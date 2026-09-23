@@ -2,17 +2,18 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import {
   compareEntities,
   parseRegistry,
   sortEntities,
-} from "../lib/registry.mjs";
+} from "../lib/registry.ts";
 
-const projectRoot = path.resolve("scripts", "..");
+const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 
-function project(id, overrides = {}) {
+function project(id: string, overrides: Record<string, unknown> = {}) {
   return {
     name: id,
     url: `https://example.com/${id}`,
@@ -21,7 +22,7 @@ function project(id, overrides = {}) {
   };
 }
 
-function friend(id, overrides = {}) {
+function friend(id: string, overrides: Record<string, unknown> = {}) {
   return {
     name: id,
     title: `${id} blog`,
@@ -32,7 +33,7 @@ function friend(id, overrides = {}) {
 }
 
 test("empty registries are valid and stay empty after sorting", () => {
-  for (const kind of ["project", "friend"]) {
+  for (const kind of ["project", "friend"] as const) {
     const parsed = parseRegistry(kind, {});
     assert.deepEqual(parsed.errors, []);
     assert.deepEqual(parsed.entities, []);
@@ -102,7 +103,7 @@ test("content validator uses the shared registry rules", async () => {
       alpha: project("alpha", { date: "2026-02-30" }),
     }));
     await fs.writeFile(path.join(directory, "content/friends.json"), "{}");
-    const check = spawnSync(process.execPath, [path.join(projectRoot, "scripts/validate-content.mjs")], {
+    const check = spawnSync(process.execPath, [path.join(projectRoot, "scripts/validate-content.ts")], {
       cwd: directory,
       encoding: "utf8",
     });
@@ -114,7 +115,7 @@ test("content validator uses the shared registry rules", async () => {
 });
 
 test("both registries share optional titles, icons and extension data", () => {
-  for (const kind of ["project", "friend"]) {
+  for (const kind of ["project", "friend"] as const) {
     const extensions = kind === "project"
       ? { repository: "https://github.com/example/project", platforms: ["web"], flags: { beta: true } }
       : { feed: "https://example.com/rss.xml", social: { github: "example" }, score: null };
@@ -142,7 +143,7 @@ test("both registries share optional titles, icons and extension data", () => {
 });
 
 test("extensions are JSON objects and cannot overwrite the common contract", () => {
-  for (const kind of ["project", "friend"]) {
+  for (const kind of ["project", "friend"] as const) {
     for (const extensions of [null, [], "bad", { bad: undefined }, { bad: Infinity }, { bad: new Date() }]) {
       assert.match(parseRegistry(kind, { alpha: project("alpha", { extensions }) }).errors.join("\n"), /"extensions" must be a JSON object/);
     }

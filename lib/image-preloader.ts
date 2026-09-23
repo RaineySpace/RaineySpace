@@ -34,7 +34,11 @@ export class ImagePreloader {
   private pending: ({ src: string } & PreloadTask) | null = null;
   private cancelScheduled: (() => void) | null = null;
 
-  constructor(private options: PreloaderOptions) {}
+  private options: PreloaderOptions;
+
+  constructor(options: PreloaderOptions) {
+    this.options = options;
+  }
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import HomeSection from '@/app/components/HomeSection';
 import HoverCardList from '@/app/components/HoverCardList';
 import PhotoGallery from '@/app/components/PhotoGallery';
@@ -10,7 +11,7 @@ import JsonLd from '@/app/components/JsonLd';
 import { homeJsonLd, pageMetadata, pages } from '@/lib/seo';
 import EntityList from '@/app/components/EntityList';
 import { EntityContent } from '@/app/components/Entity';
-import { emptyCollectionMessage } from '@/lib/entity-rendering.mjs';
+import { emptyCollectionMessage } from '@/lib/entity-rendering.ts';
 import { getFriends } from '@/lib/friends';
 import './[slug]/prose.css';
 
@@ -69,11 +70,11 @@ export default async function Home() {
         />
       </HomeSection>
 
-      <footer className="flex h-8 flex-wrap items-center justify-between border-t border-dashed border-[--border] text-sm leading-[var(--lh-body)] text-[--muted] sm:h-12">
+      <footer className="flex h-8 flex-wrap items-center justify-between border-t border-dashed border-(--border) text-sm leading-[var(--lh-body)] text-(--muted) sm:h-12">
         <span>© {new Date().getFullYear()} {author}</span>
         <nav aria-label="页脚导航" className="ml-auto flex flex-wrap gap-4">
-          <a href="/friends/" className="text-inherit underline underline-offset-4 hover:text-[--title] focus-visible:text-[--title]">朋友们</a>
-          <a href="/about/" className="text-inherit underline underline-offset-4 hover:text-[--title] focus-visible:text-[--title]">关于我</a>
+          <Link href="/friends/" className="text-inherit underline underline-offset-4 hover:text-(--title) focus-visible:text-(--title)">朋友们</Link>
+          <Link href="/about/" className="text-inherit underline underline-offset-4 hover:text-(--title) focus-visible:text-(--title)">关于我</Link>
         </nav>
       </footer>
     </div>

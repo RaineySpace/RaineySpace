@@ -2,6 +2,30 @@
 
 这个项目是一个基于 Next.js App Router 的静态博客。文章内容存放在 `public/<slug>/index.md`，封面和附件放在同一个文章目录，构建后输出到 `out/`，用于 Cloudflare Pages 部署。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。
 
+## 运行时与 TypeScript
+
+`mise.toml` 固定 Node.js `24.21.0` 和 pnpm `10.33.0`。首次运行 `mise install`，然后执行 `mise exec -- pnpm install --frozen-lockfile`。未自动激活 mise 的终端，后续命令统一加 `mise exec --` 前缀。
+
+应用使用 Next.js `16.3.6`、React `19.3.0` 和 TypeScript `6.0.3`。页面和组件由 Next.js 默认的 Turbopack 编译；共享模块、维护脚本与测试由 Node 原生擦除类型后执行，不使用自定义加载器。原生执行不做类型检查，因此提交与发布前必须运行 `pnpm verify`。
+
+根包使用 ESM。共享模块和脚本的相对导入必须带 `.ts` 扩展名，不依赖 `@/*` 别名；React JSX 文件使用 `.tsx`，保留应用别名。Node 执行的代码仅使用可擦除类型语法，不使用枚举、参数属性等需要转译的语法。脚本自身位置使用 `import.meta.url`，内容和构建目录使用 `process.cwd()`，便于在临时目录运行校验。
+
+`next.config.ts` 保持静态导出，Tailwind 配置保持 `.ts`；仅 `postcss.config.mjs`、`eslint.config.mjs` 使用 `.mjs`。`tsconfig.json` 使用 `ESNext` / `bundler` / `react-jsx`；`tsconfig.scripts.json` 使用 `NodeNext` 并启用 `erasableSyntaxOnly`，覆盖全部脚本、测试和共享模块。两者严格检查、禁止 JavaScript 输入、不输出代码，缓存分别存放于 `.cache/typescript/`。
+
+`pnpm typecheck` 先执行 `next typegen`，再运行两套 `tsc` 检查。`next-env.d.ts`、`.next/types/` 和 `.next/dev/types/` 由 Next.js 自动管理，不提交 Git。ESLint 独立运行 `pnpm lint`；构建保留 Next.js 自身的类型检查。
+
+参考：[Next.js TypeScript](https://nextjs.org/docs/app/api-reference/config/typescript)、[Next.js 16 升级指南](https://nextjs.org/docs/app/guides/upgrading/version-16)、[Node 原生 TypeScript](https://nodejs.org/api/typescript.html)。
+
+## 依赖与样式维护
+
+依赖使用兼容的稳定版本。当前 Tailwind CSS 为 `4.3.3`、Marked 为 `18.0.14`、Feed 为 `6.0.0`、Sharp 为 `0.35.4`。TypeScript 暂留 `6.0.3`，因为 [typescript-eslint 的支持范围](https://typescript-eslint.io/users/dependency-versions/)尚未包含 TypeScript 7；ESLint 暂留 `9.39.5`，因为 Next.js 使用的 `eslint-plugin-react` 和 `eslint-plugin-jsx-a11y` 尚未声明支持 ESLint 10。`@types/node` 跟随 Node 24，而非独立升级到 Node 26。后续升级先核对插件的 peerDependencies，再更新锁文件，不通过强制覆盖忽略兼容约束。
+
+Tailwind 4 通过 `@tailwindcss/postcss` 接入，自带前缀处理，不再单独安装 Autoprefixer。`app/globals.css` 使用 `@import "tailwindcss"`、`@config "../tailwind.config.ts"` 加载现有字号与 typography 配置，并显式限定 `app/` 为工具类扫描目录。CSS 变量工具类使用 `text-(--secondary)` 等 v4 语法。新增全局元素默认样式应放在 `@layer base` 内，避免覆盖工具类；现有灰色值、焦点轮廓与模糊强度保持升级前效果。
+
+摄影缩略图保留基于 `transform` 的旋转和缩放，灯箱开场几何读取同一变换矩阵；不要直接替换成独立 `rotate` / `scale` 属性。减少动态效果模式下，使用 `motion-reduce:translate-none!` 覆盖悬停和焦点状态的独立位移。按照 [Tailwind 4 官方兼容要求](https://tailwindcss.com/docs/upgrade-guide)，浏览器最低版本为 Safari 16.4、Chrome 111、Firefox 128。
+
+Marked 的自定义 renderer 接收 token 对象；标题中的行内 Markdown 通过 `renderer.parser.parseInline(tokens)` 渲染。升级 Markdown 解析器时运行 `pnpm test:seo`，确保格式化标题、重复标题锚点、目录文字与图片属性保持正确。升级 Sharp 可能重建图片缓存；原图字节和内容哈希 URL 必须保持稳定，预览图的 URL 始终取自实际输出字节。
+
 ## 项目结构
 
 - `app/page.tsx`：首页文章列表。
@@ -10,14 +34,14 @@
 - `app/sitemap.xml/route.ts`、`app/robots.txt/route.ts`：搜索引擎入口。
 - `app/llms.txt/route.ts`：允许索引内容的 AI 阅读导航。
 - `lib/posts.ts`：文章读取、frontmatter 归一化、Markdown 渲染、日期格式、文章频道／允许索引内容筛选和 feed 数据逻辑。
-- `lib/registry.mjs`：项目与友链注册表读取、校验字段、排序。
-- `lib/markdown-refs.mjs`：识别 `project:` / `friend:` 链接 title，并生成卡片、行内图标名称、悬停预览和公开 Markdown 展开结果。
+- `lib/registry.ts`：项目与友链注册表读取、校验字段、排序。
+- `lib/markdown-refs.ts`：识别 `project:` / `friend:` 链接 title，并生成卡片、行内图标名称、悬停预览和公开 Markdown 展开结果。
 - `lib/seo.ts`：规范网址、页面元数据、JSON-LD、sitemap 条目和 llms.txt 内容。
 - `lib/config.ts`：站点 URL、标题、作者、头像、关键词等全局配置。
-- `scripts/new-post.mjs`：新建文章脚本。
-- `scripts/validate-content.mjs`：内容校验脚本。
-- `scripts/optimize-images.mjs`：构建前根据原图生成展示用 WebP。
-- `scripts/export-markdown.mjs`：构建后把 `public/<slug>/index.md` 发布为 `out/<slug>.md`，把相对资源改写成站点绝对路径，并删除会泄漏的 `out/<slug>/index.md`。
+- `scripts/new-post.ts`：新建文章脚本。
+- `scripts/validate-content.ts`：内容校验脚本。
+- `scripts/optimize-images.ts`：构建前根据原图生成展示用 WebP。
+- `scripts/export-markdown.ts`：构建后把 `public/<slug>/index.md` 发布为 `out/<slug>.md`，把相对资源改写成站点绝对路径，并删除会泄漏的 `out/<slug>/index.md`。
 
 ## 新建文章
 
@@ -89,7 +113,7 @@ showHeader: false
 
 `showHeader` 默认为 `true`。设为 `false` 时隐藏自动生成的标题、日期、地点、标签和摘要，但这些数据仍用于 SEO。封面、正文和目录保持原有行为。关于页、朋友们页面和测试页填写完整标题与摘要，再通过这个开关保持当前正文起始布局；不需要为它们补造发布日期。
 
-两个字段只接受 YAML 布尔值，字符串 `"false"`、空值和其他类型会使读取、内容校验或响应头生成失败。共享解析位于 `lib/post-options.mjs`。常规新文章模板省略这两个默认开关；完整字段说明见 [内容集合维护](./content-collections.md)。
+两个字段只接受 YAML 布尔值，字符串 `"false"`、空值和其他类型会使读取、内容校验或响应头生成失败。共享解析位于 `lib/post-options.ts`。常规新文章模板省略这两个默认开关；完整字段说明见 [内容集合维护](./content-collections.md)。
 
 ## SEO 与 AI 阅读
 
@@ -99,7 +123,7 @@ showHeader: false
 
 每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。源文件仍是 `public/<slug>/index.md`，构建时发布为 `/<slug>.md`，不维护第二份源文件。发布稿会把 `./cover.webp` 这类相对资源改写成 `/<slug>/cover.webp`，让根路径 Markdown 对搜索引擎和 AI 抓取仍能解析图片；源文件继续使用相对路径。构建后删除 `out/<slug>/index.md`，避免同一篇文章出现两份公开 Markdown。
 
-`pnpm build` 完成静态导出与 Markdown 发布后，`postbuild` 步骤运行 `scripts/generate-headers.cjs`，根据站点 URL 与原文元数据完整生成 `out/_headers`：为 `/<slug>.md` 提供 `Content-Type: text/markdown; charset=utf-8` 和指向 HTML 页的 canonical Link，为标记内容添加 `X-Robots-Tag: noindex`，并生成图片长期缓存及页面校验规则。删除内容或取消标记后，下一次构建会移除旧规则；生成失败会使构建失败。不要维护第二份手写 `public/_headers`。变更站点域名后重新构建并运行 SEO 校验即可；普通本地静态服务器不会解释 `_headers`。
+`pnpm build` 完成静态导出与 Markdown 发布后，`postbuild` 步骤运行 `scripts/generate-headers.ts`，根据站点 URL 与原文元数据完整生成 `out/_headers`：为 `/<slug>.md` 提供 `Content-Type: text/markdown; charset=utf-8` 和指向 HTML 页的 canonical Link，为标记内容添加 `X-Robots-Tag: noindex`，并生成图片长期缓存及页面校验规则。删除内容或取消标记后，下一次构建会移除旧规则；生成失败会使构建失败。不要维护第二份手写 `public/_headers`。变更站点域名后重新构建并运行 SEO 校验即可；普通本地静态服务器不会解释 `_headers`。
 
 `/llms.txt` 在构建时从允许索引的内容生成站点导航、标题、摘要、日期和 Markdown 链接，并提供 HTML 原文链接供引用。没有日期时省略日期，不产生空日期标点或当前时间；sitemap 同样省略无法确定的 `lastmod`。它只是机器阅读的便利入口，不保证排名或 AI 引用量提升；[Google 的 AI 搜索功能仍遵循基础 SEO 要求](https://developers.google.com/search/docs/appearance/ai-features)。
 
@@ -202,9 +226,11 @@ pnpm deploy:cf
 - llms.txt
 - `_headers`（构建后自动生成的 Markdown canonical、索引及缓存响应头）
 
-`pnpm test:seo` 检查日期、元数据和结构化数据序列化，通过临时 Markdown 覆盖 `hidden/noindex` 四种组合、新字段默认值与非法类型、非测试页的索引声明、重命名或删除后的响应头清理，以及图片长期缓存和页面校验的匹配范围。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、自动页头与封面、sitemap、feed、Markdown 原文、llms.txt 链接及完整 `_headers` 索引规则；运行前必须完成当前版本的 `pnpm build`。这些脚本复用现有 TypeScript 编译器和 Node.js，不引入浏览器端依赖。
+`pnpm test:seo` 检查日期、元数据和结构化数据序列化，通过临时 Markdown 覆盖 `hidden/noindex` 四种组合、新字段默认值与非法类型、非测试页的索引声明、重命名或删除后的响应头清理，以及图片长期缓存和页面校验的匹配范围。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、自动页头与封面、sitemap、feed、Markdown 原文、llms.txt 链接及完整 `_headers` 索引规则；运行前必须完成当前版本的 `pnpm build`。这些脚本由 Node.js 原生执行 TypeScript，不引入浏览器端依赖。
 
-`pnpm verify` 依次执行内容校验、注册表与 Markdown 数据标记测试、SEO 测试、图片管线及预加载调度测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留、哈希稳定性、同名替换、构建缓存修复、派生文件清理，以及下载字节进度、总大小缺失、流失败、共享请求与 Blob 释放、预加载优先级、并发去重、网络策略、后台暂停和路由清理；产物校验检查静态内链、测试页 noindex、文件内容与哈希的一致性、版本化原图字节、图片候选尺寸、正文占位尺寸、封面灯箱入口及缓存响应头。
+`pnpm verify` 依次执行路由类型生成、两套严格类型检查、ESLint、内容校验、注册表与 Markdown 数据标记测试、SEO 测试、图片管线及预加载调度测试、脚本 CLI 测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留、哈希稳定性、同名替换、构建缓存修复、派生文件清理，以及下载字节进度、总大小缺失、流失败、共享请求与 Blob 释放、预加载优先级、并发去重、网络策略、后台暂停和路由清理；产物校验检查静态内链、测试页 noindex、文件内容与哈希的一致性、版本化原图字节、图片候选尺寸、正文占位尺寸、封面灯箱入口及缓存响应头。
+
+`pnpm test:scripts` 验证原生 TypeScript 入口在临时工作目录下的新建文章、Markdown 导出、响应头生成，以及重复文章、无效引用、损坏图片和缺失产物的失败退出。
 
 `pnpm deploy:cf` 和 GitHub Actions 共用 `pnpm verify`，任一步失败都会停止部署。CI 通过 mise-action 读取仓库 `mise.toml` 安装 Node.js 和 pnpm，与本地使用同一版本来源。验证成功后才通过 Wrangler 或现有 Pages action 部署 `out/` 到 Cloudflare Pages。
 
@@ -222,6 +248,6 @@ pnpm deploy:cf
 
 - 不要把项目维护说明写入 `README.md`，该文件用于 GitHub public profile。
 - 不要改变 `public/<slug>/index.md` 的文章存储方式，除非明确执行内容迁移。文章的公开 Markdown 地址是 `/<slug>.md`。
-- 不要让隐藏文章进入首页、feed 或 sitemap。
+- `hidden` 控制文章列表与 feed；`noindex` 独立控制 sitemap、llms.txt 与索引声明。
 - 日期展示保持 `YYYY-MM-DD`。
 - 优先保持轻量个人博客风格，避免引入复杂内容系统。

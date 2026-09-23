@@ -14,6 +14,15 @@ export interface DisplayImage {
   height?: number;
 }
 
+export interface OptimizedImage extends DisplayImage {
+  originalSrc: string;
+  width: number;
+  height: number;
+  sourceHash: string;
+  pipelineHash: string;
+}
+export type ImageManifest = Record<string, OptimizedImage>;
+
 export function toOriginalSrc(slug: string, relativePath: string): string {
   return `/${[slug, ...relativePath.split('/')].map(encodeURIComponent).join('/')}`;
 }

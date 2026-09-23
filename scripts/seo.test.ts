@@ -1,27 +1,28 @@
-const assert = require('node:assert/strict');
-const test = require('node:test');
-const fs = require('node:fs/promises');
-const os = require('node:os');
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
-const matter = require('gray-matter');
-const load = require('./load-typescript.cjs');
-const seo = load('lib/seo.ts');
-const { getPosts, getPostBySlug, getListedPosts, getIndexablePosts, getPostTagCounts, generateFeed } = load('lib/posts.ts');
-const { parseUpdatedDate } = require('../lib/post-dates.mjs');
-const { loadEntities } = require('../lib/registry.mjs');
-const { generateHeaders } = require('./generate-headers.cjs');
-const projectRoot = path.resolve(__dirname, '..');
+import { fileURLToPath } from 'node:url';
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import matter from 'gray-matter';
+import type { Post } from '../lib/posts.ts';
+import * as seo from '../lib/seo.ts';
+import { getPosts, getPostBySlug, getListedPosts, getIndexablePosts, getPostTagCounts, generateFeed } from '../lib/posts.ts';
+import { parseUpdatedDate } from '../lib/post-dates.ts';
+import { loadEntities } from '../lib/registry.ts';
+import { generateHeaders } from './generate-headers.ts';
+const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 
-function post(overrides = {}) {
+function post(overrides: Partial<Post> = {}): Post {
   return {
     slug: 'sample', title: '一篇文章', summary: '文章摘要', hidden: false, noindex: false, showHeader: true,
     date: new Date('2024-02-01'), dateText: '2024-02-01', updated: null,
-    cover: '', tags: [], keywords: [], ...overrides,
+    cover: '', tags: [], keywords: [], showTitle: true, coverDisplaySrc: '', location: '', pinned: false, photography: false, images: [], content: '', plainContent: '', headings: [], ...overrides,
   };
 }
 
-function updateDate(value) {
+function updateDate(value: string) {
   const parsed = matter(`---\ndate: 2024-02-01\nupdated: ${value}\n---\n`);
   return parseUpdatedDate(parsed.data.updated, parsed.data.date, parsed.matter);
 }
@@ -47,6 +48,7 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   }
   const metadata = seo.postMetadata(post({ cover: '/sample/cover.webp', updated: new Date('2024-02-29') }));
   assert.equal(metadata.openGraph.images, 'https://rainey.space/sample/cover.webp');
+  assert.ok(metadata.openGraph.type === 'article');
   assert.equal(metadata.openGraph.modifiedTime, '2024-02-29T00:00:00.000Z');
   assert.equal(metadata.alternates.types['text/markdown'], 'https://rainey.space/sample.md');
   const photography = seo.postMetadata(post({
@@ -60,7 +62,7 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
     slug: 'photo-album',
     cover: '/photo-album/cover.webp',
     photography: true,
-  })).image, undefined);
+  }))?.image, undefined);
   const about = seo.postMetadata(post({ slug: 'about', title: '自定义关于页', summary: '关于页摘要', hidden: true, showHeader: false }));
   assert.equal(about.title, "自定义关于页 - Rainey's Blog");
   assert.equal(about.description, '关于页摘要');
@@ -90,7 +92,9 @@ test('updated accepts real calendar dates and rejects rollover, wrong types and 
 
 test('structured data uses real content and safely handles a script-closing title', () => {
   const source = post({ title: '标题 </script><script>alert(1)</script>', updated: new Date('2024-02-29') });
-  const encoded = seo.serializeJsonLd(seo.postJsonLd(source));
+  const structured = seo.postJsonLd(source);
+  assert.ok(structured);
+  const encoded = seo.serializeJsonLd(structured);
   assert.ok(!encoded.includes('<'));
   const data = JSON.parse(encoded);
   assert.equal(data.headline, source.title);
@@ -99,21 +103,22 @@ test('structured data uses real content and safely handles a script-closing titl
   assert.equal(data.dateModified, '2024-02-29T00:00:00.000Z');
   assert.equal(data.image, undefined);
   assert.equal(data.author.url, 'https://rainey.space/about/');
-  assert.equal(seo.postJsonLd(post({ hidden: true }))['@type'], 'BlogPosting');
+  assert.equal(seo.postJsonLd(post({ hidden: true }))?.['@type'], 'BlogPosting');
   assert.equal(seo.postJsonLd(post({ noindex: true })), null);
   assert.equal(seo.postJsonLd(post({ slug: 'about', noindex: true })), null);
   const about = seo.postJsonLd(post({ slug: 'about', hidden: true, title: '作者介绍', summary: '自定义摘要' }));
+  assert.ok(about);
   assert.equal(about['@type'], 'AboutPage');
   assert.equal(about.name, "作者介绍 - Rainey's Blog");
   assert.equal(about.description, '自定义摘要');
-  const friends = seo.collectionJsonLd(seo.pages.friends, loadEntities('friend').map((friend) => ({ url: friend.url, name: friend.title, description: friend.description })));
+  const friends = seo.collectionJsonLd(seo.pages.friends, loadEntities('friend').map((friend) => ({ url: friend.url, name: friend.title ?? friend.name, description: friend.description })));
   assert.equal(friends['@type'], 'CollectionPage');
   assert.equal(friends.name, "朋友们 - Rainey's Blog");
   assert.equal(friends.description, 'Rainey 的朋友们');
   const registeredFriends = loadEntities('friend');
   assert.equal(friends.mainEntity.numberOfItems, registeredFriends.length);
-  assert.deepEqual(friends.mainEntity.itemListElement.map((item) => item.name), registeredFriends.map((item) => item.title));
-  assert.equal(JSON.parse(seo.serializeJsonLd(seo.postJsonLd(post()))).dateModified, undefined);
+  assert.deepEqual(friends.mainEntity.itemListElement.map((item) => item.name), registeredFriends.map((item) => item.title ?? item.name));
+  assert.equal(JSON.parse(seo.serializeJsonLd(seo.postJsonLd(post())!)).dateModified, undefined);
   const items = [{ url: 'https://example.com/', name: '项目' }, { url: seo.postUrl('hidden-album'), name: '摄影' }];
   const collection = seo.collectionJsonLd(seo.pages.projects, items).mainEntity;
   assert.deepEqual(collection.itemListElement.map((item) => item.url), items.map((item) => item.url));
@@ -128,7 +133,7 @@ test('sitemap and llms include hidden indexable content without inventing dates'
   assert.ok(entries.some((entry) => entry.loc.includes('/about/')));
   assert.equal(entries.filter((entry) => entry.loc === seo.canonicalUrl(seo.pages.friends.pathname)).length, 1);
   assert.ok(!entries.some((entry) => entry.loc.includes('/excluded/')));
-  assert.equal(seo.sitemapEntries([post({ date: null })]).at(-1).lastmod, undefined);
+  assert.equal(seo.sitemapEntries([post({ date: null })]).at(-1)?.lastmod, undefined);
   const llms = seo.llmsText(source);
   assert.ok(llms.includes('https://rainey.space/sample.md'));
   assert.ok(llms.includes('[原文](https://rainey.space/sample/)'));
@@ -144,7 +149,7 @@ test('sitemap and llms include hidden indexable content without inventing dates'
   assert.ok(!tricky.includes('\n## 假标题'));
 });
 
-async function withContentFixture(run) {
+async function withContentFixture(run: (directory: string) => Promise<void>) {
   const originalCwd = process.cwd();
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-metadata-'));
   try {
@@ -159,7 +164,7 @@ async function withContentFixture(run) {
   }
 }
 
-async function writeFixture(slug, options = '') {
+async function writeFixture(slug: string, options = '') {
   await fs.mkdir(path.join('public', slug), { recursive: true });
   await fs.writeFile(path.join('public', slug, 'index.md'), `---\ntitle: ${JSON.stringify(slug)}\nsummary: Fixture summary\ndate: 2024-02-01\ntags: ${JSON.stringify(['shared', slug])}\n${options}---\n\nFixture body.\n`);
 }
@@ -201,7 +206,7 @@ test('reader, validator and header CLI agree on defaults and reject invalid new 
     assert.equal(item.noindex, false);
     assert.equal(item.showHeader, true);
     assert.equal(await generateHeaders(), 0);
-    const validate = () => spawnSync(process.execPath, [path.join(projectRoot, 'scripts/validate-content.mjs')], { cwd: directory, encoding: 'utf8' });
+    const validate = () => spawnSync(process.execPath, [path.join(projectRoot, 'scripts/validate-content.ts')], { cwd: directory, encoding: 'utf8' });
     assert.equal(validate().status, 0);
     await writeFixture('options', 'noindex: true\nshowHeader: false\n');
     item = await getPostBySlug('options');
@@ -219,7 +224,7 @@ test('reader, validator and header CLI agree on defaults and reject invalid new 
         assert.match(check.stderr, error);
       }
     }
-    const headers = spawnSync(process.execPath, [path.join(projectRoot, 'scripts/generate-headers.cjs')], { cwd: directory, encoding: 'utf8' });
+    const headers = spawnSync(process.execPath, [path.join(projectRoot, 'scripts/generate-headers.ts')], { cwd: directory, encoding: 'utf8' });
     assert.equal(headers.status, 1);
     assert.match(headers.stderr, /showHeader/);
   });
@@ -259,7 +264,7 @@ test('headers cache only versioned images for a year and revalidate HTML and nav
   await withContentFixture(async () => {
     await generateHeaders();
     const blocks = (await fs.readFile('out/_headers', 'utf8')).trim().split(/\n\s*\n/);
-    const cacheHeaders = (pathname) => blocks.flatMap((block) => {
+    const cacheHeaders = (pathname: string) => blocks.flatMap((block) => {
       const [pattern, ...headers] = block.split('\n');
       const regex = new RegExp('^' + pattern.split('*').map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
       return regex.test(pathname) ? headers.filter((line) => line.trim().startsWith('Cache-Control:')).map((line) => line.trim().slice('Cache-Control: '.length)) : [];
@@ -281,11 +286,11 @@ test('content reader and CLI both enforce updated on real Markdown fixtures', as
     await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
     await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
     process.chdir(directory);
-    for (const [updated, error] of [['2024-02-29', null], ['2024-02-30', /valid YYYY-MM-DD/], ['2024-01-31', /earlier than/]]) {
+    for (const [updated, error] of [['2024-02-29', null], ['2024-02-30', /valid YYYY-MM-DD/], ['2024-01-31', /earlier than/]] as const) {
       await fs.writeFile(path.join(directory, 'public/sample/index.md'), `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);
       if (error) await assert.rejects(getPostBySlug('sample'), error);
-      else assert.equal((await getPostBySlug('sample')).updated.toISOString(), '2024-02-29T00:00:00.000Z');
-      const check = spawnSync(process.execPath, [path.join(root, 'scripts/validate-content.mjs')], { cwd: directory, encoding: 'utf8' });
+      else assert.equal((await getPostBySlug('sample')).updated?.toISOString(), '2024-02-29T00:00:00.000Z');
+      const check = spawnSync(process.execPath, [path.join(projectRoot, 'scripts/validate-content.ts')], { cwd: directory, encoding: 'utf8' });
       assert.equal(check.status, error ? 1 : 0, check.stderr);
       if (error) assert.match(check.stderr, error);
     }
@@ -293,4 +298,21 @@ test('content reader and CLI both enforce updated on real Markdown fixtures', as
     process.chdir(root);
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test('Markdown headings retain inline formatting and stable anchors after renderer API upgrades', async () => {
+  await withContentFixture(async (directory) => {
+    await writeFixture('renderer');
+    const filename = path.join(directory, 'public/renderer/index.md');
+    await fs.appendFile(filename, '\n## **粗体** 与 `代码`\n\n## **粗体** 与 `代码`\n\n### [站点](https://example.com)\n\n![A & B](https://example.com/image.png "Image title")\n');
+    const item = await getPostBySlug('renderer');
+    assert.deepEqual(item.headings, [
+      { id: '粗体-与-代码', text: '粗体 与 代码', level: 2 },
+      { id: '粗体-与-代码-2', text: '粗体 与 代码', level: 2 },
+      { id: '站点', text: '站点', level: 3 },
+    ]);
+    assert.match(item.content, /<h2 id="粗体-与-代码"><strong>粗体<\/strong> 与 <code>代码<\/code><\/h2>/);
+    assert.match(item.content, /<h3 id="站点"><a href="https:\/\/example.com">站点<\/a><\/h3>/);
+    assert.match(item.content, /<img src="https:\/\/example.com\/image.png" alt="A &amp; B" title="Image title" loading="lazy">/);
+  });
 });

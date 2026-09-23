@@ -3,7 +3,7 @@
 import { useLayoutEffect, type RefObject } from "react";
 import { alignEntityChipPopovers } from "@/lib/entity-chip-popovers";
 
-export function useEntityPopovers(ref: RefObject<HTMLElement>, contentKey: string) {
+export function useEntityPopovers(ref: RefObject<HTMLElement | null>, contentKey: string) {
   useLayoutEffect(() => {
     const root = ref.current;
     if (!root?.querySelector(".entity-chip")) return;

@@ -3,23 +3,23 @@ import path from "node:path";
 
 export const SKIP_PUBLIC_DIRS = new Set(["assets", "_optimized"]);
 
-export function postMarkdownName(slug) {
+export function postMarkdownName(slug: string) {
   return path.posix.join(slug, "index.md");
 }
 
-export function postMarkdownPath(publicDir, slug) {
+export function postMarkdownPath(publicDir: string, slug: string) {
   return path.join(publicDir, slug, "index.md");
 }
 
-export function postAssetDir(publicDir, slug) {
+export function postAssetDir(publicDir: string, slug: string) {
   return path.join(publicDir, slug);
 }
 
-export function publishedMarkdownName(slug) {
+export function publishedMarkdownName(slug: string) {
   return `${slug}.md`;
 }
 
-export async function listPostSlugs(publicDir) {
+export async function listPostSlugs(publicDir: string) {
   const entries = await fs.readdir(publicDir, { withFileTypes: true });
   const slugs = [];
 

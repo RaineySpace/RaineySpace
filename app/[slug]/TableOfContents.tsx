@@ -39,11 +39,9 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
     if (headings.length === 0) return;
 
     const hashId = getHashId();
-    if (hashId && headings.some((heading) => heading.id === hashId)) {
-      setActiveId(hashId);
-    } else {
-      setActiveId(getActiveHeadingId(headings));
-    }
+    // The initial selection depends on the browser hash and measured heading positions.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveId(hashId && headings.some((heading) => heading.id === hashId) ? hashId : getActiveHeadingId(headings));
 
     let frame = 0;
     const updateActiveId = () => {
@@ -84,7 +82,7 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
         <ReadingSettings align="start" />
       </div>
       {headings.length > 0 && (
-      <nav className="flex max-h-[calc(100dvh-10rem)] flex-col gap-2 overflow-y-auto text-xs leading-relaxed text-[--muted]">
+      <nav className="flex max-h-[calc(100dvh-10rem)] flex-col gap-2 overflow-y-auto text-xs leading-relaxed text-(--muted)">
         {headings.map((heading) => {
           const isActive = heading.id === activeId;
           return (
@@ -96,8 +94,8 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
                 "py-0.5 transition-colors",
                 heading.level === 3 ? "ml-3" : "",
                 isActive
-                  ? "font-medium text-[--title]"
-                  : "text-[--muted] hover:text-[--title]",
+                  ? "font-medium text-(--title)"
+                  : "text-(--muted) hover:text-(--title)",
               ].join(" ")}
             >
               {heading.text}

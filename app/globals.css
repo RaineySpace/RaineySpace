@@ -1,6 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss" source(none);
+@config "../tailwind.config.ts";
+@source "./";
+
+/* Preserve the existing palette and browser defaults during the v4 migration. */
+@theme {
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+}
+@layer base {
+  *, ::before, ::after, ::backdrop, ::file-selector-button { border-color: var(--color-gray-200); }
+  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+  dialog { margin: auto; }
+}
 
 /* Shared UI and Markdown tokens. See DESIGN.md. */
 :root {
@@ -104,8 +116,9 @@ html[data-theme="light"] { color-scheme: light; }
 html { scroll-behavior: smooth; color-scheme: light dark; background: var(--bg); font-family: var(--font-sans); font-size: 16px; }
 body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-height: var(--lh-body); -webkit-font-smoothing: antialiased; }
 a { color: var(--title); text-decoration: none; transition: color 200ms, background-color 200ms; }
-button { color: inherit; }
-a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline-offset: 3px; }
+@layer base {
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline-offset: 3px; }
+}
 .page-title { color: var(--title); font-size: var(--fs-md); font-weight: 600; line-height: 1.6; }
 .section-title {
   margin: 0;

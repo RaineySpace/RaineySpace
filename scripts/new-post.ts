@@ -7,7 +7,7 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function normalizeSlug(value) {
+function normalizeSlug(value: string) {
   return value
     .trim()
     .toLowerCase()
@@ -55,7 +55,7 @@ tags: []
 }
 
 main().catch((error) => {
-  if (error.code === "EEXIST") {
+  if ((error instanceof Error && 'code' in error ? error.code : undefined) === "EEXIST") {
     console.error("Post already exists.");
     process.exit(1);
   }

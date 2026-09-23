@@ -11,7 +11,8 @@ interface PhotoGalleryProps {
   variant: "strip" | "grid";
 }
 
-const rotations = ["-rotate-2", "rotate-1", "-rotate-1", "rotate-2", "-rotate-1", "rotate-1"];
+// Keep transforms in one matrix for hover resets and lightbox opening geometry.
+const rotations = ["[transform:rotate(-2deg)]", "[transform:rotate(1deg)]", "[transform:rotate(-1deg)]", "[transform:rotate(2deg)]", "[transform:rotate(-1deg)]", "[transform:rotate(1deg)]"];
 
 function toPreviewImage(photo: Photo): PreviewImage {
   return {
@@ -68,7 +69,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
               className={
                 variant === "strip"
                   ? `group photo-strip-item cursor-pointer ${rotations[index % rotations.length]}`
-                  : "group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-lg bg-[--surface-muted] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--lightLink] dark:focus-visible:ring-[--darkLink]"
+                  : "group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-lg bg-(--surface-muted) focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-(--lightLink) dark:focus-visible:ring-(--darkLink)"
               }
               aria-label={`查看大图：${photo.alt}`}
             >
@@ -76,7 +77,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
                 <LivePhoto
                   fill
                   badgeSize="sm"
-                  className="transition-transform duration-200 group-hover:scale-[1.02]"
+                  className="transition-transform duration-200 group-hover:[transform:scale(1.02)]"
                 >
                   <img
                     src={photo.thumbnailSrc || photo.displaySrc}
@@ -96,11 +97,11 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
                   loading="lazy"
                   decoding="async"
                   sizes={sizes}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 group-hover:[transform:scale(1.02)]"
                 />
               )}
               {variant === "grid" && (
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2 pb-2 pt-8 text-left text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t/srgb from-black/75 via-black/35 to-transparent px-2 pb-2 pt-8 text-left text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
                   <span className="line-clamp-1 text-xs font-medium">{photo.alt}</span>
                   {overlayMeta && (
                     <span className="mt-0.5 block line-clamp-1 text-xs text-white/80">{overlayMeta}</span>
@@ -117,7 +118,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
         activeIndex={activeIndex}
         onActiveIndexChange={setActiveIndex}
         onClose={() => setActiveIndex(null)}
-        returnFocus={returnFocusRef.current}
+        returnFocus={() => returnFocusRef.current}
       />
     </>
   );

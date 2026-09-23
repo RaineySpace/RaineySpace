@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "paths": {},
+    "types": [
+      "node"
+    ],
+    "plugins": [],
+    "erasableSyntaxOnly": true,
+    "tsBuildInfoFile": ".cache/typescript/scripts.tsbuildinfo"
+  },
+  "include": [
+    "scripts/**/*.ts",
+    "lib/**/*.ts",
+    "next.config.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

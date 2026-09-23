@@ -11,9 +11,10 @@ import PostCover from '@/app/components/PostCover';
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const post = await getPostBySlug(decodeURIComponent(params.slug));
+  const { slug } = await params;
+  const post = await getPostBySlug(decodeURIComponent(slug));
   return postMetadata(post);
 }
 
@@ -25,9 +26,10 @@ export async function generateStaticParams() {
 export default async function PostPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const post = await getPostBySlug(decodeURIComponent(params.slug));
+  const { slug } = await params;
+  const post = await getPostBySlug(decodeURIComponent(slug));
   // Photography covers are share/OG only; album pages keep the gallery-first layout.
   const showCover = Boolean(post.coverDisplaySrc && !post.photography);
 
