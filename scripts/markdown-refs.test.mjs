@@ -5,10 +5,10 @@ import {
   emptyCollectionMessage,
   expandDataRefsInMarkdown,
   parseDataRefTitle,
-  renderDataRefHtml,
-  renderEntityCardHtml,
+  renderDataRefHtml as renderSharedDataRefHtml,
   stripElementsByClass,
 } from "../lib/markdown-refs.mjs";
+import { renderEntityCardHtml } from "../lib/entity-rendering.mjs";
 
 const registries = {
   project: [
@@ -18,7 +18,7 @@ const registries = {
       name: "小分身",
       url: "https://xiaofenshen.com",
       description: "训练一个会越来越像你的写手分身。",
-      image: "https://xiaofenshen.com/brand/xiaofenshen.svg",
+      icon: "https://xiaofenshen.com/brand/xiaofenshen.svg",
       pinned: false,
       date: new Date("2026-05-07T00:00:00.000Z"),
       dateText: "2026-05-07",
@@ -29,7 +29,7 @@ const registries = {
       name: "微羽助手",
       url: "https://www.wefeather.cn",
       description: "公众号运营效率提升工具",
-      image: "https://www.wefeather.cn/logo.png",
+      icon: "https://www.wefeather.cn/logo.png",
       pinned: false,
       date: new Date("2024-10-27T00:00:00.000Z"),
       dateText: "2024-10-27",
@@ -43,13 +43,23 @@ const registries = {
       title: "朋友的博客",
       url: "https://example.com",
       description: "记录生活与一些想法",
-      image: "/assets/friends/example-blog.png",
+      icon: "/assets/friends/example-blog.png",
       pinned: false,
       date: new Date("2026-09-22T00:00:00.000Z"),
       dateText: "2026-09-22",
     },
   ],
 };
+
+function withoutInlinePresentation(html) {
+  return html
+    .replace(/ class="entity-inline-link entity-inline-link--text"/g, "")
+    .replace(/<span class="entity-inline-name">([^<]*)<\/span>/g, "$1");
+}
+
+function renderDataRefHtml(content, options) {
+  return withoutInlinePresentation(renderSharedDataRefHtml(content, options));
+}
 
 const emptyFriends = { project: registries.project, friend: [] };
 
@@ -206,7 +216,7 @@ test("unknown or malformed data refs are reported with the source", () => {
 });
 
 test("missing icons show a name initial and failed images keep a hidden fallback", () => {
-  const noIcon = { ...registries.friend[0], image: undefined };
+  const noIcon = { ...registries.friend[0], icon: undefined };
   const missing = renderEntityCardHtml(noIcon);
   assert.match(missing, /entity-card-fallback">朋<\/span>/);
   assert.doesNotMatch(missing, /<img/);

@@ -46,8 +46,8 @@ test("required fields, dates, urls and image paths are validated", () => {
     missing: {},
     "bad-date": project("bad-date", { date: "2026-02-30" }),
     "bad-url": project("bad-url", { url: "ftp://example.com" }),
-    "http-cover": project("http-cover", { cover: "http://example.com/a.png" }),
-    "relative-cover": project("relative-cover", { cover: "./cover.webp" }),
+    "http-icon": project("http-icon", { icon: "http://example.com/a.png" }),
+    "relative-icon": project("relative-icon", { icon: "./cover.webp" }),
     "empty-desc": project("empty-desc", { description: "   " }),
     "bad-pin": project("bad-pin", { pinned: "true" }),
     extra: project("extra", { unknown: "nope" }),
@@ -59,8 +59,8 @@ test("required fields, dates, urls and image paths are validated", () => {
   assert.match(messages, /missing: "date" must be a YYYY-MM-DD date/);
   assert.match(messages, /bad-date: "date" must be a YYYY-MM-DD date/);
   assert.match(messages, /bad-url: invalid HTTP\(S\) url/);
-  assert.match(messages, /http-cover: cover must be an HTTPS URL or a site-absolute public path/);
-  assert.match(messages, /relative-cover: cover must be an HTTPS URL or a site-absolute public path/);
+  assert.match(messages, /http-icon: icon must be an HTTPS URL or a site-absolute public path/);
+  assert.match(messages, /relative-icon: icon must be an HTTPS URL or a site-absolute public path/);
   assert.match(messages, /empty-desc: "description" must be a non-empty string when provided/);
   assert.match(messages, /bad-pin: "pinned" must be a boolean/);
   assert.match(messages, /extra: unknown field "unknown"/);
@@ -113,13 +113,46 @@ test("content validator uses the shared registry rules", async () => {
   }
 });
 
-test("friends require a separate site title and preserve their name", () => {
-  const valid = parseRegistry("friend", { alpha: friend("alpha", { title: " Alpha Blog " }) });
-  assert.deepEqual(valid.errors, []);
-  assert.equal(valid.entities[0].name, "alpha");
-  assert.equal(valid.entities[0].title, "Alpha Blog");
-  for (const title of [undefined, null, "", "  ", 42]) {
-    const invalid = parseRegistry("friend", { alpha: friend("alpha", { title }) });
-    assert.match(invalid.errors.join("\n"), /"title" must be a non-empty string/);
+test("both registries share optional titles, icons and extension data", () => {
+  for (const kind of ["project", "friend"]) {
+    const extensions = kind === "project"
+      ? { repository: "https://github.com/example/project", platforms: ["web"], flags: { beta: true } }
+      : { feed: "https://example.com/rss.xml", social: { github: "example" }, score: null };
+    const parsed = parseRegistry(kind, { alpha: project("alpha", {
+      title: " Alpha Blog ", icon: "/assets/alpha.png", extensions,
+    }) });
+    assert.deepEqual(parsed.errors, []);
+    assert.equal(parsed.entities[0].name, "alpha");
+    assert.equal(parsed.entities[0].title, "Alpha Blog");
+    assert.equal(parsed.entities[0].icon, "/assets/alpha.png");
+    assert.deepEqual(parsed.entities[0].extensions, extensions);
+    assert.notEqual(parsed.entities[0].extensions, extensions);
+    assert.equal(parsed.localImages[0].field, "icon");
+    assert.equal("image" in parsed.entities[0], false);
+    assert.equal("cover" in parsed.entities[0], false);
+    const withoutTitle = parseRegistry(kind, { alpha: project("alpha") });
+    assert.deepEqual(withoutTitle.errors, []);
+    assert.equal(withoutTitle.entities[0].title, undefined);
+    assert.deepEqual(withoutTitle.entities[0].extensions, {});
+    for (const title of [null, "", "  ", 42]) {
+      const invalid = parseRegistry(kind, { alpha: project("alpha", { title }) });
+      assert.match(invalid.errors.join("\n"), /"title" must be a non-empty string/);
+    }
+  }
+});
+
+test("extensions are JSON objects and cannot overwrite the common contract", () => {
+  for (const kind of ["project", "friend"]) {
+    for (const extensions of [null, [], "bad", { bad: undefined }, { bad: Infinity }, { bad: new Date() }]) {
+      assert.match(parseRegistry(kind, { alpha: project("alpha", { extensions }) }).errors.join("\n"), /"extensions" must be a JSON object/);
+    }
+    const parsed = parseRegistry(kind, { alpha: project("alpha", {
+      extensions: { name: "different", icon: "not a display icon", pinned: true },
+    }) });
+    assert.deepEqual(parsed.errors, []);
+    assert.equal(parsed.entities[0].name, "alpha");
+    assert.equal(parsed.entities[0].icon, undefined);
+    assert.equal(parsed.entities[0].pinned, false);
+    assert.match(parseRegistry(kind, { alpha: project("alpha", { cover: "/old.png" }) }).errors.join("\n"), /unknown field "cover"/);
   }
 });

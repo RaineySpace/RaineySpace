@@ -8,17 +8,21 @@ import { getProjects } from '@/lib/projects';
 import { getAboutContent, getListedPosts } from '@/lib/posts';
 import JsonLd from '@/app/components/JsonLd';
 import { homeJsonLd, pageMetadata, pages } from '@/lib/seo';
-import ProjectList from '@/app/components/ProjectList';
+import EntityList from '@/app/components/EntityList';
+import { EntityContent } from '@/app/components/Entity';
+import { emptyCollectionMessage } from '@/lib/entity-rendering.mjs';
+import { getFriends } from '@/lib/friends';
 import './[slug]/prose.css';
 
 export const metadata = pageMetadata(pages.home);
 
 export default async function Home() {
-  const [aboutContent, posts, featuredPhotos, projects] = await Promise.all([
+  const [aboutContent, posts, featuredPhotos, projects, friends] = await Promise.all([
     getAboutContent(),
     getListedPosts(),
     getFeaturedPhotos(6),
     getProjects(),
+    getFriends(),
   ]);
 
   // 抵消共享 layout 的底部留白，保持首页页脚的位置与页面总高度。
@@ -26,7 +30,7 @@ export default async function Home() {
     <div className="relative -mb-8 flex flex-col gap-10 sm:-mb-12">
       <JsonLd data={homeJsonLd()} />
       <section id="about" aria-label="关于我" className="home-intro">
-        <div className="markdown" dangerouslySetInnerHTML={{ __html: aboutContent }} />
+        <EntityContent className="markdown" html={aboutContent} />
       </section>
 
       <HomeSection id="articles" title="写点东西" href="/articles" linkLabel="全部文章" description="记录生活、技术与一些想法">
@@ -42,7 +46,27 @@ export default async function Home() {
       </HomeSection>
 
       <HomeSection id="projects" title="做点东西" href="/projects" linkLabel="全部项目" description="把一些想法，慢慢变成真的">
-        <ProjectList projects={projects} />
+        <EntityList
+          items={projects}
+          variant="inline"
+          appearance="chip"
+          showIcon
+          hoverCard
+          placement="top"
+          emptyLabel={emptyCollectionMessage.project}
+        />
+      </HomeSection>
+
+      <HomeSection id="friends" title="朋友们" href="/friends" linkLabel="全部朋友">
+        <EntityList
+          items={friends}
+          variant="inline"
+          appearance="chip"
+          showIcon
+          hoverCard
+          placement="top"
+          emptyLabel={emptyCollectionMessage.friend}
+        />
       </HomeSection>
 
       <footer className="flex h-8 flex-wrap items-center justify-between border-t border-dashed border-[--border] text-sm leading-[var(--lh-body)] text-[--muted] sm:h-12">

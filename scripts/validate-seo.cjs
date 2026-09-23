@@ -84,7 +84,7 @@ async function main() {
     if (page === pages.projects) assert.deepEqual(items.map((item) => item.url).sort(), Object.values(projectRegistry).map((project) => project.url).sort());
     if (page === pages.friends) {
       assert.deepEqual(items.map((item) => item.url).sort(), Object.values(friendRegistry).map((friend) => friend.url).sort());
-      assert.deepEqual(items.map((item) => item.name).sort(), Object.values(friendRegistry).map((friend) => friend.title).sort());
+      assert.deepEqual(items.map((item) => item.name).sort(), Object.values(friendRegistry).map((friend) => friend.title ?? friend.name).sort());
     }
     const body = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
     const hrefs = tags(body, 'a').map((tag) => new URL(tag.href, config.siteUrl).href.replace(/\/$/, ''));
@@ -148,7 +148,12 @@ async function main() {
   const home = await read('index.html');
   const homeBody = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
   assert.match(homeBody, /<footer(?:\s[^>]*)?>/);
-  assert.doesNotMatch(homeBody, /id="friends"/);
+  for (const [id, registry] of [['projects', projectRegistry], ['friends', friendRegistry]]) {
+    const section = homeBody.match(new RegExp(`<section id="${id}"[^>]*>([\\s\\S]*?)</section>`));
+    assert.ok(section, `homepage missing ${id} section`);
+    const entityLinks = tags(section[1], 'a').filter((tag) => tag.class?.split(' ').includes('entity-inline-link'));
+    assert.deepEqual(entityLinks.map((link) => link.href).sort(), Object.values(registry).map((item) => item.url).sort());
+  }
 
   for (const slug of ['xiaofenshen', 'wefeather-copilot']) {
     await assert.rejects(fs.access(path.join(output, slug, 'index.html')), { code: 'ENOENT' }, `deleted post still exported: ${slug}`);

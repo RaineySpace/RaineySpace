@@ -15,7 +15,8 @@ The GitHub profile `README.md` is not project documentation. Do not edit `README
 - `app/sitemap.xml/route.ts` and `app/robots.txt/route.ts` generate SEO metadata files.
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
 - `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, article-channel/indexable-content filtering, and feed data behavior centralized there. `lib/post-options.mjs` shares `noindex` and `showHeader` parsing with maintenance scripts. `lib/registry.mjs` and `lib/markdown-refs.mjs` share project/friend registry reading, sorting, and Markdown data-reference expansion with pages, validation, and published Markdown export.
-- `content/projects.json` and `content/friends.json` are the canonical registries for project and friend names, links, dates, descriptions, icons/covers, and pinning.
+- `content/projects.json` and `content/friends.json` share the Entity schema in `lib/entities.ts`: names, optional titles, links, dates, descriptions, `icon`, pinning, and per-kind `extensions`. `lib/registry.mjs` validates and normalizes both without field adapters.
+- `lib/entity-rendering.mjs` is the single HTML renderer for React `Entity` / `EntityList` and Markdown references. Keep inline, card, hover-card, icon, and no-icon variants there; see `docs/entities.md`.
 - `public/<slug>/index.md` is the source format for posts. The same directory holds referenced assets.
 - `scripts/` contains local maintenance scripts.
 
@@ -50,6 +51,8 @@ Use `hidden: true` to exclude content from article listings, tag statistics, and
 `showHeader` defaults to `true`. Set `showHeader: false` to hide the generated title, date, location, tags, and summary while retaining those values for SEO. Covers, body content, and table of contents remain available. Both new fields require actual YAML booleans; strings and null values are invalid. Ordinary posts should omit these default options.
 
 Projects and friends are registered in `content/projects.json` and `content/friends.json`. Registration is enough to display them; they do not need a referencing post. Sort both collections by registry `pinned` first, then registry `date` descending, then ID. Cite them from Markdown with standard link titles such as `"project:xiaofenshen"` or `"friend:*"`. Do not put `projectId` or other project display fields in post frontmatter.
+
+Both registries use `name`, optional `title`, `url`, `date`, optional `description`, `icon`, `pinned`, and `extensions`. Inline links use `name`; cards and collection metadata use `title ?? name`. `icon` is an HTTPS URL or site-absolute public path; project `cover` is no longer accepted (article frontmatter `cover` is unchanged). Kind-specific fields belong in the JSON object `extensions`, with independent TypeScript interfaces for projects and friends. Extensions do not override shared fields or render automatically.
 
 Local assets referenced by a post should live in the same post directory. Prefer relative paths such as `./image.png`.
 The public Markdown URL is `/<slug>.md`. Build copies `public/<slug>/index.md` there, rewrites relative asset paths such as `./cover.webp` to site-absolute `/<slug>/...` URLs, and deletes the copied `out/<slug>/index.md` so it is not a second public document. Source files keep `./` paths. Do not keep a second source file at `public/<slug>.md`.

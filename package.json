@@ -13,7 +13,7 @@
     "lint": "next lint",
     "validate:content": "node scripts/validate-content.mjs",
     "validate:seo": "node scripts/validate-seo.cjs",
-    "test:content": "node --test scripts/registry.test.mjs scripts/markdown-refs.test.mjs",
+    "test:content": "node --test scripts/registry.test.mjs scripts/markdown-refs.test.mjs scripts/entities.test.mjs",
     "test:seo": "node --test scripts/seo.test.cjs scripts/published-markdown.test.mjs",
     "test:images": "node --test scripts/images.test.cjs scripts/image-preloader.test.cjs scripts/image-downloads.test.cjs",
     "validate:images": "node scripts/validate-images.cjs",

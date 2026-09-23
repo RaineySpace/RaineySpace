@@ -3,7 +3,7 @@
     "name": "小分身",
     "url": "https://xiaofenshen.com",
     "date": "2026-05-07",
-    "cover": "https://xiaofenshen.com/brand/xiaofenshen.svg",
+    "icon": "https://xiaofenshen.com/brand/xiaofenshen.svg",
     "description": "训练一个会越来越像你的写手分身，它学你的语气、句式与偏好，帮你把下一篇写得更像自己。",
     "pinned": false
   },
@@ -11,7 +11,7 @@
     "name": "微羽助手",
     "url": "https://www.wefeather.cn",
     "date": "2024-10-27",
-    "cover": "https://www.wefeather.cn/logo.png",
+    "icon": "https://www.wefeather.cn/logo.png",
     "description": "支持公众号多账号管理、文章编辑与改写、草稿同步、批量发布和数据分析。",
     "pinned": false
   }

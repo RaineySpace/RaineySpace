@@ -1,0 +1,54 @@
+/** Canonical registry and rendering contract shared by projects and friends. */
+export type EntityKind = "project" | "friend";
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+export interface EntityExtensions {
+  [key: string]: JsonValue | undefined;
+}
+
+// Each kind can add typed, optional fields here without changing the shared renderer.
+export interface ProjectExtensions extends EntityExtensions {}
+export interface FriendExtensions extends EntityExtensions {}
+
+export interface EntityExtensionsByKind {
+  project: ProjectExtensions;
+  friend: FriendExtensions;
+}
+
+/** Source JSON: the object key supplies id; the registry file supplies kind. */
+export interface EntityDefinition<Extensions extends EntityExtensions = EntityExtensions> {
+  name: string;
+  title?: string;
+  url: string;
+  description?: string;
+  icon?: string;
+  date: string;
+  pinned?: boolean;
+  extensions?: Extensions;
+}
+
+/** Normalized data. Both loaders return this shape without renaming fields. */
+export interface Entity<Kind extends EntityKind = EntityKind> {
+  id: string;
+  kind: Kind;
+  name: string;
+  title?: string;
+  url: string;
+  description?: string;
+  icon?: string;
+  pinned: boolean;
+  date: Date | null;
+  dateText: string;
+  extensions: EntityExtensionsByKind[Kind];
+}
+
+export interface EntityRenderOptions {
+  variant?: "inline" | "card";
+  appearance?: "text" | "chip";
+  showIcon?: boolean;
+  hoverCard?: boolean;
+  popoverShowIcon?: boolean;
+  placement?: "auto" | "top";
+  headingLevel?: "h2" | "h3";
+  newTab?: boolean;
+}

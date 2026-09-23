@@ -215,7 +215,7 @@
 }
 
 /* The line belongs to the complete inline link, including the animated arrow. */
-.markdown a:not(:has(img)) {
+.markdown a:not(:has(img)):not(.entity-inline-link) {
   border-bottom: 1px solid var(--border);
   transition: border-color 200ms;
   padding-bottom: 2px;
@@ -223,20 +223,20 @@
   box-decoration-break: clone;
 }
 
-.markdown a:not(:has(img)):hover,
-.markdown a:not(:has(img)):focus-visible { border-bottom-color: var(--title); }
+.markdown a:not(:has(img)):not(.entity-inline-link):hover,
+.markdown a:not(:has(img)):not(.entity-inline-link):focus-visible { border-bottom-color: var(--title); }
 
-.markdown a:not(:has(img))::after {
+.markdown a:not(:has(img)):not(.entity-inline-link)::after {
   content: "↗";
   display: inline-block;
   padding-left: 4px;
   text-decoration: none;
   transition: transform 200ms ease;
 }
-.markdown a:not(:has(img)):hover::after,
-.markdown a:not(:has(img)):focus-visible::after { transform: translate(0.1em, -0.1em); }
+.markdown a:not(:has(img)):not(.entity-inline-link):hover::after,
+.markdown a:not(:has(img)):not(.entity-inline-link):focus-visible::after { transform: translate(0.1em, -0.1em); }
 @media (prefers-reduced-motion: reduce) {
-  .markdown a:not(:has(img))::after { transition: none; transform: none !important; }
+  .markdown a:not(:has(img)):not(.entity-inline-link)::after { transition: none; transform: none !important; }
 }
 
 .markdown a img {
@@ -536,7 +536,7 @@ html[data-theme="dark"] .markdown strong {
   display: none;
 }
 .markdown .entity-card a,
-.markdown .entity-card a:not(:has(img)) {
+.markdown .entity-card a:not(:has(img)):not(.entity-inline-link) {
   overflow-wrap: normal;
   word-wrap: normal;
   white-space: normal;
@@ -547,7 +547,7 @@ html[data-theme="dark"] .markdown strong {
   color: inherit;
 }
 .markdown .entity-card a::after,
-.markdown .entity-card a:not(:has(img))::after {
+.markdown .entity-card a:not(:has(img)):not(.entity-inline-link)::after {
   content: none;
   display: none;
 }
@@ -560,4 +560,20 @@ html[data-theme="dark"] .markdown strong {
 }
 .markdown .entity-chip-popover .entity-card-description {
   margin-top: 4px;
+}
+
+/* Inline Entity variants own their media and link decorations in every context. */
+.markdown .entity-inline-link--chip {
+  color: var(--secondary);
+  white-space: normal;
+}
+.markdown .entity-inline-link--chip:hover,
+.markdown .entity-inline-link--chip:focus-visible { color: var(--title); }
+.markdown .entity-inline-icon:not([hidden]) {
+  display: block;
+  width: 24px;
+  height: 24px;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
 }

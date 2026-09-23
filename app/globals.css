@@ -725,7 +725,71 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
   transition-timing-function: ease;
 }
 
-/* Shared project / friend cards. Markdown copies use the same markup and classes. */
+/* Entity pages and Markdown use the same HTML renderer and styles. */
+.entity-inline-link {
+  color: var(--title);
+  text-decoration: none;
+}
+.entity-inline-link--text {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2px;
+  transition: border-color 200ms;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.entity-inline-link--text:hover,
+.entity-inline-link--text:focus-visible { border-bottom-color: var(--title); }
+.entity-inline-link--chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--secondary);
+  font-size: var(--fs-sm);
+  transition: background-color 200ms, color 200ms;
+}
+.entity-inline-link--chip:hover,
+.entity-inline-link--chip:focus-visible {
+  background: var(--surface-muted);
+  color: var(--title);
+}
+.entity-inline-name { min-width: 0; overflow-wrap: anywhere; }
+.entity-inline-link::after {
+  content: "↗";
+  display: inline-block;
+  flex-shrink: 0;
+  padding-left: 4px;
+  transition: transform 200ms ease;
+}
+.entity-inline-link:hover::after,
+.entity-inline-link:focus-visible::after { transform: translate(0.1em, -0.1em); }
+.entity-inline-media {
+  display: inline-flex;
+  vertical-align: middle;
+  height: 24px;
+  width: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--surface-muted);
+  font-size: var(--fs-xs);
+}
+.entity-inline-icon {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.entity-inline-link [hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .entity-inline-link, .entity-inline-link::after { transition: none; }
+  .entity-inline-link::after { transform: none !important; }
+}
 .entity-card-list {
   display: flex;
   flex-direction: column;
@@ -831,6 +895,11 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline
 
 .entity-chip {
   position: relative;
+}
+.entity-chip--compact { display: inline-block; max-width: 100%; }
+.entity-chip[data-placement="top"] > .entity-chip-popover {
+  top: auto;
+  bottom: calc(100% + 8px);
 }
 .entity-chip-popover {
   position: absolute;
