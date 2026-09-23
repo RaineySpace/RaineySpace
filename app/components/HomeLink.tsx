@@ -10,7 +10,7 @@ export default function HomeLink() {
     <Link
       href="/"
       className={[
-        "inline-block text-base font-semibold leading-[1.6] transition-transform duration-200 motion-reduce:transform-none",
+        "inline-block text-base font-semibold leading-[1.6] transition-transform duration-200 motion-reduce:scale-none!",
         isActive ? "" : "hover:scale-[1.2]",
         isActive ? "cursor-default" : "cursor-pointer",
       ].join(" ")}

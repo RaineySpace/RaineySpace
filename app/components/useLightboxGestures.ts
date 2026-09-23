@@ -195,27 +195,12 @@ export function useLightboxGestures({
       return;
     }
 
-    const token = ++settleTokenRef.current;
+    settleTokenRef.current += 1;
     settlingRef.current = true;
-    setTransition(shell, `transform 200ms ease-in, opacity 200ms ease-in`);
+    // Start the shared dialog fade alongside the gesture's downward exit.
+    setTransition(shell, "transform 200ms ease-in");
     shell.style.transform = "translate3d(0, 30vh, 0)";
-    shell.style.opacity = "0";
-
-    const finish = () => {
-      if (token !== settleTokenRef.current) return;
-      settleTokenRef.current += 1;
-      settlingRef.current = false;
-      onCloseRef.current();
-    };
-
-    const timeout = window.setTimeout(finish, 240);
-    const handleEnd = (event: TransitionEvent) => {
-      if (event.target !== shell || event.propertyName !== "opacity") return;
-      window.clearTimeout(timeout);
-      shell.removeEventListener("transitionend", handleEnd);
-      finish();
-    };
-    shell.addEventListener("transitionend", handleEnd);
+    onCloseRef.current();
   }, [resetShell, shellRef]);
 
   const endGesture = useCallback((event: ReactPointerEvent<HTMLElement>) => {

@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "validate:content": "node scripts/validate-content.ts",
     "validate:seo": "node scripts/validate-seo.ts",
-    "test:content": "node --test scripts/registry.test.ts scripts/markdown-refs.test.ts scripts/entities.test.ts",
+    "test:content": "node --test scripts/registry.test.ts scripts/markdown-refs.test.ts scripts/entities.test.ts scripts/hover-input.test.ts",
     "test:seo": "node --test scripts/seo.test.ts scripts/published-markdown.test.ts",
     "test:images": "node --test scripts/images.test.ts scripts/image-preloader.test.ts scripts/image-downloads.test.ts",
     "validate:images": "node scripts/validate-images.ts",

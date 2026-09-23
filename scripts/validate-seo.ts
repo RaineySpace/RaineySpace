@@ -187,8 +187,10 @@ async function main() {
   if (Object.keys(friendRegistry).length === 0) assert.match(friendsHtml, /暂时还没有添加朋友。/);
   await assert.rejects(fs.access(path.join(output, 'friends.md')), { code: 'ENOENT' });
   const friendsBody = friendsHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
-  assert.doesNotMatch(friendsBody, /<aside\b|aria-label="阅读设置"/);
-  assert.doesNotMatch(friendsBody.split('<main>')[0], /<header\b/);
+  assert.doesNotMatch(friendsBody, /<aside\b|aria-label="返回上一页"/);
+  const friendsSiteHeader = friendsBody.split('<main>')[0];
+  assert.match(friendsSiteHeader, /<header\b/);
+  assert.match(friendsSiteHeader, /aria-label="阅读设置"/);
 
   const sitemap = await read('sitemap.xml');
   const entries = Array.from(sitemap.matchAll(/<url>([\s\S]*?)<\/url>/g), (match) => ({

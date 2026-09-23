@@ -11,7 +11,7 @@ export default function AboutLink() {
     <Link
       href="/about"
       className={[
-        "inline-block transition-transform duration-200 motion-reduce:transform-none",
+        "inline-block transition-transform duration-200 motion-reduce:scale-none!",
         isActive ? "" : "hover:scale-[1.2]",
         isActive ? "cursor-default" : "cursor-pointer",
       ].join(" ")}

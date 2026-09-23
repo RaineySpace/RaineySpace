@@ -2,6 +2,13 @@
 @config "../tailwind.config.ts";
 @source "./";
 
+/* A connected mouse is a capability, not proof that the current input is a mouse. */
+@custom-variant hover {
+  @media (any-hover: hover) {
+    &:where(html[data-hover-enabled="true"] *):hover { @slot; }
+  }
+}
+
 /* Preserve the existing palette and browser defaults during the v4 migration. */
 @theme {
   --color-gray-200: #e5e7eb;
@@ -68,6 +75,7 @@ html[data-leading="loose"] {
  * light / dark) into html[data-theme]; the media query only covers no-JS.
  */
 :root {
+  --contact-icon-filter: none;
   --photo-frame: #ffffff;
   --photo-frame-bg: var(--surface-muted);
   --photo-shadow: 0 3px 10px rgb(0 0 0 / 0.08);
@@ -83,6 +91,7 @@ html[data-leading="loose"] {
 }
 html[data-theme="dark"] {
   color-scheme: dark;
+  --contact-icon-filter: invert(1);
   --bg: var(--dark-bg);
   --title: var(--dark-title);
   --text: var(--dark-text);
@@ -99,6 +108,7 @@ html[data-theme="dark"] {
 html[data-theme="light"] { color-scheme: light; }
 @media (prefers-color-scheme: dark) {
   html:not([data-theme]) {
+    --contact-icon-filter: invert(1);
     --bg: var(--dark-bg);
     --title: var(--dark-title);
     --text: var(--dark-text);
@@ -117,6 +127,7 @@ html { scroll-behavior: smooth; color-scheme: light dark; background: var(--bg);
 body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-height: var(--lh-body); -webkit-font-smoothing: antialiased; }
 @layer base {
   a { color: var(--title); text-decoration: none; transition: color 200ms, background-color 200ms; }
+  a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   a:focus-visible, button:focus-visible { outline: 2px solid var(--title); outline-offset: 3px; }
 }
 .page-title { color: var(--title); font-size: var(--fs-md); font-weight: 600; line-height: 1.6; }
@@ -165,14 +176,9 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   margin-left: -0.9rem;
 }
 
-.photo-strip-item:hover,
 .photo-strip-item:focus-visible {
   z-index: 10;
-  transform: translateY(-0.25rem) rotate(0deg);
   outline: none;
-}
-
-.photo-strip-item:focus-visible {
   box-shadow: 0 0 0 2px var(--lightLink), var(--photo-focus-shadow);
 }
 
@@ -301,6 +307,17 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   visibility: hidden;
 }
 
+.image-lightbox[data-closing],
+.image-lightbox[data-closing]::backdrop {
+  animation: image-lightbox-out 200ms ease-in both;
+  pointer-events: none;
+}
+
+@keyframes image-lightbox-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 .image-lightbox-opening-image {
   position: fixed;
   z-index: 10;
@@ -333,9 +350,9 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
 }
 
 .image-lightbox-close {
-  position: absolute;
-  top: max(0.5rem, env(safe-area-inset-top, 0px));
-  right: max(0px, env(safe-area-inset-right, 0px));
+  position: fixed;
+  top: 24px;
+  right: 24px;
   z-index: 20;
 }
 
@@ -541,10 +558,6 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   text-underline-offset: 3px;
 }
 
-.image-lightbox-meta-link:hover {
-  color: #fff;
-}
-
 .image-lightbox-more {
   margin-bottom: 0.1rem;
   padding: 0.2rem 0.7rem;
@@ -556,10 +569,9 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   color: #e5e7eb;
 }
 
-.image-lightbox-more:hover,
 .image-lightbox-more:focus-visible {
-  background: rgb(255 255 255 / 0.16);
-  outline: none;
+  outline: 2px solid white;
+  outline-offset: 3px;
 }
 
 .image-lightbox-sheet .sheet-backdrop {
@@ -660,10 +672,6 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 }
 
-.image-lightbox-thumbnail:hover {
-  opacity: 0.9;
-}
-
 .image-lightbox-thumbnail.is-active {
   z-index: 1;
   border-color: #fff;
@@ -753,7 +761,6 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
-.entity-inline-link--text:hover,
 .entity-inline-link--text:focus-visible { border-bottom-color: var(--title); }
 .entity-inline-link--chip {
   display: inline-flex;
@@ -766,11 +773,7 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   font-size: var(--fs-sm);
   transition: background-color 200ms, color 200ms;
 }
-.entity-inline-link--chip:hover,
-.entity-inline-link--chip:focus-visible {
-  background: var(--surface-muted);
-  color: var(--title);
-}
+.entity-inline-link--chip:focus-visible { color: var(--title); }
 .entity-inline-name { min-width: 0; overflow-wrap: anywhere; }
 .entity-inline-link::after {
   content: "↗";
@@ -779,7 +782,6 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   padding-left: 4px;
   transition: transform 200ms ease;
 }
-.entity-inline-link:hover::after,
 .entity-inline-link:focus-visible::after { transform: translate(0.1em, -0.1em); }
 .entity-inline-link--chip::after,
 .entity-inline-link--icon::after { content: none; }
@@ -865,6 +867,10 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   object-fit: contain;
   background: transparent;
 }
+/* Local contact SVGs are monochrome; preserve their black/white cutouts. */
+:is(.entity-card-icon, .entity-inline-icon)[src^="/assets/contacts/"][src$=".svg"] {
+  filter: var(--contact-icon-filter);
+}
 .entity-card [hidden] {
   display: none;
 }
@@ -896,18 +902,6 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   font-size: var(--fs-xs);
   line-height: 1.65;
   color: var(--secondary);
-}
-.entity-card:hover,
-.entity-card:focus-within,
-.entity-card:active {
-  background: var(--surface-muted);
-}
-.hover-card-list .entity-card:hover,
-.hover-card-list .entity-card:focus-within {
-  background: transparent;
-}
-@media (hover: none) {
-  .entity-card:active, .post-card:active { background: var(--surface-muted); }
 }
 
 .entity-chip {
@@ -964,24 +958,16 @@ html[data-theme="dark"] .entity-chip-popover-panel {
   background: transparent;
   box-shadow: none;
 }
-.entity-chip-popover .entity-card:hover,
-.entity-chip-popover .entity-card:focus-within,
-.entity-chip-popover .entity-card:active {
-  background: transparent;
+/* Resetting input on blur must keep touch previews out of layout. */
+:where(html:is([data-input-mode="none"], [data-input-mode="touch"], [data-input-mode="pen"])) .entity-chip-popover {
+  /* Hidden panels can widen the mobile viewport and clamp its scroll position. */
+  display: none;
 }
-.entity-chip:hover,
-.entity-chip:focus-within { z-index: 30; }
-.entity-chip:focus-within .entity-chip-popover {
+.entity-chip:where(html:not([data-input-mode="touch"], [data-input-mode="pen"]) *):is([data-keyboard-open="true"], :has(:focus-visible)) { z-index: 30; }
+.entity-chip:where(html:not([data-input-mode="touch"], [data-input-mode="pen"]) *):is([data-keyboard-open="true"], :has(:focus-visible)) .entity-chip-popover {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-}
-@media (hover: hover) {
-  .entity-chip:hover .entity-chip-popover {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .entity-chip-popover { transition: none; }
@@ -1043,7 +1029,6 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
   line-height: 1;
   transition: color 200ms, background-color 200ms;
 }
-.reading-settings-segment:hover { color: var(--title); }
 .reading-settings-segment[aria-checked="true"] {
   background: var(--surface-muted);
   color: var(--title);
@@ -1143,4 +1128,37 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
   .reading-settings-popover,
   .sheet-backdrop,
   .sheet-panel { animation: none; }
+}
+
+/* Handwritten hover rules share the same gate as Tailwind hover/group-hover. */
+@media (any-hover: hover) {
+  :where(html[data-hover-enabled="true"]) {
+    .photo-strip-item:hover { z-index: 10; transform: translateY(-0.25rem) rotate(0deg); }
+    .image-lightbox-meta-link:hover { color: #fff; }
+    .image-lightbox-more:hover { background: rgb(255 255 255 / 0.16); }
+    .image-lightbox-thumbnail:not(.is-active):hover { opacity: 0.9; }
+    .entity-inline-link--text:hover { border-bottom-color: var(--title); }
+    .entity-inline-link--chip:hover { background: var(--surface-muted); color: var(--title); }
+    .entity-inline-link:hover::after { transform: translate(0.1em, -0.1em); }
+    .entity-card:hover { background: var(--surface-muted); }
+    .hover-card-list .entity-card:hover, .entity-chip-popover .entity-card:hover { background: transparent; }
+    .entity-chip:hover { z-index: 30; }
+    .entity-chip:not([data-dismissed="true"]):hover .entity-chip-popover {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .reading-settings-segment:hover { color: var(--title); }
+  }
+}
+
+/* Clear hover immediately when input changes, without changing dialog/sheet motion. */
+:where(html:not([data-hover-enabled="true"])) {
+  a, a::after, a span, button:not(.image-lightbox-thumbnail), .entity-card,
+  .entity-chip-popover, .hover-card-highlight, .section-title,
+  .photo-gallery img, .photo-gallery .live-photo, .photo-gallery span {
+    transition: none !important;
+  }
+  .hover-card-highlight { opacity: 0 !important; }
+  .image-lightbox-thumbnail { transition-property: transform, border-color; }
 }

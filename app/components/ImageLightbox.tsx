@@ -383,6 +383,7 @@ export default function ImageLightbox({
   const [isOpening, setIsOpening] = useState(true);
   const [openingPreview, setOpeningPreview] = useState<(OpeningPreview & { originalSrc: string }) | null>(null);
   const openingCleanupRef = useRef<(() => void) | null>(null);
+  const closingCleanupRef = useRef<(() => void) | null>(null);
   const openingInputsRef = useRef({ returnFocus, activeSrc: "" });
   const previousActiveSrcRef = useRef<string | null>(null);
   const isOpen = activeIndex !== null;
@@ -430,19 +431,43 @@ export default function ImageLightbox({
   }, [returnFocus]);
 
   const handleClosed = useCallback(() => {
+    closingCleanupRef.current?.();
     finishOpening();
     onClose();
     restoreFocus();
   }, [finishOpening, onClose, restoreFocus]);
 
   const closeLightbox = useCallback(() => {
+    const dialog = dialogRef.current;
+    if (dialog?.hasAttribute("data-closing")) return;
     finishOpening();
     setSheetOpen(false);
-    if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    } else {
+    if (!dialog?.open) {
       handleClosed();
+      return;
     }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      dialog.close();
+      return;
+    }
+
+    // Keep the modal and scroll lock until both content and backdrop fade out.
+    const finish = () => {
+      closingCleanupRef.current?.();
+      if (dialog.open) dialog.close();
+    };
+    const handleEnd = (event: AnimationEvent) => {
+      if (event.target === dialog && event.animationName === "image-lightbox-out") finish();
+    };
+    const timeout = window.setTimeout(finish, 240);
+    closingCleanupRef.current = () => {
+      window.clearTimeout(timeout);
+      dialog.removeEventListener("animationend", handleEnd);
+      delete dialog.dataset.closing;
+      closingCleanupRef.current = null;
+    };
+    dialog.addEventListener("animationend", handleEnd);
+    dialog.dataset.closing = "";
   }, [finishOpening, handleClosed]);
 
   const closeSheet = useCallback(() => {
@@ -450,13 +475,13 @@ export default function ImageLightbox({
   }, []);
 
   const showPrevious = useCallback(() => {
-    if (activeIndex === null || images.length < 2) return;
+    if (activeIndex === null || images.length < 2 || dialogRef.current?.hasAttribute("data-closing")) return;
     finishOpening();
     onActiveIndexChange(wrapIndex(activeIndex - 1, images.length));
   }, [activeIndex, finishOpening, images.length, onActiveIndexChange]);
 
   const showNext = useCallback(() => {
-    if (activeIndex === null || images.length < 2) return;
+    if (activeIndex === null || images.length < 2 || dialogRef.current?.hasAttribute("data-closing")) return;
     finishOpening();
     onActiveIndexChange(wrapIndex(activeIndex + 1, images.length));
   }, [activeIndex, finishOpening, images.length, onActiveIndexChange]);
@@ -505,6 +530,7 @@ export default function ImageLightbox({
 
     return () => {
       cancelled = true;
+      closingCleanupRef.current?.();
       openingCleanupRef.current?.();
       openingCleanupRef.current = null;
       window.removeEventListener("resize", finishOpening);
@@ -588,17 +614,19 @@ export default function ImageLightbox({
         if (event.target === event.currentTarget) closeLightbox();
       }}
     >
+      {/* Keep the viewport control outside the transformed gesture shell. */}
+      {activeImage && activeIndex !== null && (
+        <button
+          type="button"
+          onClick={closeLightbox}
+          aria-label="关闭"
+          className="image-lightbox-close flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-xs transition-colors hover:bg-black/80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white"
+        >
+          <CloseIcon />
+        </button>
+      )}
       {activeImage && activeIndex !== null && (
         <div ref={shellRef} className="image-lightbox-shell">
-          <button
-            type="button"
-            onClick={closeLightbox}
-            aria-label="关闭"
-            className="image-lightbox-close flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-xs transition-colors hover:bg-black/80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white"
-          >
-            <CloseIcon />
-          </button>
-
           <p className="m-0 hidden w-full shrink-0 flex-wrap items-baseline justify-center gap-x-2 gap-y-[0.35rem] px-12 text-center sm:flex">
             <span className="min-w-0 text-[0.75rem] font-semibold leading-[1.4] text-white">{activeImage.alt}</span>
             {activeImage.sourceHref && activeImage.sourceLabel && (
@@ -785,7 +813,7 @@ export default function ImageLightbox({
               <span className="min-w-0 flex-1 truncate text-[1rem] font-semibold text-white">{titleText || "图片详情"}</span>
               <button
                 type="button"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-300 hover:bg-white/[0.08] focus-visible:bg-white/[0.08] focus-visible:outline-hidden"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-300 hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
                 aria-label="关闭详情"
                 onClick={close}
               >

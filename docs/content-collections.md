@@ -70,6 +70,7 @@ showHeader: false
 
 - 图片 `alt` 会直接作为摄影列表和灯箱说明，不能为空。
 - 构建时会从**原图**读取 EXIF：拍摄时间、GPS、相机/镜头、光圈、快门、ISO、焦距。压缩后的 WebP 不含这些信息，灯箱主预览仍加载原图。
+- `next.config.ts` 通过 `serverExternalPackages` 保留 `exifr` 的原生 Node 加载，避免打包破坏其动态 `fs` 依赖。构建后运行 `pnpm validate:images`，会核对首页、摄影页和图集导出的灯箱数据是否保留原图已有的 EXIF 字段。
 - 灯箱优先显示 EXIF 拍摄时间；没有时回退到文章 `date`。地点文案仍来自 frontmatter `location`，有 GPS 时额外提供 OpenStreetMap 链接。
 - 摄影聚合按文章置顶状态、文章日期和图片正文顺序排列；摄影页按图集分节，首页显示排序最前的 6 张。
 - 远程图片、data URL、HTML `<img>`、站内绝对路径和跨文章路径不会进入摄影聚合。

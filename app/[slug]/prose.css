@@ -162,10 +162,8 @@
 .markdown hr {
   margin: 24px 0;
   border: 0;
+  border-top: 1px dashed var(--border);
   height: 1px;
-  background-origin: content-box;
-  background-image: linear-gradient(var(--border), var(--border));
-  background-repeat: no-repeat;
 }
 
 /* ====================
@@ -223,7 +221,6 @@
   box-decoration-break: clone;
 }
 
-.markdown a:not(:has(img)):not(.entity-inline-link):hover,
 .markdown a:not(:has(img)):not(.entity-inline-link):focus-visible { border-bottom-color: var(--title); }
 
 .markdown a:not(:has(img)):not(.entity-inline-link)::after {
@@ -233,7 +230,6 @@
   text-decoration: none;
   transition: transform 200ms ease;
 }
-.markdown a:not(:has(img)):not(.entity-inline-link):hover::after,
 .markdown a:not(:has(img)):not(.entity-inline-link):focus-visible::after { transform: translate(0.1em, -0.1em); }
 @media (prefers-reduced-motion: reduce) {
   .markdown a:not(:has(img)):not(.entity-inline-link)::after { transition: none; transform: none !important; }
@@ -295,13 +291,15 @@
   background: #fff1b8;
 }
 
-html[data-theme="dark"] .markdown strong {
-  color: #161616;
+html[data-theme="dark"] .markdown strong,
+html[data-theme="dark"] .markdown strong a {
+  color: #000;
 }
 
 @media (prefers-color-scheme: dark) {
-  html:not([data-theme]) .markdown strong {
-    color: #161616;
+  html:not([data-theme]) .markdown strong,
+  html:not([data-theme]) .markdown strong a {
+    color: #000;
   }
 }
 
@@ -329,16 +327,6 @@ html[data-theme="dark"] .markdown strong {
 .markdown del,
 .markdown s {
   color: inherit;
-}
-
-/* 删除线模糊效果 */
-.markdown del {
-  filter: blur(8px);
-  transition: filter 0.5s;
-}
-
-.markdown del:hover {
-  filter: blur(0);
 }
 
 .markdown :not(pre) > code {
@@ -567,7 +555,6 @@ html[data-theme="dark"] .markdown strong {
   color: var(--secondary);
   white-space: normal;
 }
-.markdown .entity-inline-link--chip:hover,
 .markdown .entity-inline-link--chip:focus-visible { color: var(--title); }
 .markdown .entity-inline-icon:not([hidden]) {
   display: block;
@@ -576,4 +563,15 @@ html[data-theme="dark"] .markdown strong {
   max-width: none;
   margin: 0;
   border-radius: 0;
+}
+
+@media (any-hover: hover) {
+  :where(html[data-hover-enabled="true"]) .markdown {
+    /* Only mouse input can reveal blurred text; other inputs keep it readable. */
+    del { filter: blur(8px); transition: filter 0.5s; }
+    del:hover { filter: blur(0); }
+    a:not(:has(img)):not(.entity-inline-link):hover { border-bottom-color: var(--title); }
+    a:not(:has(img)):not(.entity-inline-link):hover::after { transform: translate(0.1em, -0.1em); }
+    .entity-inline-link--chip:hover { color: var(--title); }
+  }
 }

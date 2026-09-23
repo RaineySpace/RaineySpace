@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type PointerEvent } from "react";
+import { hoverInput } from "@/lib/hover-input";
 
 interface Highlight {
   x: number;
@@ -37,6 +38,19 @@ export default function HoverCardList({ children }: { children: ReactNode }) {
     setHighlight((previous) => previous ? { ...previous, visible: false } : null);
   }
 
+  function followPointer(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== "mouse" || !hoverInput.getSnapshot().hoverEnabled) return;
+    if (!(event.target instanceof Element)) return;
+    const item = event.target.closest<HTMLElement>("[data-hover-card]");
+    // Keep the highlight across list gaps so the next card can animate from it.
+    // Leaving the list or changing input mode clears it instead.
+    if (item && item !== activeRef.current && event.currentTarget.contains(item)) show(item);
+  }
+
+  useLayoutEffect(() => hoverInput.subscribe(() => {
+    if (!hoverInput.getSnapshot().hoverEnabled) hide();
+  }), []);
+
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
@@ -57,20 +71,9 @@ export default function HoverCardList({ children }: { children: ReactNode }) {
     <div
       ref={listRef}
       className="hover-card-list relative -mx-3 flex flex-col gap-3 px-3 isolate"
-      onPointerOver={(event) => {
-        if (event.pointerType === "touch") return;
-        const item = (event.target as HTMLElement).closest<HTMLElement>("[data-hover-card]");
-        if (item && item !== activeRef.current && event.currentTarget.contains(item)) show(item);
-      }}
+      onPointerOver={followPointer}
+      onPointerMove={followPointer}
       onPointerLeave={hide}
-      onFocus={(event) => {
-        if (!event.target.matches(":focus-visible")) return;
-        const item = event.target.closest<HTMLElement>("[data-hover-card]");
-        if (item) show(item);
-      }}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) hide();
-      }}
     >
       <span
         aria-hidden="true"

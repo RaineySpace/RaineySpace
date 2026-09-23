@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import BackButton from "@/app/components/BackButton";
 import EntityList from "@/app/components/EntityList";
 import { emptyCollectionMessage, entityTitle } from "@/lib/entity-rendering.ts";
 import JsonLd from "@/app/components/JsonLd";
@@ -17,10 +16,7 @@ export default async function ContactsPage() {
         url: contact.url, name: entityTitle(contact), description: contact.description,
       })))} />
       <header className="mb-3">
-        <div className="flex items-center gap-2">
-          <BackButton iconOnly />
-          <h1 className="page-title">联系我</h1>
-        </div>
+        <h1 className="page-title">联系我</h1>
         <p className="page-description">
           在互联网的这些地方和我建立联系，很期待认识你。
         </p>

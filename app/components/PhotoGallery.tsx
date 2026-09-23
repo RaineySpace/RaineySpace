@@ -52,7 +52,7 @@ export default function PhotoGallery({ photos, variant }: PhotoGalleryProps) {
   return (
     <>
       <div
-        className={variant === "strip" ? "photo-strip" : "grid grid-cols-2 gap-3 sm:grid-cols-3"}
+        className={variant === "strip" ? "photo-gallery photo-strip" : "photo-gallery grid grid-cols-2 gap-3 sm:grid-cols-3"}
         aria-label="摄影作品"
       >
         {photos.map((photo, index) => {

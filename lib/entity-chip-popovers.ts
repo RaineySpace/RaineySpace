@@ -17,6 +17,9 @@ export function alignEntityChipPopovers(root: HTMLElement) {
     popover.style.maxWidth = `min(20rem, ${Math.max(0, maxRight - minLeft)}px)`;
     const panel = popover.querySelector<HTMLElement>(".entity-chip-popover-panel");
     const width = panel?.offsetWidth || popover.offsetWidth;
+    // display:none has no measurable width; preserve the last valid placement.
+    // Mouse/keyboard input measures again when the panel returns to layout.
+    if (width === 0) return;
     const height = panel?.offsetHeight ?? 0;
     const spaceBelow = viewportHeight - chipRect.bottom - ENTITY_CHIP_POPOVER_GAP;
     const spaceAbove = chipRect.top - ENTITY_CHIP_POPOVER_GAP;
