@@ -33,7 +33,7 @@ function friend(id: string, overrides: Record<string, unknown> = {}) {
 }
 
 test("empty registries are valid and stay empty after sorting", () => {
-  for (const kind of ["project", "friend"] as const) {
+  for (const kind of ["project", "friend", "contact"] as const) {
     const parsed = parseRegistry(kind, {});
     assert.deepEqual(parsed.errors, []);
     assert.deepEqual(parsed.entities, []);
@@ -103,6 +103,7 @@ test("content validator uses the shared registry rules", async () => {
       alpha: project("alpha", { date: "2026-02-30" }),
     }));
     await fs.writeFile(path.join(directory, "content/friends.json"), "{}");
+    await fs.writeFile(path.join(directory, "content/contacts.json"), "{}");
     const check = spawnSync(process.execPath, [path.join(projectRoot, "scripts/validate-content.ts")], {
       cwd: directory,
       encoding: "utf8",
@@ -115,7 +116,7 @@ test("content validator uses the shared registry rules", async () => {
 });
 
 test("both registries share optional titles, icons and extension data", () => {
-  for (const kind of ["project", "friend"] as const) {
+  for (const kind of ["project", "friend", "contact"] as const) {
     const extensions = kind === "project"
       ? { repository: "https://github.com/example/project", platforms: ["web"], flags: { beta: true } }
       : { feed: "https://example.com/rss.xml", social: { github: "example" }, score: null };
@@ -143,7 +144,7 @@ test("both registries share optional titles, icons and extension data", () => {
 });
 
 test("extensions are JSON objects and cannot overwrite the common contract", () => {
-  for (const kind of ["project", "friend"] as const) {
+  for (const kind of ["project", "friend", "contact"] as const) {
     for (const extensions of [null, [], "bad", { bad: undefined }, { bad: Infinity }, { bad: new Date() }]) {
       assert.match(parseRegistry(kind, { alpha: project("alpha", { extensions }) }).errors.join("\n"), /"extensions" must be a JSON object/);
     }

@@ -10,7 +10,7 @@ export default function SiteHeader() {
   const params = useParams<{ slug?: string }>();
   const pathname = usePathname().replace(/\/+$/, "");
 
-  if (pathname === "/friends" || pathname === "/projects") return null;
+  if (pathname === "/friends" || pathname === "/projects" || pathname === "/contacts") return null;
 
   return (
     <header className={`flex min-h-8 items-center justify-between ${params.slug ? "mb-6 xl:hidden" : "mb-8 sm:mb-10"}`}>

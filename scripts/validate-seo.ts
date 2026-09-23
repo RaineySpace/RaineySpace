@@ -80,9 +80,10 @@ async function main() {
   const posts = await getPosts();
   const listedPosts = posts.filter((post) => !post.hidden);
   const indexablePosts = posts.filter((post) => !post.noindex);
+  const contactRegistry: Registry = JSON.parse(await fs.readFile('content/contacts.json', 'utf8'));
   const friendRegistry: Registry = JSON.parse(await fs.readFile('content/friends.json', 'utf8'));
   const projectRegistry: Registry = JSON.parse(await fs.readFile('content/projects.json', 'utf8'));
-  for (const page of [pages.home, pages.articles, pages.photography, pages.projects, pages.friends]) {
+  for (const page of [pages.home, pages.articles, pages.photography, pages.projects, pages.friends, pages.contacts]) {
     const html = await read(`${page.pathname.slice(1)}index.html`);
     const { data } = verifyPage(html, { ...page, url: canonicalUrl(page.pathname) });
     assert.equal(data.length, 1, `${page.pathname}: expected one JSON-LD block`);
@@ -98,6 +99,7 @@ async function main() {
     assert.deepEqual(items.map((item) => item.position), items.map((_, index) => index + 1));
     if (page === pages.articles) assert.deepEqual(items.map((item) => item.url), listedPosts.map((post) => postUrl(post.slug)));
     if (page === pages.photography) assert.deepEqual(items.map((item) => item.url), posts.filter((post) => post.photography && post.images.length).map((post) => postUrl(post.slug)));
+    if (page === pages.contacts) assert.deepEqual(items.map((item) => item.url).sort(), Object.values(contactRegistry).map((contact) => contact.url).sort());
     if (page === pages.projects) assert.deepEqual(items.map((item) => item.url).sort(), Object.values(projectRegistry).map((project) => project.url).sort());
     if (page === pages.friends) {
       assert.deepEqual(items.map((item) => item.url).sort(), Object.values(friendRegistry).map((friend) => friend.url).sort());
@@ -165,10 +167,10 @@ async function main() {
   const home = await read('index.html');
   const homeBody = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
   assert.match(homeBody, /<footer(?:\s[^>]*)?>/);
-  for (const [id, registry] of [['projects', projectRegistry], ['friends', friendRegistry]] as const) {
+  for (const [id, registry] of [['projects', projectRegistry], ['friends', friendRegistry], ['contacts', contactRegistry]] as const) {
     const section = homeBody.match(new RegExp(`<section id="${id}"[^>]*>([\\s\\S]*?)</section>`));
     assert.ok(section, `homepage missing ${id} section`);
-    const entityLinks = tags(section[1], 'a').filter((tag) => tag.class?.split(' ').includes('entity-inline-link'));
+    const entityLinks = tags(section[1], 'a').filter((tag) => tag.class?.split(' ').includes(id === 'projects' ? 'entity-card-hit' : 'entity-inline-link'));
     assert.deepEqual(entityLinks.map((link) => link.href).sort(), Object.values(registry).map((item) => item.url).sort());
   }
 
@@ -191,7 +193,7 @@ async function main() {
     url: decode(match[1].match(/<loc>(.*?)<\/loc>/)?.[1] || ''),
     lastmod: match[1].match(/<lastmod>(.*?)<\/lastmod>/)?.[1],
   }));
-  assert.deepEqual(entries.map((entry) => entry.url).sort(), [pages.home, pages.articles, pages.photography, pages.projects, pages.friends].map((page) => canonicalUrl(page.pathname)).concat(indexablePosts.map((post) => postUrl(post.slug))).sort());
+  assert.deepEqual(entries.map((entry) => entry.url).sort(), [pages.home, pages.articles, pages.photography, pages.projects, pages.friends, pages.contacts].map((page) => canonicalUrl(page.pathname)).concat(indexablePosts.map((post) => postUrl(post.slug))).sort());
   for (const entry of entries) {
     const post = indexablePosts.find((post) => postUrl(post.slug) === entry.url);
     assert.equal(entry.lastmod, post ? (post.updated || post.date)?.toISOString() : undefined, entry.url);

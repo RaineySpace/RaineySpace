@@ -4,7 +4,7 @@
 
 This repository is a lightweight personal blog built with Next.js App Router and exported as a static site for Cloudflare Pages.
 
-The GitHub profile `README.md` is not project documentation. Do not edit `README.md` for blog maintenance notes, agent instructions, or implementation summaries.
+The homepage intro reads root `WELCOME.md`. `README.md` is used only for the GitHub profile; the blog does not read it. Do not edit `README.md` for blog maintenance notes, agent instructions, or implementation summaries.
 
 ## Architecture
 
@@ -15,7 +15,7 @@ The GitHub profile `README.md` is not project documentation. Do not edit `README
 - `app/sitemap.xml/route.ts` and `app/robots.txt/route.ts` generate SEO metadata files.
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
 - `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, article-channel/indexable-content filtering, and feed data behavior centralized there. `lib/post-options.ts` shares `noindex` and `showHeader` parsing with maintenance scripts. `lib/registry.ts` and `lib/markdown-refs.ts` share project/friend registry reading, sorting, and Markdown data-reference expansion with pages, validation, and published Markdown export.
-- `content/projects.json` and `content/friends.json` share the Entity schema in `lib/entities.ts`: names, optional titles, links, dates, descriptions, `icon`, pinning, and per-kind `extensions`. `lib/registry.ts` validates and normalizes both without field adapters.
+- `content/projects.json`, `content/friends.json`, and `content/contacts.json` share the Entity schema in `lib/entities.ts`: names, optional titles, links, dates, descriptions, `icon`, pinning, and per-kind `extensions`. `lib/registry.ts` validates and normalizes both without field adapters.
 - `lib/entity-rendering.ts` is the single HTML renderer for React `Entity` / `EntityList` and Markdown references. Keep inline, card, hover-card, icon, and no-icon variants there; see `docs/entities.md`.
 - `public/<slug>/index.md` is the source format for posts. The same directory holds referenced assets.
 - `scripts/` contains local maintenance scripts.
@@ -103,3 +103,5 @@ pnpm deploy:cf
 - `README.md` is the user's GitHub public profile and should remain untouched.
 - The current static site target is Cloudflare Pages.
 - `my-programmer-growth-journey` currently references a missing local attachment and the validator reports it as a warning.
+
+Contacts use the shared `contact` entity kind in `content/contacts.json`, with `contact:id` / `contact:*` Markdown references and `lib/contacts.ts` loaders. Official site icons are stored in `public/assets/contacts/`; provenance is documented in `docs/entities.md`. Contacts appear on the homepage, through references, and on the standalone `/contacts/` collection route, with the same card layout as projects and friends.

@@ -4,8 +4,10 @@ import path from "node:path";
 
 export const PROJECT_KIND = "project";
 export const FRIEND_KIND = "friend";
+export const CONTACT_KIND = "contact";
 
 const KIND_CONFIG = {
+  contact: { file: "content/contacts.json", label: "contact" },
   project: {
     file: "content/projects.json",
     label: "project",
@@ -245,6 +247,7 @@ export function loadRegistries(cwd = process.cwd()) {
   return {
     project: loadEntities(PROJECT_KIND, cwd),
     friend: loadEntities(FRIEND_KIND, cwd),
+    contact: loadEntities(CONTACT_KIND, cwd),
   };
 }
 

@@ -2,7 +2,7 @@
 
 文章与摄影内容存放在 `public/<slug>/index.md`，封面、文内图片和其他引用资源放在同一个文章目录。项目资料保存在 `content/projects.json`，友链资料保存在 `content/friends.json`。每个 Markdown 都有详情页，也可以通过 frontmatter 汇入摄影列表。项目和友链登记后即可展示，不依赖文章引用。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。原文在构建时从 `index.md` 发布到站点根路径，并把相对资源改写成站点绝对路径，不另维护第二份源文件。
 
-首页顶部读取根目录 `README.md`。全站页脚由 `app/layout.tsx` 渲染：分隔线下左侧显示构建年份和作者，右侧显示「朋友们」及指向 `/about/` 的 Credits。页脚沿用正文宽度并适配深浅主题；`END.md` 当前不挂载到页面。
+首页顶部读取根目录 `WELCOME.md`。`README.md` 仅作为 GitHub 个人资料页面的渲染来源，博客不再读取它。全站页脚由 `app/layout.tsx` 渲染：分隔线下左侧显示构建年份和作者，右侧显示「朋友们」及指向 `/about/` 的 Credits。页脚沿用正文宽度并适配深浅主题；`END.md` 当前不挂载到页面。
 
 ## 通用字段
 

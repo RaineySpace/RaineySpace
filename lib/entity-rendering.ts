@@ -4,9 +4,10 @@ import type { Entity, EntityRenderOptions } from "./entities.ts";
 export const emptyCollectionMessage = {
   project: "暂时还没有添加项目。",
   friend: "暂时还没有添加朋友。",
+  contact: "暂时还没有添加联系方式。",
 };
 
-const VISIT_LABEL = { project: "访问项目", friend: "访问站点" };
+const VISIT_LABEL = { project: "访问项目", friend: "访问站点", contact: "联系我" };
 
 export function escapeEntityHtml(value: unknown) {
   return String(value)

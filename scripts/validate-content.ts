@@ -7,7 +7,7 @@ import { parseUpdatedDate } from "../lib/post-dates.ts";
 import { parsePostOptions } from "../lib/post-options.ts";
 import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.ts";
 import { collectDataRefErrors } from "../lib/markdown-refs.ts";
-import { parseRegistry, PROJECT_KIND, FRIEND_KIND, readRegistryJson, registryFile } from "../lib/registry.ts";
+import { parseRegistry, PROJECT_KIND, FRIEND_KIND, CONTACT_KIND, readRegistryJson, registryFile } from "../lib/registry.ts";
 
 import type { EntityKind } from "../lib/entities.ts";
 import { isPlainObject } from "../lib/registry.ts";
@@ -15,7 +15,7 @@ import { isPlainObject } from "../lib/registry.ts";
 const publicDir = path.join(process.cwd(), "public");
 const requiredFields = ["title", "date", "summary"];
 const booleanFields = ["hidden", "pinned", "photography"];
-const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "friends", "_optimized", "llms.txt", "robots.txt", "sitemap.xml", "rss.xml", "atom.xml"]);
+const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "friends", "contacts", "_optimized", "llms.txt", "robots.txt", "sitemap.xml", "rss.xml", "atom.xml"]);
 const exifExtensions = new Set([".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".heic"]);
 const deprecatedProjectFields = [
   "projectId",
@@ -150,7 +150,8 @@ async function main() {
   const warnings: string[] = [];
   const projects = await validateRegistry(PROJECT_KIND, errors);
   const friends = await validateRegistry(FRIEND_KIND, errors);
-  const registries = { project: projects, friend: friends };
+  const contacts = await validateRegistry(CONTACT_KIND, errors);
+  const registries = { project: projects, friend: friends, contact: contacts };
   let photographyCount = 0;
   let photoCount = 0;
 
@@ -274,7 +275,7 @@ async function main() {
   }
 
   console.log(
-    `Content validation passed for ${slugs.length} posts, ${photographyCount} photography posts (${photoCount} photos), ${projects.length} projects, and ${friends.length} friends with ${warnings.length} warning(s).`,
+    `Content validation passed for ${slugs.length} posts, ${photographyCount} photography posts (${photoCount} photos), ${projects.length} projects, ${friends.length} friends, and ${contacts.length} contacts with ${warnings.length} warning(s).`,
   );
 }
 

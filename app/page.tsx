@@ -4,9 +4,10 @@ import HoverCardList from '@/app/components/HoverCardList';
 import PhotoGallery from '@/app/components/PhotoGallery';
 import PostCard from '@/app/components/PostCard';
 import { author } from '@/lib/config';
+import { getContacts } from '@/lib/contacts';
 import { getFeaturedPhotos } from '@/lib/photography';
 import { getProjects } from '@/lib/projects';
-import { getAboutContent, getListedPosts } from '@/lib/posts';
+import { getWelcomeContent, getListedPosts } from '@/lib/posts';
 import JsonLd from '@/app/components/JsonLd';
 import { homeJsonLd, pageMetadata, pages } from '@/lib/seo';
 import EntityList from '@/app/components/EntityList';
@@ -18,12 +19,13 @@ import './[slug]/prose.css';
 export const metadata = pageMetadata(pages.home);
 
 export default async function Home() {
-  const [aboutContent, posts, featuredPhotos, projects, friends] = await Promise.all([
-    getAboutContent(),
+  const [welcomeContent, posts, featuredPhotos, projects, friends, contacts] = await Promise.all([
+    getWelcomeContent(),
     getListedPosts(),
     getFeaturedPhotos(6),
     getProjects(),
     getFriends(),
+    getContacts(),
   ]);
 
   // 抵消共享 layout 的底部留白，保持首页页脚的位置与页面总高度。
@@ -31,7 +33,7 @@ export default async function Home() {
     <div className="relative -mb-8 flex flex-col gap-10 sm:-mb-12">
       <JsonLd data={homeJsonLd()} />
       <section id="about" aria-label="关于我" className="home-intro">
-        <EntityContent className="markdown" html={aboutContent} />
+        <EntityContent className="markdown" html={welcomeContent} />
       </section>
 
       <HomeSection id="articles" title="写点东西" href="/articles" linkLabel="全部文章" description="记录生活、技术与一些想法">
@@ -49,7 +51,7 @@ export default async function Home() {
       <HomeSection id="projects" title="做点东西" href="/projects" linkLabel="全部项目" description="把一些想法，慢慢变成真的">
         <EntityList
           items={projects}
-          variant="inline"
+          variant="card"
           appearance="chip"
           showIcon
           hoverCard
@@ -58,7 +60,7 @@ export default async function Home() {
         />
       </HomeSection>
 
-      <HomeSection id="friends" title="朋友们" href="/friends" linkLabel="全部朋友">
+      <HomeSection id="friends" title="朋友们" href="/friends" linkLabel="全部朋友" description="欢迎去他们那里逛逛">
         <EntityList
           items={friends}
           variant="inline"
@@ -67,6 +69,18 @@ export default async function Home() {
           hoverCard
           placement="top"
           emptyLabel={emptyCollectionMessage.friend}
+        />
+      </HomeSection>
+
+      <HomeSection id="contacts" title="联系我" href="/contacts" linkLabel="全部联系方式" description="在互联网的这些地方和我建立联系，很期待认识你">
+        <EntityList
+          items={contacts}
+          variant="inline"
+          appearance="chip"
+          showIcon
+          hoverCard={false}
+          placement="top"
+          emptyLabel={emptyCollectionMessage.contact}
         />
       </HomeSection>
 

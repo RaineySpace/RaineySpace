@@ -10,7 +10,7 @@ async function withWorkspace(run: (directory: string) => Promise<void>) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-ts-cli-'));
   try {
     for (const name of ['public', 'content', 'out']) await fs.mkdir(path.join(directory, name));
-    for (const kind of ['projects', 'friends']) await fs.writeFile(path.join(directory, 'content', `${kind}.json`), '{}');
+    for (const kind of ['projects', 'friends', 'contacts']) await fs.writeFile(path.join(directory, 'content', `${kind}.json`), '{}');
     await run(directory);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });

@@ -246,7 +246,7 @@ pnpm deploy:cf
 
 ## 维护约定
 
-- 不要把项目维护说明写入 `README.md`，该文件用于 GitHub public profile。
+- 首页介绍维护在根目录 `WELCOME.md`；`README.md` 仅用于 GitHub public profile，博客不再读取，不要把项目维护说明写入其中。
 - 不要改变 `public/<slug>/index.md` 的文章存储方式，除非明确执行内容迁移。文章的公开 Markdown 地址是 `/<slug>.md`。
 - `hidden` 控制文章列表与 feed；`noindex` 独立控制 sitemap、llms.txt 与索引声明。
 - 日期展示保持 `YYYY-MM-DD`。

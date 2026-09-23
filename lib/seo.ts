@@ -9,6 +9,7 @@ export interface PageInfo {
 }
 
 export const pages = {
+  contacts: { pathname: '/contacts/', title: `联系我 - ${config.title}`, description: 'Rainey 的联系方式' },
   friends: { pathname: '/friends/', title: `朋友们 - ${config.title}`, description: 'Rainey 的朋友们' },
   home: { pathname: '/', title: config.title, description: config.description },
   articles: { pathname: '/articles/', title: `文章 - ${config.title}`, description: 'Rainey 的全部公开文章' },
@@ -192,7 +193,7 @@ export function serializeJsonLd(data: Record<string, unknown>): string {
 
 export function sitemapEntries(posts: readonly Post[]) {
   return [
-    ...[pages.home, pages.articles, pages.photography, pages.projects, pages.friends].map((page) => ({
+    ...[pages.home, pages.articles, pages.photography, pages.projects, pages.friends, pages.contacts].map((page) => ({
       loc: canonicalUrl(page.pathname),
       lastmod: undefined as string | undefined,
     })),
@@ -208,7 +209,7 @@ function markdownText(value: string): string {
 }
 
 export function llmsText(posts: readonly Post[]): string {
-  const channels = [pages.home, pages.articles, pages.photography, pages.projects, pages.friends];
+  const channels = [pages.home, pages.articles, pages.photography, pages.projects, pages.friends, pages.contacts];
   return [
     `# ${config.title}`,
     '',

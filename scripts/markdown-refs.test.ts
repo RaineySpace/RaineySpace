@@ -13,6 +13,7 @@ import { renderEntityCardHtml } from "../lib/entity-rendering.ts";
 import type { loadRegistries } from "../lib/registry.ts";
 
 const registries: ReturnType<typeof loadRegistries> = {
+  contact: [],
   project: [
     {
       id: "xiaofenshen",
@@ -66,7 +67,7 @@ function renderDataRefHtml(content: string, options: Parameters<typeof renderSha
   return withoutInlinePresentation(renderSharedDataRefHtml(content, options));
 }
 
-const emptyFriends = { project: registries.project, friend: [] };
+const emptyFriends = { ...registries, friend: [] };
 
 test("only declared project and friend titles are data references", () => {
   assert.deepEqual(parseDataRefTitle("project:xiaofenshen"), { kind: "project", id: "xiaofenshen" });

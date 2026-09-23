@@ -128,8 +128,8 @@ test('structured data uses real content and safely handles a script-closing titl
 test('sitemap and llms include hidden indexable content without inventing dates', () => {
   const source = [post(), post({ slug: 'revised', updated: new Date('2024-02-29') }), post({ slug: 'about', hidden: true, date: null, dateText: '' }), post({ slug: 'excluded', noindex: true })];
   const entries = seo.sitemapEntries(source);
-  assert.ok(entries.slice(0, 5).every((entry) => entry.lastmod === undefined));
-  assert.deepEqual(entries.slice(5).map((entry) => entry.lastmod), ['2024-02-01T00:00:00.000Z', '2024-02-29T00:00:00.000Z', undefined]);
+  assert.ok(entries.slice(0, Object.keys(seo.pages).length).every((entry) => entry.lastmod === undefined));
+  assert.deepEqual(entries.slice(Object.keys(seo.pages).length).map((entry) => entry.lastmod), ['2024-02-01T00:00:00.000Z', '2024-02-29T00:00:00.000Z', undefined]);
   assert.ok(entries.some((entry) => entry.loc.includes('/about/')));
   assert.equal(entries.filter((entry) => entry.loc === seo.canonicalUrl(seo.pages.friends.pathname)).length, 1);
   assert.ok(!entries.some((entry) => entry.loc.includes('/excluded/')));
@@ -141,6 +141,9 @@ test('sitemap and llms include hidden indexable content without inventing dates'
   assert.ok(llms.includes('## 内容'));
   assert.ok(llms.includes('https://rainey.space/friends/'));
   assert.ok(!llms.includes('https://rainey.space/friends.md'));
+  assert.ok(llms.includes('https://rainey.space/contacts/'));
+  assert.ok(!llms.includes('https://rainey.space/contacts.md'));
+  assert.equal(entries.filter((entry) => entry.loc === seo.canonicalUrl(seo.pages.contacts.pathname)).length, 1);
   assert.ok(llms.includes('https://rainey.space/about.md): 文章摘要 [原文]'));
   assert.ok(!llms.includes('/excluded/'));
   assert.equal(seo.llmsText(source), llms);
@@ -156,6 +159,7 @@ async function withContentFixture(run: (directory: string) => Promise<void>) {
     for (const name of ['public', 'content', 'out']) await fs.mkdir(path.join(directory, name));
     await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
     await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
+    await fs.writeFile(path.join(directory, 'content/contacts.json'), '{}');
     process.chdir(directory);
     await run(directory);
   } finally {
@@ -285,6 +289,7 @@ test('content reader and CLI both enforce updated on real Markdown fixtures', as
     await fs.mkdir(path.join(directory, 'content'));
     await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
     await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
+    await fs.writeFile(path.join(directory, 'content/contacts.json'), '{}');
     process.chdir(directory);
     for (const [updated, error] of [['2024-02-29', null], ['2024-02-30', /valid YYYY-MM-DD/], ['2024-01-31', /earlier than/]] as const) {
       await fs.writeFile(path.join(directory, 'public/sample/index.md'), `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);

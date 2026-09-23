@@ -344,9 +344,9 @@ function renderMarkdown(
   return { html, headings };
 }
 
-export async function getAboutContent(): Promise<string> {
-  const readme = await fs.readFile(path.join(process.cwd(), 'README.md'), 'utf8');
-  return renderMarkdown(readme).html;
+export async function getWelcomeContent(): Promise<string> {
+  const welcome = await fs.readFile(path.join(process.cwd(), 'WELCOME.md'), 'utf8');
+  return renderMarkdown(welcome).html;
 }
 
 export async function getEndContent(): Promise<string> {

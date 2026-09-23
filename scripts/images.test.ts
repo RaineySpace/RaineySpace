@@ -26,6 +26,7 @@ test('image pipeline serves responsive previews, preserves originals and handles
     await fs.mkdir(path.join(directory, 'content'), { recursive: true });
     await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
     await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
+    await fs.writeFile(path.join(directory, 'content/contacts.json'), '{}');
     await picture(2400, 1200).jpeg().toFile(path.join(postDir, 'photo.jpg'));
     await picture(800, 600).png().toFile(path.join(postDir, 'photo.png'));
     await picture(1200, 600).withMetadata({ orientation: 6 }).jpeg().toFile(path.join(postDir, 'rotated.jpg'));

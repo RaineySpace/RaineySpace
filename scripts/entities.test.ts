@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { parseRegistry, loadRegistries } from "../lib/registry.ts";
 import { renderEntityHtml } from "../lib/entity-rendering.ts";
-import { renderDataRefHtml, stripElementsByClass } from "../lib/markdown-refs.ts";
+import { renderDataRefHtml, stripElementsByClass, expandDataRefsInMarkdown, collectDataRefErrors } from "../lib/markdown-refs.ts";
 
 import type { EntityKind } from "../lib/entities.ts";
 
-const fixtures = { project: fixture("project"), friend: fixture("friend") };
+const fixtures = { project: fixture("project"), friend: fixture("friend"), contact: fixture("contact") };
 
 function fixture<Kind extends EntityKind>(kind: Kind) {
   return parseRegistry(kind, {
@@ -23,7 +23,7 @@ function fixture<Kind extends EntityKind>(kind: Kind) {
 }
 
 test("all variants consume either registry directly, with independent icon and hover-card options", () => {
-  for (const kind of ["project", "friend"] as const) {
+  for (const kind of ["project", "friend", "contact"] as const) {
     const item = fixtures[kind][0];
     for (const showIcon of [false, true]) {
       const card = renderEntityHtml(item, { variant: "card", showIcon, headingLevel: "h2" });
@@ -52,7 +52,7 @@ test("all variants consume either registry directly, with independent icon and h
 });
 
 test("Markdown uses the same card and inline renderer as Entity components", () => {
-  for (const kind of ["project", "friend"] as const) {
+  for (const kind of ["project", "friend", "contact"] as const) {
     const item = fixtures[kind][0];
     const ref = `[Outdated name](https://old.example "${kind}:example")`;
     assert.equal(renderDataRefHtml(ref, { registries: fixtures }), `<div class="entity-card-list">${renderEntityHtml(item)}</div>\n`);
@@ -91,4 +91,14 @@ test("real project and friend registries use one icon field without adapters", (
       assert.ok(renderEntityHtml(item, { variant: "inline", showIcon: true }).includes(item.url));
     }
   }
+});
+
+test("contact collections resolve, export plain links, and reject missing IDs", () => {
+  const source = '[Contacts][contacts]\n\n[contacts]: https://old.example "contact:*"\n';
+  assert.match(renderDataRefHtml(source, { registries: fixtures }), /entity-card-list/);
+  const markdown = expandDataRefsInMarkdown(source, fixtures);
+  assert.match(markdown, /- \[Card title\]\(https:\/\/example.com\/\)/);
+  assert.doesNotMatch(markdown, /contact:|\[contacts\]:/);
+  assert.deepEqual(collectDataRefErrors('[Missing](https://example.com "contact:missing")', fixtures), ['unknown contact "missing"']);
+  assert.match(renderDataRefHtml('[Contacts](https://example.com "contact:*")', { registries: { ...fixtures, contact: [] } }), /暂时还没有添加联系方式/);
 });

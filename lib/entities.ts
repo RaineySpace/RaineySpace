@@ -1,5 +1,5 @@
-/** Canonical registry and rendering contract shared by projects and friends. */
-export type EntityKind = "project" | "friend";
+/** Canonical registry and rendering contract shared by projects, friends, and contacts. */
+export type EntityKind = "project" | "friend" | "contact";
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export interface EntityExtensions {
@@ -14,7 +14,12 @@ export interface FriendExtensions {
   [key: string]: JsonValue | undefined;
 }
 
+export interface ContactExtensions {
+  [key: string]: JsonValue | undefined;
+}
+
 export interface EntityExtensionsByKind {
+  contact: ContactExtensions;
   project: ProjectExtensions;
   friend: FriendExtensions;
 }
@@ -31,7 +36,7 @@ export interface EntityDefinition<Extensions extends EntityExtensions = EntityEx
   extensions?: Extensions;
 }
 
-/** Normalized data. Both loaders return this shape without renaming fields. */
+/** Normalized data. All loaders return this shape without renaming fields. */
 export interface Entity<Kind extends EntityKind = EntityKind> {
   id: string;
   kind: Kind;

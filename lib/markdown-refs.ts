@@ -36,12 +36,12 @@ interface RefOptions {
 }
 interface Replacement { raw: string; next: string }
 
-const DATA_REF_TITLE = /^(project|friend):(\*|[^\s:]+)$/;
+const DATA_REF_TITLE = /^(project|friend|contact):(\*|[^\s:]+)$/;
 
 export function parseDataRefTitle(title: unknown): DataRef | null {
   if (title == null || title === "") return null;
   const trimmed = String(title).trim();
-  if (!trimmed.startsWith("project:") && !trimmed.startsWith("friend:")) return null;
+  if (!trimmed.startsWith("project:") && !trimmed.startsWith("friend:") && !trimmed.startsWith("contact:")) return null;
   const match = trimmed.match(DATA_REF_TITLE);
   if (!match) {
     throw new Error(`invalid data reference title "${title}"`);
@@ -307,7 +307,7 @@ function collectExpansions(tokens: MutableToken[], registries: Registries, sourc
 
 function stripDataRefDefinitions(source: string) {
   return source.replace(
-    /^[ \t]*\[(?:[^\]]+)\]:[ \t]+\S+[ \t]+(?:"(?:project|friend):[^"]*"|'(?:project|friend):[^']*'|\((?:project|friend):[^)]*\))[ \t]*\r?\n?/gm,
+    /^[ \t]*\[(?:[^\]]+)\]:[ \t]+\S+[ \t]+(?:"(?:project|friend|contact):[^"]*"|'(?:project|friend|contact):[^']*'|\((?:project|friend|contact):[^)]*\))[ \t]*\r?\n?/gm,
     "",
   );
 }
