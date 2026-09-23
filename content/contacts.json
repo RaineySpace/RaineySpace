@@ -27,6 +27,13 @@
     "icon": "/assets/contacts/x.svg",
     "description": "对很多事情好奇，也有很多事情没想明白。换条路继续探索，顺便做些有趣的东西。"
   },
+  "rss": {
+    "name": "RSS",
+    "url": "https://rainey.space/feed",
+    "date": "2026-09-23",
+    "icon": "/assets/contacts/rss.svg",
+    "description": "通过 RSS 订阅博客更新"
+  },
   "email": {
     "name": "Email",
     "url": "mailto:raineyspace@gmail.com",
@@ -35,4 +42,3 @@
     "description": "raineyspace@gmail.com"
   }
 }
-

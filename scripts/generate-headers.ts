@@ -12,6 +12,7 @@ async function generateHeaders(root = process.cwd()) {
   const rules = [
     `/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <${canonicalUrl('/:splat/')}>; rel="canonical"\n  Cache-Control: no-cache`,
     '/_optimized/images/*\n  Cache-Control: public, max-age=31536000, immutable',
+    '/feed\n  Content-Type: application/rss+xml; charset=utf-8\n  Cache-Control: no-cache',
     ...['/', '/*/', '/*.html', '/*.txt', '/*.xml', '/_optimized/manifest.json'].map((pathname) => `${pathname}\n  Cache-Control: no-cache`),
   ];
   let noindexCount = 0;

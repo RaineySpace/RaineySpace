@@ -88,6 +88,8 @@ Markdown 引用语法保持不变：独立段落生成卡片，段落内部生�
 
 ## 联系方式
 
+RSS 联系项使用 `https://rainey.space/feed`，在首页页脚和 `/contacts/` 中随注册表统一展示。图标使用用户提供的 `public/assets/contacts/rss.svg`；订阅内容与现有 `/rss.xml` 一致。
+
 `contact` 复用公共 schema、排序和渲染器，当前登记博客、GitHub、B站、即刻和 X 的公开主页；`date` 为登记日期。使用 `getContactById(id)` 或 `getContacts()` 读取。 每个平台可独立填写可选的 `description`，用于说明这个渠道的内容或联系场景；描述显示在卡片和行内链接的悬浮卡片中，也进入块级 Markdown 导出，行内链接仍只显示名称。
 
 ```markdown

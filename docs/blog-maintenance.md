@@ -30,7 +30,7 @@ Marked 的自定义 renderer 接收 token 对象；标题中的行内 Markdown �
 
 - `app/page.tsx`：首页文章列表。
 - `app/[slug]/page.tsx`：文章详情页，包含文章 metadata 和目录。
-- `app/rss.xml/route.ts`、`app/atom.xml/route.ts`：RSS 和 Atom feed。
+- `app/rss.xml/route.ts`、`app/atom.xml/route.ts`：RSS 和 Atom feed。`app/feed/route.ts` 复用 RSS handler，使 `/feed` 直接返回 RSS XML；构建生成的 `_headers` 为这个无扩展名入口指定 RSS 类型和 `no-cache`。`feed` 为保留 slug。
 - `app/sitemap.xml/route.ts`、`app/robots.txt/route.ts`：搜索引擎入口。
 - `app/llms.txt/route.ts`：允许索引内容的 AI 阅读导航。
 - `lib/posts.ts`：文章读取、frontmatter 归一化、Markdown 渲染、日期格式、文章频道／允许索引内容筛选和 feed 数据逻辑。

@@ -15,7 +15,7 @@ import { isPlainObject } from "../lib/registry.ts";
 const publicDir = path.join(process.cwd(), "public");
 const requiredFields = ["title", "date", "summary"];
 const booleanFields = ["hidden", "pinned", "photography"];
-const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "friends", "contacts", "_optimized", "llms.txt", "robots.txt", "sitemap.xml", "rss.xml", "atom.xml"]);
+const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "friends", "contacts", "feed", "_optimized", "llms.txt", "robots.txt", "sitemap.xml", "rss.xml", "atom.xml"]);
 const exifExtensions = new Set([".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".heic"]);
 const deprecatedProjectFields = [
   "projectId",

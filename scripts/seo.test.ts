@@ -275,7 +275,7 @@ test('headers cache only versioned images for a year and revalidate HTML and nav
     });
     assert.deepEqual(cacheHeaders('/_optimized/images/' + 'a'.repeat(64) + '/photo.jpg'), ['public, max-age=31536000, immutable']);
     assert.deepEqual(cacheHeaders('/sample/photo.jpg'), [], 'legacy original URLs must not get immutable caching');
-    for (const pathname of ['/', '/sample/', '/sample/index.html', '/sample/index.txt', '/sample.md', '/rss.xml', '/_optimized/manifest.json']) {
+    for (const pathname of ['/', '/sample/', '/sample/index.html', '/sample/index.txt', '/sample.md', '/feed', '/rss.xml', '/_optimized/manifest.json']) {
       assert.deepEqual(cacheHeaders(pathname), ['no-cache'], pathname);
     }
   });

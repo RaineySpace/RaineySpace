@@ -237,7 +237,8 @@ async function main() {
   assert.ok(headers.includes(`/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <${canonicalUrl('/:splat/')}>; rel="canonical"`));
   const noindexPaths = headers.trim().split(/\n\s*\n/).filter((rule) => rule.includes('X-Robots-Tag: noindex')).map((rule) => rule.split('\n')[0]);
   assert.deepEqual(noindexPaths.sort(), posts.filter((post) => post.noindex).map((post) => new URL(markdownUrl(post.slug)).pathname).sort(), 'incorrect Markdown noindex rules');
-  for (const feed of ['rss.xml', 'atom.xml']) {
+  assert.ok(headers.includes('/feed\n  Content-Type: application/rss+xml; charset=utf-8\n  Cache-Control: no-cache'));
+  for (const feed of ['feed', 'rss.xml', 'atom.xml']) {
     const xml = await read(feed);
     for (const post of listedPosts) assert.ok(xml.includes(postUrl(post.slug)), `${feed}: missing ${post.slug}`);
     const ids = Array.from(xml.matchAll(/<(?:id|guid)(?:\s[^>]*)?>([^<]+)<\/(?:id|guid)>/g), (match) => match[1]);
