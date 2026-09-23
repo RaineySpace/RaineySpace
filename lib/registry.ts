@@ -18,7 +18,7 @@ const KIND_CONFIG = {
   },
 };
 
-const ENTITY_FIELDS = new Set(["name", "title", "url", "date", "description", "icon", "pinned", "extensions"]);
+const ENTITY_FIELDS = new Set(["name", "title", "url", "date", "description", "icon", "extensions"]);
 
 export function registryFile(kind: EntityKind) {
   const config = KIND_CONFIG[kind];
@@ -116,18 +116,6 @@ export function resolvePublicAsset(value: unknown, publicDir = path.join(process
   return path.join(publicDir, normalized.slice(1));
 }
 
-export function compareEntities(a: Entity, b: Entity) {
-  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-  const dateA = a.date ? a.date.getTime() : 0;
-  const dateB = b.date ? b.date.getTime() : 0;
-  if (dateA !== dateB) return dateB - dateA;
-  return a.id.localeCompare(b.id);
-}
-
-export function sortEntities<T extends Entity>(entities: T[]): T[] {
-  return [...entities].sort(compareEntities);
-}
-
 export function parseRegistry<Kind extends EntityKind>(kind: Kind, raw: unknown, options: { file?: string; publicDir?: string } = {}) {
   const config = KIND_CONFIG[kind];
   if (!config) throw new Error(`Unknown registry kind "${kind}"`);
@@ -206,10 +194,6 @@ export function parseRegistry<Kind extends EntityKind>(kind: Kind, raw: unknown,
       }
     }
 
-    if (definition.pinned !== undefined && typeof definition.pinned !== "boolean") {
-      errors.push(`${prefix}: "pinned" must be a boolean`);
-    }
-
     let extensions: EntityExtensionsByKind[Kind] = {};
     if (definition.extensions !== undefined) {
       if (!isPlainObject(definition.extensions) || !isJsonValue(definition.extensions)) {
@@ -232,13 +216,12 @@ export function parseRegistry<Kind extends EntityKind>(kind: Kind, raw: unknown,
           : undefined,
       icon,
       extensions,
-      pinned: definition.pinned === true,
       date,
       dateText: formatDateText(date),
     });
   }
 
-  return { entities: sortEntities(entities), errors, localImages };
+  return { entities, errors, localImages };
 }
 
 export function readRegistryJson(kind: EntityKind, cwd = process.cwd()) {

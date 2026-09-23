@@ -32,7 +32,6 @@ export interface EntityDefinition<Extensions extends EntityExtensions = EntityEx
   description?: string;
   icon?: string;
   date: string;
-  pinned?: boolean;
   extensions?: Extensions;
 }
 
@@ -45,7 +44,6 @@ export interface Entity<Kind extends EntityKind = EntityKind> {
   url: string;
   description?: string;
   icon?: string;
-  pinned: boolean;
   date: Date | null;
   dateText: string;
   extensions: EntityExtensionsByKind[Kind];

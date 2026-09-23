@@ -1,32 +1,4 @@
 {
-  "github": {
-    "name": "GitHub",
-    "url": "https://github.com/RaineySpace",
-    "date": "2026-09-24",
-    "icon": "/assets/contacts/github.svg",
-    "description": "Be interested in life"
-  },
-  "bilibili": {
-    "name": "B站",
-    "url": "https://space.bilibili.com/18291848",
-    "date": "2026-06-23",
-    "icon": "/assets/contacts/bilibili.svg",
-    "description": "一个摄影爱好者并不会996的程序猿喜欢美景和美食"
-  },
-  "jike": {
-    "name": "即刻",
-    "url": "https://web.okjike.com/u/FBF0F46B-5CA8-4568-A98C-3D50EF570462",
-    "date": "2026-06-27",
-    "icon": "/assets/contacts/jike.svg",
-    "description": "日常生活的碎碎念，偶尔分享一些生活片段"
-  },
-  "x": {
-    "name": "Twitter",
-    "url": "https://x.com/XueRainey",
-    "date": "2026-09-23",
-    "icon": "/assets/contacts/x.svg",
-    "description": "对很多事情好奇，也有很多事情没想明白。换条路继续探索，顺便做些有趣的东西。"
-  },
   "rss": {
     "name": "RSS",
     "url": "https://rainey.space/feed",
@@ -37,8 +9,36 @@
   "email": {
     "name": "Email",
     "url": "mailto:raineyspace@gmail.com",
-    "date": "2026-09-24",
+    "date": "2026-09-23",
     "icon": "/assets/contacts/email.svg",
     "description": "raineyspace@gmail.com"
+  },
+  "github": {
+    "name": "GitHub",
+    "url": "https://github.com/RaineySpace",
+    "date": "2026-09-23",
+    "icon": "/assets/contacts/github.svg",
+    "description": "Be interested in life"
+  },
+  "x": {
+    "name": "Twitter",
+    "url": "https://x.com/XueRainey",
+    "date": "2026-09-23",
+    "icon": "/assets/contacts/x.svg",
+    "description": "对很多事情好奇，也有很多事情没想明白。换条路继续探索，顺便做些有趣的东西。"
+  },
+  "jike": {
+    "name": "即刻",
+    "url": "https://web.okjike.com/u/FBF0F46B-5CA8-4568-A98C-3D50EF570462",
+    "date": "2026-09-23",
+    "icon": "/assets/contacts/jike.svg",
+    "description": "日常生活的碎碎念，偶尔分享一些生活片段"
+  },
+  "bilibili": {
+    "name": "B站",
+    "url": "https://space.bilibili.com/18291848",
+    "date": "2026-09-23",
+    "icon": "/assets/contacts/bilibili.svg",
+    "description": "一个摄影爱好者并不会996的程序猿喜欢美景和美食"
   }
 }

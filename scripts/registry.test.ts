@@ -5,11 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import {
-  compareEntities,
-  parseRegistry,
-  sortEntities,
-} from "../lib/registry.ts";
+import { parseRegistry } from "../lib/registry.ts";
 
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -32,12 +28,11 @@ function friend(id: string, overrides: Record<string, unknown> = {}) {
   };
 }
 
-test("empty registries are valid and stay empty after sorting", () => {
+test("empty registries are valid and stay empty", () => {
   for (const kind of ["project", "friend", "contact"] as const) {
     const parsed = parseRegistry(kind, {});
     assert.deepEqual(parsed.errors, []);
     assert.deepEqual(parsed.entities, []);
-    assert.deepEqual(sortEntities(parsed.entities), []);
   }
 });
 
@@ -50,7 +45,7 @@ test("required fields, dates, urls and image paths are validated", () => {
     "http-icon": project("http-icon", { icon: "http://example.com/a.png" }),
     "relative-icon": project("relative-icon", { icon: "./cover.webp" }),
     "empty-desc": project("empty-desc", { description: "   " }),
-    "bad-pin": project("bad-pin", { pinned: "true" }),
+    "bad-pin": project("bad-pin", { pinned: true }),
     extra: project("extra", { unknown: "nope" }),
   });
   const messages = parsed.errors.join("\n");
@@ -63,7 +58,7 @@ test("required fields, dates, urls and image paths are validated", () => {
   assert.match(messages, /http-icon: icon must be an HTTPS URL or a site-absolute public path/);
   assert.match(messages, /relative-icon: icon must be an HTTPS URL or a site-absolute public path/);
   assert.match(messages, /empty-desc: "description" must be a non-empty string when provided/);
-  assert.match(messages, /bad-pin: "pinned" must be a boolean/);
+  assert.match(messages, /bad-pin: unknown field "pinned"/);
   assert.match(messages, /extra: unknown field "unknown"/);
 });
 
@@ -101,21 +96,18 @@ test("only contacts accept mailto URLs and reject malformed mailbox links", () =
   assert.match(duplicate.errors.join("\n"), /url duplicates contact "first"/);
 });
 
-test("entities sort by pinned, then date descending, then id", () => {
-  const parsed = parseRegistry("project", {
-    zeta: project("zeta", { date: "2026-05-01", pinned: true }),
-    alpha: project("alpha", { date: "2026-09-01" }),
-    beta: project("beta", { date: "2026-09-01" }),
-    old: project("old", { date: "2024-01-01" }),
-    newer: project("newer", { date: "2026-08-01", pinned: false }),
-  });
-  assert.deepEqual(parsed.errors, []);
-  assert.deepEqual(parsed.entities.map((item) => item.id), ["zeta", "alpha", "beta", "newer", "old"]);
-  assert.deepEqual(
-    sortEntities(parsed.entities).map((item) => item.id),
-    ["zeta", "alpha", "beta", "newer", "old"],
-  );
-  assert.ok(compareEntities(parsed.entities[0], parsed.entities[1]) < 0);
+test("entities preserve registry entry order regardless of date or id", () => {
+  for (const kind of ["project", "friend", "contact"] as const) {
+    const parsed = parseRegistry(kind, {
+      old: project("old", { date: "2024-01-01" }),
+      beta: project("beta", { date: "2026-09-01" }),
+      alpha: project("alpha", { date: "2026-09-01" }),
+      zeta: project("zeta", { date: "2026-05-01" }),
+      newer: project("newer", { date: "2026-08-01" }),
+    });
+    assert.deepEqual(parsed.errors, []);
+    assert.deepEqual(parsed.entities.map((item) => item.id), ["old", "beta", "alpha", "zeta", "newer"]);
+  }
 });
 
 test("content validator uses the shared registry rules", async () => {
@@ -173,12 +165,12 @@ test("extensions are JSON objects and cannot overwrite the common contract", () 
       assert.match(parseRegistry(kind, { alpha: project("alpha", { extensions }) }).errors.join("\n"), /"extensions" must be a JSON object/);
     }
     const parsed = parseRegistry(kind, { alpha: project("alpha", {
-      extensions: { name: "different", icon: "not a display icon", pinned: true },
+      extensions: { name: "different", icon: "not a display icon" },
     }) });
     assert.deepEqual(parsed.errors, []);
     assert.equal(parsed.entities[0].name, "alpha");
     assert.equal(parsed.entities[0].icon, undefined);
-    assert.equal(parsed.entities[0].pinned, false);
+    assert.equal("pinned" in parsed.entities[0], false);
     assert.match(parseRegistry(kind, { alpha: project("alpha", { cover: "/old.png" }) }).errors.join("\n"), /unknown field "cover"/);
   }
 });

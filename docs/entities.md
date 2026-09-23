@@ -11,7 +11,6 @@
     "date": "2026-09-23",
     "description": "可选简介",
     "icon": "https://example.com/icon.png",
-    "pinned": false,
     "extensions": {
       "repository": "https://github.com/example/project"
     }
@@ -21,7 +20,7 @@
 
 `name`、`url`、`date` 必填；其余字段可省略。`title` 提供时必须是非空字符串。行内使用 `name`，卡片、集合 JSON-LD 和块级 Markdown 导出使用 `title ?? name`。项目原来的 `cover` 已迁移为 `icon`，不再保留别名；文章 frontmatter 的 `cover` 不受影响。`icon` 支持 HTTPS URL 或站点绝对路径，本地文件由内容校验器检查。
 
-`lib/registry.ts` 负责统一校验和排序。加载后的 `Entity` 增加 `id`、`kind`、解析后的 `date` 和 `dateText`；`pinned` 默认 `false`，`extensions` 默认 `{}`。`getProjects()`、`getFriends()`、`getContacts()` 直接返回这份结构，没有 `cover → image → icon` 的转换。排序维持置顶优先、日期倒序、ID 升序。
+`lib/registry.ts` 负责统一校验并保留注册表条目顺序。加载后的 `Entity` 增加 `id`、`kind`、解析后的 `date` 和 `dateText`；`extensions` 默认 `{}`。`getProjects()`、`getFriends()`、`getContacts()` 直接返回这份结构，没有 `cover → image → icon` 的转换。项目、友链和联系方式均按 JSON 文件中条目从上到下的顺序展示，调整条目位置即可调整展示顺序；`date` 和 ID 不参与排序，不再支持实体 `pinned` 字段。ID 应使用有语义的非纯数字名称（如 `github`），避免 JavaScript 对整数键自动排序。
 
 项目和友链的 `url` 仅接受 HTTP(S)；联系方式还支持单个邮箱的 `mailto:` 链接，可附带 URL 编码的 `subject`、`body` 等查询参数。例如 `"url": "mailto:raineyspace@gmail.com"`，不要在 JSON 值中嵌套 Markdown 链接。邮箱链接在行内、列表卡片、悬浮卡片及 Markdown 导出中使用同一地址，不设置新标签页属性，由浏览器调用邮件应用。
 

@@ -29,7 +29,7 @@ cover: ./cover.webp
 - `tags` 默认为空数组，用于展示、筛选、标签统计。`keywords` 默认为空数组，仅与标签、站点关键词合并后用于页面关键词元信息；常规写作只维护 `tags` 即可。两者支持数组或英文逗号分隔字符串，推荐使用数组。
 - `location` 可用于任何文章，也是摄影灯箱显示的地点文案。
 - `updated: YYYY-MM-DD` 可选，记录实质更新日期，不得早于 `date`；用于文章修改时间和 sitemap，不改变列表排序或原发布日期。未填写时不声明文章修改时间。
-- `pinned: true` 会在文章和摄影列表中置顶；项目和友链是否置顶由各自注册表控制。
+- `pinned: true` 会在文章和摄影列表中置顶；项目、友链和联系方式按 JSON 条目顺序展示，不支持 `pinned`。
 - `hidden` 默认为 `false`。设为 `true` 时从首页文章、文章列表、标签统计和 RSS/Atom 隐藏，详情页仍可访问。
 - `noindex` 默认为 `false`。设为 `true` 时，HTML 声明 `noindex, follow`，Markdown 原文响应声明 `X-Robots-Tag: noindex`，同时从 sitemap、`llms.txt` 和详情页 JSON-LD 排除。它不改变列表或订阅内容，也不是访问权限。
 - `hidden: true` 且 `noindex: false` 的内容仍进入 sitemap 和 `llms.txt`。允许索引的普通内容生成 `BlogPosting`，关于页生成 `AboutPage`，朋友们页面生成与当前友链一致的 `CollectionPage`；无日期的独立页不声明 sitemap 修改时间，机器阅读目录也省略日期。
@@ -88,17 +88,16 @@ showHeader: false
     "url": "https://example.com",
     "date": "2026-08-13",
     "description": "项目解决的问题或用途",
-    "cover": "/assets/projects/example-project.webp",
-    "pinned": false
+    "icon": "/assets/projects/example-project.webp"
   }
 }
 ```
 
 - `name`、`url`、`date` 必填。`date` 是项目自身日期，格式为 `YYYY-MM-DD`。
-- `description`、`cover`、`pinned` 可省略。
-- `cover` 可以是 HTTPS 图片，也可以是指向 `public/` 中文件的站点绝对路径。未设置或加载失败时，卡片使用项目名称首字符作为中性占位。
+- `description`、`icon` 可省略。
+- `icon` 可以是 HTTPS 图片，也可以是指向 `public/` 中文件的站点绝对路径。未设置或加载失败时，卡片使用项目名称首字符作为中性占位。
 - 登记即可在项目页展示，不需要再写一篇关联文章。规范化后相同的项目网址不能注册为多个项目。
-- 项目先按注册表中的 `pinned` 排序，再按注册表日期倒序，最后按 ID 排序；首页当前不展示项目区块。
+- 项目按 JSON 注册表中的条目顺序展示，日期和 ID 不参与排序；首页当前不展示项目区块。
 - 项目卡片直接打开注册表中的 `url`。名称、简介、图标和网址都以注册表为准。
 
 ## 添加友链
@@ -113,16 +112,15 @@ showHeader: false
     "url": "https://example.com",
     "icon": "/assets/friends/example-blog.png",
     "date": "2026-09-22",
-    "description": "记录生活与一些想法",
-    "pinned": false
+    "description": "记录生活与一些想法"
   }
 }
 ```
 
 - `name`、`title`、`url`、`date` 必填；`date` 是收录日期。
-- `icon`、`description` 可选；`pinned` 默认 `false`。
+- `icon`、`description` 可选。
 - `icon` 只接受 HTTPS 图片或站内绝对资源路径，不自动猜测或抓取 favicon。
-- 排序规则与项目相同：置顶优先、日期倒序、ID 排序。登记即可展示。
+- 排序规则与项目相同：按 JSON 注册表中的条目顺序展示。登记即可展示。
 - 首页不单独展示友链区块；友链入口位于全站页脚。空列表在朋友们页面显示「暂时还没有添加朋友。」
 - 朋友们和项目列表页不显示顶部导航、阅读设置或左侧目录；标题左侧显示返回按钮，返回上一页，无可返回页面时回到首页，桌面和移动端一致。
 

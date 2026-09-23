@@ -34,7 +34,7 @@ Marked 的自定义 renderer 接收 token 对象；标题中的行内 Markdown �
 - `app/sitemap.xml/route.ts`、`app/robots.txt/route.ts`：搜索引擎入口。
 - `app/llms.txt/route.ts`：允许索引内容的 AI 阅读导航。
 - `lib/posts.ts`：文章读取、frontmatter 归一化、Markdown 渲染、日期格式、文章频道／允许索引内容筛选和 feed 数据逻辑。
-- `lib/registry.ts`：项目与友链注册表读取、校验字段、排序。
+- `lib/registry.ts`：项目、友链与联系方式注册表读取、校验字段、保留条目顺序。
 - `lib/markdown-refs.ts`：识别 `project:` / `friend:` 链接 title，并生成卡片、行内图标名称、悬停预览和公开 Markdown 展开结果。
 - `lib/seo.ts`：规范网址、页面元数据、JSON-LD、sitemap 条目和 llms.txt 内容。
 - `lib/config.ts`：站点 URL、标题、作者、头像、关键词等全局配置。
