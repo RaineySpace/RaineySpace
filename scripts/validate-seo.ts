@@ -168,8 +168,10 @@ async function main() {
   const homeBody = home.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
   assert.match(homeBody, /<footer(?:\s[^>]*)?>/);
   for (const [id, registry] of [['projects', projectRegistry], ['friends', friendRegistry], ['contacts', contactRegistry]] as const) {
-    const section = homeBody.match(new RegExp(`<section id="${id}"[^>]*>([\\s\\S]*?)</section>`));
-    assert.ok(section, `homepage missing ${id} section`);
+    const section = id === 'contacts'
+      ? homeBody.match(/<footer(?:\s[^>]*)?>([\s\S]*?)<\/footer>/)
+      : homeBody.match(new RegExp(`<section id="${id}"[^>]*>([\\s\\S]*?)</section>`));
+    assert.ok(section, `homepage missing ${id === 'contacts' ? 'contacts footer' : `${id} section`}`);
     const entityLinks = tags(section[1], 'a').filter((tag) => tag.class?.split(' ').includes(id === 'projects' ? 'entity-card-hit' : 'entity-inline-link'));
     assert.deepEqual(entityLinks.map((link) => link.href).sort(), Object.values(registry).map((item) => item.url).sort());
   }

@@ -23,6 +23,8 @@
 
 `lib/registry.ts` 负责统一校验和排序。加载后的 `Entity` 增加 `id`、`kind`、解析后的 `date` 和 `dateText`；`pinned` 默认 `false`，`extensions` 默认 `{}`。`getProjects()`、`getFriends()`、`getContacts()` 直接返回这份结构，没有 `cover → image → icon` 的转换。排序维持置顶优先、日期倒序、ID 升序。
 
+项目和友链的 `url` 仅接受 HTTP(S)；联系方式还支持单个邮箱的 `mailto:` 链接，可附带 URL 编码的 `subject`、`body` 等查询参数。例如 `"url": "mailto:raineyspace@gmail.com"`，不要在 JSON 值中嵌套 Markdown 链接。邮箱链接在行内、列表卡片、悬浮卡片及 Markdown 导出中使用同一地址，不设置新标签页属性，由浏览器调用邮件应用。
+
 ## 各类扩展
 
 `extensions` 是每条 Entity 自己的 JSON 对象，允许字符串、有限数字、布尔值、null、数组和嵌套对象。它不会覆盖公共字段，也不会自动进入卡片、Markdown、摘要或 SEO 文本；它不是存放私密数据的区域。
@@ -38,17 +40,21 @@
 | 参数 | 默认值 | 行为 |
 | --- | --- | --- |
 | `variant` | `card` | `inline` 为行内链接，`card` 为列表卡片 |
-| `appearance` | `text` | 行内文字链接；`chip` 为无下划线的圆角链接 |
-| `showIcon` | 行内 `false`、卡片 `true` | 是否显示图标；关闭时也不显示占位 |
+| `appearance` | `text` | 行内文字链接，保留箭头；`chip` 为无下划线的圆角链接，显示名称；`icon` 为仅图标的圆角链接，不显示名称；`chip` 和 `icon` 均不显示箭头，保留悬停背景 |
+| `size` | 行内 `lg` | 仅在 `inline` 模式生效：`sm` / `md` / `lg` 的图标分别为 16 / 20 / 24px，圆角链接内边距四边均为 `6px`；普通文字链接保留正文样式；卡片模式忽略该属性 |
+| `showIcon` | 行内 `false`、卡片 `true` | 是否显示图标；关闭时也不显示占位；`appearance="icon"` 始终显示图标 |
 | `hoverCard` | `true` | 行内链接悬停或键盘聚焦时是否出现详情卡片 |
 | `popoverShowIcon` | `true` | 独立控制悬浮卡片里的图标 |
 | `placement` | `auto` | `top` 固定上方，`auto` 根据空间上下避让；均水平避让 |
 | `headingLevel` | `h3` | 块级卡片支持 `h2` / `h3`；行内浮层只用 span |
-| `newTab` | `true` | 是否在新标签页访问；Markdown 行内引用沿用当前页打开 |
+| `newTab` | `true` | 是否在新标签页访问；Markdown 行内引用沿用当前页打开；`mailto:` 链接始终不设置新标签页属性 |
 
 ```tsx
 // 首页：图标 + 名称，圆角悬停背景，上方详情卡片。
 <EntityList items={projects} variant="inline" appearance="chip" showIcon placement="top" />
+
+// 仅图标，保留悬停背景；使用 aria-label 提供链接名称。
+<EntityList items={contacts} variant="inline" appearance="icon" size="sm" hoverCard={false} />
 
 // 普通行内引用，不显示图标，悬浮卡片仍显示图标。
 <Entity item={friend} variant="inline" />
@@ -60,13 +66,17 @@
 <EntityList items={friends} showIcon={false} headingLevel="h2" />
 ```
 
-首页两组列表都采用 `inline + chip + showIcon + top`，图标 24px、6px 圆角矩形；链接本身为 8px 圆角，内边距上下 6px / 左右 8px，悬停背景和文字变色，保留箭头动效。独立集合页及悬浮卡片采用 48px 图标、12px 圆角矩形，图标容器不添加背景。缺少图标或加载失败时显示名称首字；请求隐藏图标则不保留图标空间。
+行内圆角链接默认图标 24px、6px 圆角矩形；链接本身为 8px 圆角，内边距四边固定为 6px，悬停背景和文字变色。`chip` 保留名称，`icon` 仅显示图标，两者均不显示箭头；只有 `text` 保留箭头及其动效。集合卡片及悬浮卡片固定使用 48px 图标、12px 圆角矩形与 12px 内边距，不受 `size` 影响。图标容器不添加背景。缺少图标或加载失败时显示名称首字；请求隐藏图标则不保留图标空间。
 
 ## Markdown 与页面共用渲染
 
 `lib/entity-rendering.ts` 是唯一 Entity HTML 模板，统一名称选择、图标及占位、外链属性、浮层结构和类名。所有动态文本与属性值均转义；扩展属性不拼接到 HTML。
 
 React 的 `Entity` 通过 `EntityContent` 挂载这份 HTML；Markdown 的 `lib/markdown-refs.ts` 使用同一渲染器。HTML 仅由内部渲染器和已有 Markdown 管线生成。`useEntityPopovers` 为页面、首页介绍和 Markdown 统一连接浮层定位，`lib/entity-chip-popovers.ts` 处理边缘避让。显示和图标失败回退不依赖第二份 React 模板。
+
+浮层按内容自适应宽度，最大 `20rem`（当前为 320px），仅受视口左右各 20px 安全距离限制；实体列表和 Markdown 容器不限制浮层宽度或水平位置。靠近页面边缘时整体平移避让，视口不足时才缩窄。
+
+点击实体链接或悬浮卡片中的链接后，浮层立即关闭（包含键盘激活和鼠标中键）。返回原页面时保持关闭；鼠标从其他元素重新移入，或键盘从其他元素重新聚焦后，可再次显示。关闭不阻止链接跳转。
 
 Markdown 引用语法保持不变：独立段落生成卡片，段落内部生成带浮层的文字链接。正文行内不添加图标、胶囊背景或内边距；RSS/Atom 和公开 Markdown 仍导出普通链接、列表与简介。
 
@@ -96,4 +106,4 @@ Markdown 引用语法保持不变：独立段落生成卡片，段落内部生�
 
 ## 联系我页面
 
-`/contacts/` 通过 `lib/contacts.ts` 读取联系方式注册表，复用项目和友链的集合页布局、实体卡片及排序规则。首页“联系我”的“全部联系方式”链接进入该页。页面提供 metadata 和 JSON-LD，进入 sitemap 与 `llms.txt`，不进入文章列表和订阅，也不提供 `/contacts.md`。`contacts` 是保留路由，不能作为文章 slug。
+`/contacts/` 通过 `lib/contacts.ts` 读取联系方式注册表，复用项目和友链的集合页布局、实体卡片及排序规则。首页页脚以仅图标模式显示联系方式，直接链接到各个渠道。独立集合页提供 metadata 和 JSON-LD，进入 sitemap 与 `llms.txt`，不进入文章列表和订阅，也不提供 `/contacts.md`。`contacts` 是保留路由，不能作为文章 slug。

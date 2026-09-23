@@ -5,13 +5,9 @@ export function alignEntityChipPopovers(root: HTMLElement) {
   const chips = root.querySelectorAll<HTMLElement>(".entity-chip");
   if (chips.length === 0) return;
 
-  const box = root.closest("[data-entity-boundary], .markdown")?.getBoundingClientRect();
   const viewportHeight = window.innerHeight;
-  const minLeft = Math.max(ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN, box?.left ?? 0);
-  const maxRight = Math.min(
-    window.innerWidth - ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN,
-    box?.right ?? window.innerWidth,
-  );
+  const minLeft = ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN;
+  const maxRight = document.documentElement.clientWidth - ENTITY_CHIP_POPOVER_VIEWPORT_MARGIN;
 
   chips.forEach((chip) => {
     const popover = chip.querySelector<HTMLElement>(".entity-chip-popover");

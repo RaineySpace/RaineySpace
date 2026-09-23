@@ -70,6 +70,22 @@ export function normalizeHttpUrl(value: unknown) {
   return url.toString();
 }
 
+function normalizeMailtoUrl(value: string) {
+  try {
+    const text = value.trim();
+    if (/\s/.test(text)) return null;
+    const url = new URL(text);
+    if (url.protocol !== "mailto:" || url.host || url.hash) return null;
+    const address = decodeURIComponent(url.pathname);
+    // A single mailbox, without display names or embedded Markdown syntax.
+    if (!/^[^\s@<>()\[\],;:"\\/?#]+@[^\s@<>()\[\],;:"\\/?#]+$/u.test(address)) return null;
+    const [local, domain] = address.split("@");
+    return `mailto:${local}@${domain.toLowerCase()}${url.search}`;
+  } catch {
+    return null;
+  }
+}
+
 export function parseDateText(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return null;
   const text = value.trim();
@@ -152,9 +168,11 @@ export function parseRegistry<Kind extends EntityKind>(kind: Kind, raw: unknown,
     if (!date) errors.push(`${prefix}: "date" must be a YYYY-MM-DD date`);
 
     if (typeof definition.url === "string" && definition.url.trim()) {
-      const normalizedUrl = normalizeHttpUrl(definition.url);
+      const normalizedUrl = normalizeHttpUrl(definition.url) ??
+        (kind === "contact" ? normalizeMailtoUrl(definition.url) : null);
       if (!normalizedUrl) {
-        errors.push(`${prefix}: invalid HTTP(S) url "${definition.url}"`);
+        const allowed = kind === "contact" ? "HTTP(S) or mailto" : "HTTP(S)";
+        errors.push(`${prefix}: invalid ${allowed} url "${definition.url}"`);
       } else if (urls.has(normalizedUrl)) {
         errors.push(`${prefix}: url duplicates ${config.label} "${urls.get(normalizedUrl)}"`);
       } else {

@@ -42,22 +42,27 @@ export function renderEntityCardHtml(item: Entity, { headingLevel = "h3", root =
     ? `<${Description} class="entity-card-description">${escapeEntityHtml(item.description)}</${Description}>`
     : "";
   const media = showIcon ? renderMedia(item, "card", title) : "";
-  const target = newTab ? ' target="_blank" rel="noreferrer"' : "";
+  const target = newTab && !/^mailto:/i.test(item.url) ? ' target="_blank" rel="noreferrer"' : "";
   return `<${Root} data-hover-card class="entity-card"><a class="entity-card-hit" href="${escapeEntityHtml(item.url)}"${target} aria-label="${escapeEntityHtml(label)}"></a><${Body} class="entity-card-body">${media}<${Body} class="entity-card-copy"><${Name} class="entity-card-name">${escapeEntityHtml(title)}</${Name}>${description}</${Body}></${Body}></${Root}>`;
 }
 
 export function renderEntityInlineHtml(item: Entity, {
   appearance = "text",
+  size,
   showIcon = false,
   hoverCard = true,
   popoverShowIcon = true,
   placement = "auto",
   newTab = true,
 }: EntityRenderOptions = {}) {
-  const chip = appearance === "chip";
-  const media = showIcon ? renderMedia(item, "inline", item.name) : "";
-  const target = newTab ? ' target="_blank" rel="noreferrer"' : "";
-  const link = `<a class="entity-inline-link entity-inline-link--${chip ? "chip" : "text"}" href="${escapeEntityHtml(item.url)}"${target}>${media}<span class="entity-inline-name">${escapeEntityHtml(item.name)}</span></a>`;
+  const iconOnly = appearance === "icon";
+  const chip = appearance === "chip" || iconOnly;
+  const media = showIcon || iconOnly ? renderMedia(item, "inline", item.name) : "";
+  const target = newTab && !/^mailto:/i.test(item.url) ? ' target="_blank" rel="noreferrer"' : "";
+  const label = iconOnly ? ` aria-label="${escapeEntityHtml(item.name)}"` : "";
+  const name = iconOnly ? "" : `<span class="entity-inline-name">${escapeEntityHtml(item.name)}</span>`;
+  const sizeClass = size ? ` entity-size--${escapeEntityHtml(size)}` : "";
+  const link = `<a class="entity-inline-link entity-inline-link--${chip ? "chip" : "text"}${iconOnly ? " entity-inline-link--icon" : ""}${sizeClass}" href="${escapeEntityHtml(item.url)}"${target}${label}>${media}${name}</a>`;
   if (!hoverCard) return link;
   const position = placement === "top" ? ' data-placement="top"' : "";
   const card = renderEntityCardHtml(item, { root: "span", showIcon: popoverShowIcon, newTab });

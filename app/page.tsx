@@ -72,24 +72,19 @@ export default async function Home() {
         />
       </HomeSection>
 
-      <HomeSection id="contacts" title="联系我" href="/contacts" linkLabel="全部联系方式" description="在互联网的这些地方和我建立联系，很期待认识你">
-        <EntityList
-          items={contacts}
-          variant="inline"
-          appearance="chip"
-          showIcon
-          hoverCard={false}
-          placement="top"
-          emptyLabel={emptyCollectionMessage.contact}
-        />
-      </HomeSection>
-
       <footer className="flex min-h-8 flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-dashed border-(--border) py-2 text-sm leading-(--lh-body) text-(--muted) sm:min-h-12">
         <Link href="/license/" rel="license" className="text-(--muted) hover:text-(--text) focus-visible:text-(--text)">© {new Date().getFullYear()} {author}</Link>
-        {/* <nav aria-label="页脚导航" className="ml-auto flex flex-wrap gap-4">
-          <Link href="/friends/" className="text-inherit hover:text-(--title) focus-visible:text-(--title)">朋友们</Link>
-          <Link href="/about/" className="text-(--muted) hover:text-(--text) focus-visible:text-(--text)">关于</Link>
-        </nav> */}
+        <nav aria-label="页脚导航" className="ml-auto flex flex-wrap gap-4">
+          <EntityList
+            items={contacts}
+            variant="inline"
+            appearance="icon"
+            size="sm"
+            showIcon
+            placement="top"
+            emptyLabel={emptyCollectionMessage.contact}
+          />
+        </nav>
       </footer>
     </div>
   );

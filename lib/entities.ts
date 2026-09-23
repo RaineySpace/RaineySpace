@@ -53,7 +53,9 @@ export interface Entity<Kind extends EntityKind = EntityKind> {
 
 export interface EntityRenderOptions {
   variant?: "inline" | "card";
-  appearance?: "text" | "chip";
+  appearance?: "text" | "chip" | "icon";
+  /** Only affects inline entities; cards keep their fixed dimensions. */
+  size?: "sm" | "md" | "lg";
   showIcon?: boolean;
   hoverCard?: boolean;
   popoverShowIcon?: boolean;

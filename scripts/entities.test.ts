@@ -102,3 +102,22 @@ test("contact collections resolve, export plain links, and reject missing IDs", 
   assert.deepEqual(collectDataRefErrors('[Missing](https://example.com "contact:missing")', fixtures), ['unknown contact "missing"']);
   assert.match(renderDataRefHtml('[Contacts](https://example.com "contact:*")', { registries: { ...fixtures, contact: [] } }), /暂时还没有添加联系方式/);
 });
+
+test("email contacts preserve mailto links across cards, inline variants and Markdown exports", () => {
+  const url = "mailto:hello@example.com?subject=Hello%20there&body=Hi";
+  const item = { ...fixtures.contact[0], url };
+  for (const appearance of ["text", "chip", "icon"] as const) {
+    for (const variant of ["inline", "card"] as const) {
+      const html = renderEntityHtml(item, { variant, appearance });
+      assert.match(html, /href="mailto:hello@example.com\?subject=Hello%20there&amp;body=Hi"/);
+      assert.doesNotMatch(html, /target="_blank"|rel="noreferrer"/);
+    }
+  }
+  const registries = { ...fixtures, contact: [item] };
+  const ref = '[Email](mailto:old@example.com "contact:example")';
+  for (const source of [ref, `Contact ${ref}.`]) {
+    assert.match(renderDataRefHtml(source, { registries }), /href="mailto:hello@example.com/);
+    assert.match(renderDataRefHtml(source, { registries, format: "plain" }), /href="mailto:hello@example.com/);
+    assert.ok(expandDataRefsInMarkdown(source, registries).includes(`](${url})`));
+  }
+});

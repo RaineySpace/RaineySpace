@@ -77,6 +77,30 @@ test("friend icons use the same path rules and duplicate urls are rejected", () 
   assert.ok(parsed.localImages[0].path.endsWith(path.join("assets", "friends", "alpha.png")));
 });
 
+test("only contacts accept mailto URLs and reject malformed mailbox links", () => {
+  for (const url of ["mailto:hello@example.com", "mailto:hello+blog@example.com?subject=Hello%20there&body=Hi"]) {
+    const parsed = parseRegistry("contact", { email: project("email", { url }) });
+    assert.deepEqual(parsed.errors, []);
+    assert.equal(parsed.entities[0].url, url);
+    for (const kind of ["project", "friend"] as const) {
+      assert.match(parseRegistry(kind, { email: project("email", { url }) }).errors.join("\n"), /invalid HTTP\(S\) url/);
+    }
+  }
+  for (const url of [
+    "mailto:", "mailto:not-an-email", "mailto:hello@", "mailto:hello@@example.com",
+    "mailto:[hello@example.com](mailto:hello@example.com)",
+    "mailto:hello%20there@example.com", "mailto:hello%@example.com",
+    "mailto:hello@example.com#fragment", "javascript:alert(1)", "tel:12345",
+  ]) {
+    assert.match(parseRegistry("contact", { email: project("email", { url }) }).errors.join("\n"), /invalid HTTP\(S\) or mailto url/);
+  }
+  const duplicate = parseRegistry("contact", {
+    first: project("first", { url: "mailto:hello@example.com" }),
+    second: project("second", { url: "MAILTO:hello%40EXAMPLE.COM" }),
+  });
+  assert.match(duplicate.errors.join("\n"), /url duplicates contact "first"/);
+});
+
 test("entities sort by pinned, then date descending, then id", () => {
   const parsed = parseRegistry("project", {
     zeta: project("zeta", { date: "2026-05-01", pinned: true }),
