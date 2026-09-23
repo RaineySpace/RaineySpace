@@ -43,6 +43,12 @@ Marked 的自定义 renderer 接收 token 对象；标题中的行内 Markdown �
 - `scripts/optimize-images.ts`：构建前根据原图生成展示用 WebP。
 - `scripts/export-markdown.ts`：构建后把 `public/<slug>/index.md` 发布为 `out/<slug>.md`，把相对资源改写成站点绝对路径，并删除会泄漏的 `out/<slug>/index.md`。
 
+## 项目授权
+
+原创程序代码采用 MIT，根目录 `LICENSE.txt` 保存全文与适用范围，`package.json` 的 `license` 为 `MIT`。所有原创文字与摄影内容默认采用 CC BY-NC-ND 4.0，第三方素材和单独声明的内容除外。授权说明源文件为 `public/license/index.md`，发布为 `/license/` 和 `/license.md`；设置 `hidden: true`，不进入文章列表或 RSS/Atom，但允许搜索索引。首页 footer 链接至该页，feed 的内容版权声明由 `lib/config.ts` 统一维护。
+
+根目录 `LICENSE-CONTENT.txt` 是 2026-09-23 从 `https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.txt` 获取的未经修改的官方英文全文。协议全文只在仓库保留，不复制到 `public/`；授权页面面向内容读者，仅介绍文字与摄影内容的 CC 授权并链接官方全文和中文法律文本，不展示代码许可或仓库文件说明。不要把站点说明写入 CC 协议全文，也不要将内容授权声明套用到 `package.json` 的代码许可字段。
+
 ## 新建文章
 
 ```bash

@@ -63,4 +63,4 @@ export const keywords = ["Rainey", "blog", "rainey", "raineyspace"];
 /**
  * 版权信息
  */
-export const copyright = `All rights reserved ${new Date().getFullYear()} ${author}`;
+export const copyright = `© ${new Date().getFullYear()} ${author}. 除另有声明外，所有原创文字与摄影内容采用 CC BY-NC-ND 4.0 授权。${siteUrl}/license/`;

@@ -84,12 +84,12 @@ export default async function Home() {
         />
       </HomeSection>
 
-      <footer className="flex h-8 flex-wrap items-center justify-between border-t border-dashed border-(--border) text-sm leading-[var(--lh-body)] text-(--muted) sm:h-12">
-        <span>© {new Date().getFullYear()} {author}</span>
-        <nav aria-label="页脚导航" className="ml-auto flex flex-wrap gap-4">
-          <Link href="/friends/" className="text-inherit underline underline-offset-4 hover:text-(--title) focus-visible:text-(--title)">朋友们</Link>
-          <Link href="/about/" className="text-inherit underline underline-offset-4 hover:text-(--title) focus-visible:text-(--title)">关于我</Link>
-        </nav>
+      <footer className="flex min-h-8 flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-dashed border-(--border) py-2 text-sm leading-(--lh-body) text-(--muted) sm:min-h-12">
+        <Link href="/license/" rel="license" className="text-(--muted) hover:text-(--text) focus-visible:text-(--text)">© {new Date().getFullYear()} {author}</Link>
+        {/* <nav aria-label="页脚导航" className="ml-auto flex flex-wrap gap-4">
+          <Link href="/friends/" className="text-inherit hover:text-(--title) focus-visible:text-(--title)">朋友们</Link>
+          <Link href="/about/" className="text-(--muted) hover:text-(--text) focus-visible:text-(--text)">关于</Link>
+        </nav> */}
       </footer>
     </div>
   );
