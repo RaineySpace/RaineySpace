@@ -36,7 +36,7 @@ export default async function Home() {
         <EntityContent className="markdown" html={welcomeContent} />
       </section>
 
-      <HomeSection id="articles" title="写点东西" href="/articles" linkLabel="全部文章" description="记录生活、技术与一些想法">
+      <HomeSection id="articles" title="字里行间" href="/articles" linkLabel="全部文章" description="写日常，写技术，也写那些还没有答案的事。">
         <HoverCardList>
           {posts.slice(0, 3).map((post) => (
             <PostCard key={post.slug} post={post} />
@@ -44,11 +44,11 @@ export default async function Home() {
         </HoverCardList>
       </HomeSection>
 
-      <HomeSection id="photography" title="凝固时间" href="/photography" linkLabel="全部摄影" description="留下日常里偶然遇见的光">
+      <HomeSection id="photography" title="光阴有迹" href="/photography" linkLabel="全部摄影" description="光偶然落下，我恰好经过。">
         <PhotoGallery photos={featuredPhotos} variant="strip" />
       </HomeSection>
 
-      <HomeSection id="projects" title="做点东西" href="/projects" linkLabel="全部项目" description="把一些想法，慢慢变成真的">
+      <HomeSection id="projects" title="念有所成" href="/projects" linkLabel="全部项目" description="把偶然闪过的念头，做成值得留下的东西。">
         <EntityList
           items={projects}
           variant="card"
@@ -60,7 +60,7 @@ export default async function Home() {
         />
       </HomeSection>
 
-      <HomeSection id="friends" title="朋友们" href="/friends" linkLabel="全部朋友" description="欢迎去他们那里逛逛">
+      <HomeSection id="friends" title="远近有邻" href="/friends" linkLabel="全部朋友" description="循着这些名字，去看看别处的生活。">
         <EntityList
           items={friends}
           variant="inline"
