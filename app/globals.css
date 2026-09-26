@@ -149,36 +149,68 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
 .home-intro .markdown { font-size: var(--fs-sm); line-height: var(--lh-body); }
 
 .photo-strip {
-  display: flex;
-  align-items: center;
+  --photo-bleed: 0px;
+  --photo-top-space: 4px;
+  --photo-bottom-space: 28px;
+  position: relative;
+  height: calc(28rem / 3 + 68px);
+  isolation: isolate;
+}
+
+.photo-strip-viewport {
+  position: absolute;
+  inset: calc(-1 * var(--photo-top-space)) calc(-1 * var(--photo-bleed)) calc(-1 * var(--photo-bottom-space));
   overflow-x: auto;
-  padding: 1rem 0.25rem 1.25rem;
   scrollbar-width: none;
 }
 
-.photo-strip::-webkit-scrollbar {
-  display: none;
+.photo-strip-viewport::-webkit-scrollbar { display: none; }
+
+.photo-strip-track {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  width: max-content;
+  min-width: 100%;
+  height: 100%;
+  padding: 42px calc(var(--photo-bleed) + 24px) 0 calc(var(--photo-bleed) + 4px);
+  /* Animated overflow is clipped here, so it cannot change the scroll range. */
+  overflow: clip;
 }
 
 .photo-strip-item {
   position: relative;
   flex: 0 0 7rem;
   aspect-ratio: 3 / 4;
+  overflow: visible;
+  background: transparent;
+  /* Fixed stacking order; all movement stays in a 2D matrix for the lightbox. */
+  transform: translate(0, 0) rotate(var(--photo-rotation)) scale(1);
+}
+
+.photo-strip-visual {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   border: 3px solid var(--photo-frame);
   border-radius: 0.5rem;
   background: var(--photo-frame-bg);
   box-shadow: var(--photo-shadow);
-  transition: transform 0.2s ease-in-out, z-index 0s;
 }
 
-.photo-strip-item + .photo-strip-item {
-  margin-left: -0.9rem;
+.photo-strip-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  box-shadow: var(--photo-focus-shadow);
+  opacity: var(--photo-emphasis, 0);
+  pointer-events: none;
 }
 
-.photo-strip-item:focus-visible {
-  z-index: 10;
-  outline: none;
+.photo-strip-item + .photo-strip-item { margin-left: -0.9rem; }
+.photo-strip-item:focus-visible { outline: none; }
+.photo-strip-item:focus-visible .photo-strip-visual {
   box-shadow: 0 0 0 2px var(--lightLink), var(--photo-focus-shadow);
 }
 
@@ -1133,7 +1165,6 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
 /* Handwritten hover rules share the same gate as Tailwind hover/group-hover. */
 @media (any-hover: hover) {
   :where(html[data-hover-enabled="true"]) {
-    .photo-strip-item:hover { z-index: 10; transform: translateY(-0.25rem) rotate(0deg); }
     .image-lightbox-meta-link:hover { color: #fff; }
     .image-lightbox-more:hover { background: rgb(255 255 255 / 0.16); }
     .image-lightbox-thumbnail:not(.is-active):hover { opacity: 0.9; }
@@ -1150,6 +1181,10 @@ html[data-text-size="lg"] .article-tag-filter .h-7 {
     }
     .reading-settings-segment:hover { color: var(--title); }
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-strip-item { transform: translate(0, 0) rotate(var(--photo-rotation)) scale(1) !important; }
 }
 
 /* Clear hover immediately when input changes, without changing dialog/sheet motion. */

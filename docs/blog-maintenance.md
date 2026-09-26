@@ -22,7 +22,11 @@
 
 Tailwind 4 通过 `@tailwindcss/postcss` 接入，自带前缀处理，不再单独安装 Autoprefixer。`app/globals.css` 使用 `@import "tailwindcss"`、`@config "../tailwind.config.ts"` 加载现有字号与 typography 配置，并显式限定 `app/` 为工具类扫描目录。CSS 变量工具类使用 `text-(--secondary)` 等 v4 语法。新增全局元素默认样式应放在 `@layer base` 内，避免覆盖工具类；现有灰色值、焦点轮廓与模糊强度保持升级前效果。
 
-摄影缩略图保留基于 `transform` 的旋转和缩放，灯箱开场几何读取同一变换矩阵；不要直接替换成独立 `rotate` / `scale` 属性。减少动态效果模式下，使用 `motion-reduce:translate-none!` 覆盖悬停和焦点状态的独立位移。按照 [Tailwind 4 官方兼容要求](https://tailwindcss.com/docs/upgrade-guide)，浏览器最低版本为 Safari 16.4、Chrome 111、Firefox 128。
+摄影缩略图保留基于二维 `transform` 的位移、旋转和缩放，灯箱开场几何会合成图片及祖先的变换矩阵；不要直接替换成独立 `translate` / `rotate` / `scale` 属性。按照 [Tailwind 4 官方兼容要求](https://tailwindcss.com/docs/upgrade-guide)，浏览器最低版本为 Safari 16.4、Chrome 111、Firefox 128。
+
+首页照片条使用整排连续联动：主体最高 1.3 倍，左右邻卡约 1.075 倍，鼠标处在两张之间时各约 1.22 倍。`lib/photo-strip-motion.ts` 根据连续焦点位置和展开程度计算缩放、旋转后的实际边界及让位距离；主体相邻间隙最终为 6px，远端保留原有叠放。`usePhotoStripPreview` 用同一个 `requestAnimationFrame` 循环更新两个临界阻尼值（mass 1 / stiffness 676 / damping 52），切换目标保留速度；不使用展开计时、逐卡 popover、固定 20px 横移或动态提升层级。鼠标焦点依据未变换的卡片基准位置计算，点击仍由实际按钮决定；图片与 Live Photo 节点保持不变，灯箱在照片廊清理前读取点击当帧的二维变换。
+
+照片条的占用高度固定为卡片高度加 68px。绘制窗口在现有上下间距内扩展，与标题及下一节各保留至少 12px；左右最多各伸入留白 72px，同时距视口边缘至少 20px。内部轨道固定尺寸并裁切变换溢出，hover 不改变横向滚动范围；窄屏保留原生横滑，优先保证放大的主体完整，远端照片允许裁切。键盘聚焦即时呈现同一布局并显示描边；触控与减少动态效果模式不放大，后者只保留静态反馈。该行为仅用于 `strip`，摄影页 `grid` 保持原有行为。布局连续性、边界、阻尼中途转向和不同帧率由 `scripts/photo-strip-motion.test.ts` 覆盖，并纳入 `test:content`。
 
 Marked 的自定义 renderer 接收 token 对象；标题中的行内 Markdown 通过 `renderer.parser.parseInline(tokens)` 渲染。升级 Markdown 解析器时运行 `pnpm test:seo`，确保格式化标题、重复标题锚点、目录文字与图片属性保持正确。升级 Sharp 可能重建图片缓存；原图字节和内容哈希 URL 必须保持稳定，预览图的 URL 始终取自实际输出字节。
 
