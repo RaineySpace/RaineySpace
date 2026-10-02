@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { usePageTransition } from "./PageTransition";
 
 type NavigationEntry = { index: number; url: string | null };
 type NavigationHistory = {
@@ -17,6 +18,7 @@ function pageUrl(url: string) {
 
 export default function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const router = useRouter();
+  const navigate = usePageTransition();
   const pendingPage = useRef<string | null>(null);
   const remainingSteps = useRef(0);
 
@@ -68,7 +70,7 @@ export default function BackButton({ iconOnly = false }: { iconOnly?: boolean })
     <button
       type="button"
       aria-label="返回上一页"
-      onClick={goBack}
+      onClick={() => navigate(goBack)}
       className={`inline-flex items-center justify-center rounded-lg text-sm text-(--muted) transition-colors duration-200 ease-in-out hover:bg-(--surface-muted) hover:text-(--title) focus-visible:text-(--title) motion-reduce:transition-none ${iconOnly ? "h-8 w-8 shrink-0 p-0" : "gap-2 px-2 py-1"}`}
     >
       <span aria-hidden="true">←</span>
