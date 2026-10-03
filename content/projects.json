@@ -12,5 +12,12 @@
     "date": "2026-05-07",
     "icon": "https://xiaofenshen.com/brand/xiaofenshen.svg",
     "description": "训练一个会越来越像你的写手分身，它学你的语气、句式与偏好，帮你把下一篇写得更像自己。"
+  },
+  "picky": {
+    "name": "Picky",
+    "url": "https://picky.page",
+    "date": "2026-10-03",
+    "icon": "https://picky.page/logo.svg",
+    "description": "收集网页中的链接、文字和图片，整理成合集，并通过个人主页分享你的发现。"
   }
 }
