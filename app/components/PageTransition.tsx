@@ -10,15 +10,17 @@ export function usePageTransition() {
   return useContext(NavigationContext);
 }
 
-const clearFrame = { filter: "blur(0px)", opacity: 1 };
-const blurredFrame = { filter: "blur(6px)", opacity: 0 };
+const clearFrame = { opacity: 0 };
+const blurredFrame = { opacity: 1 };
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pagePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
 export default function PageTransition({ header, children }: { header: ReactNode; children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const container = useRef<HTMLDivElement>(null);
   const main = useRef<HTMLElement>(null);
+  const overlay = useRef<HTMLDivElement>(null);
   const animation = useRef<Animation | null>(null);
   const pending = useRef(false);
   const recovery = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,21 +33,16 @@ export default function PageTransition({ header, children }: { header: ReactNode
     if (recovery.current !== null) clearTimeout(recovery.current);
     recovery.current = null;
     document.documentElement.removeAttribute("data-page-transition");
+    if (container.current) container.current.inert = false;
     if (main.current) {
-      main.current.inert = false;
       main.current.removeAttribute("aria-busy");
     }
   }, []);
 
-  const surface = useCallback(() => {
-    // A filtered ancestor changes fixed positioning. Articles opt in separately
-    // so their fixed table of contents keeps its viewport coordinates.
-    return main.current?.querySelector<HTMLElement>("[data-page-transition-content]") ?? main.current;
-  }, []);
-
   const navigate = useCallback((action: () => void) => {
     if (pending.current) return;
-    const element = surface();
+    const element = overlay.current;
+    const opacity = element ? getComputedStyle(element).opacity : "0";
     reset();
     if (!element || reduceMotion() || typeof element.animate !== "function") {
       action();
@@ -54,13 +51,13 @@ export default function PageTransition({ header, children }: { header: ReactNode
 
     pending.current = true;
     document.documentElement.setAttribute("data-page-transition", "out");
+    if (container.current) container.current.inert = true;
     if (main.current) {
-      main.current.inert = true;
       main.current.setAttribute("aria-busy", "true");
     }
-    // A failed or same-route navigation must never leave the page hidden.
+    // A failed or same-route navigation must never leave the overlay visible.
     recovery.current = setTimeout(reset, 8000);
-    const exit = element.animate([clearFrame, blurredFrame], {
+    const exit = element.animate([{ opacity }, blurredFrame], {
       duration: 240,
       easing: "cubic-bezier(0.4, 0, 1, 1)",
       fill: "forwards",
@@ -74,7 +71,7 @@ export default function PageTransition({ header, children }: { header: ReactNode
       // Canceled animations may belong to an earlier navigation.
       if (animation.current === exit) reset();
     });
-  }, [reset, surface]);
+  }, [reset]);
 
   useLayoutEffect(() => {
     if (previousPath.current === pathname) return;
@@ -83,10 +80,11 @@ export default function PageTransition({ header, children }: { header: ReactNode
     // The old page was inert during the swap; restore keyboard focus on the
     // committed page without disturbing Next's scroll/hash restoration.
     main.current?.focus({ preventScroll: true });
-    const element = surface();
+    const element = overlay.current;
     if (!element || reduceMotion() || typeof element.animate !== "function") return;
 
-    // Layout effects run after the new route commits, before it can flash clear.
+    // Keep the viewport blurred until the new route commits, then reveal it.
+    // This runs before paint so the overlay stays visible across the swap.
     // Native back/forward also takes this path without delaying browser history.
     document.documentElement.setAttribute("data-page-transition", "in");
     const entrance = element.animate([blurredFrame, clearFrame], {
@@ -97,7 +95,7 @@ export default function PageTransition({ header, children }: { header: ReactNode
     void entrance.finished.then(() => {
       if (animation.current === entrance) reset();
     }).catch(() => {});
-  }, [pathname, reset, surface]);
+  }, [pathname, reset]);
 
   useLayoutEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -142,10 +140,11 @@ export default function PageTransition({ header, children }: { header: ReactNode
 
   return (
     <NavigationContext.Provider value={navigate}>
-      <div onClickCapture={onClick}>
+      <div ref={container} onClickCapture={onClick}>
         {header}
         <main ref={main} tabIndex={-1}>{children}</main>
       </div>
+      <div ref={overlay} className="page-transition-overlay" aria-hidden="true" />
     </NavigationContext.Provider>
   );
 }
