@@ -37,7 +37,7 @@ export default async function PostPage({
     <div className="relative">
       <JsonLd data={postJsonLd(post)} />
       <TableOfContents headings={post.headings} />
-      <article className="markdown" data-page-transition-content>
+      <article className="markdown">
         {(showCover || (post.showHeader && (post.showTitle || post.date || post.location || post.tags.length > 0 || post.summary))) && (
           <header className="article-header">
             {post.showHeader && post.showTitle && <h1>{post.title}</h1>}
