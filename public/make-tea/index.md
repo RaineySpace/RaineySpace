@@ -4,7 +4,7 @@ date: 2021-11-19
 summary: 以“无茶”消解苦淡之争
 cover: ./cover.webp
 tags:
-  - 诗歌
+  - 诗笺
 ---
 
 <div style="text-align: center;">

@@ -5,7 +5,7 @@ summary: 2020 年 8 月，沿青甘大环线记录的丹霞、盐湖、沙丘、
 cover: ./IMG_0168.JPG
 tags:
   - 摄影
-  - 旅行
+  - 行旅
 location: 青甘大环线
 hidden: true
 photography: true

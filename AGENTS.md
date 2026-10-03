@@ -65,7 +65,7 @@ A sibling `.mov` / `.MOV` with the same filename as a still image enables Live P
 - Do not add a CMS, database, server runtime dependency, or dynamic hosting requirement unless explicitly requested.
 - Keep article-channel filtering based on `hidden`; photography membership is independent of `hidden`. Registered projects and friends are shown from their registries and do not depend on post references.
 - Keep date display stable as `YYYY-MM-DD`.
-- Keep tags optional; most existing posts have empty tags.
+- Keep tags optional; when assigning them, follow the vocabulary in `docs/content-collections.md`.
 - Keep homepage articles and photography ordered by post `pinned` first and post date descending. Keep projects, friends, and contacts in their JSON registry entry order. Feeds remain strictly date-ordered.
 - Keep the visual style lightweight and personal; avoid broad redesigns unless explicitly requested.
 - Tailwind CSS 4 uses `@tailwindcss/postcss` and explicitly loads `tailwind.config.ts` from `app/globals.css`. Keep element defaults in `@layer base` so utilities can override them. Preserve photography `transform` matrices used by lightbox opening geometry.

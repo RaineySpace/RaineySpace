@@ -4,7 +4,7 @@ date: 2011-08-03
 summary: 樱花的记忆或许很美，但仅有一瞬。世间的风景或许很多，但仅有一人。留住能留住的记忆，怀念能怀念的人。
 cover: ./cover.webp
 tags:
-  - 诗歌
+  - 诗笺
 ---
 
 <div style="text-align: center;">

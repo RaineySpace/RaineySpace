@@ -5,7 +5,7 @@ summary: 2024 年 2 月在象山海边记录的风车、渔港、海岛与海风
 cover: ./170A0661.JPG
 tags:
   - 摄影
-  - 旅行
+  - 行旅
 location: 象山
 hidden: true
 photography: true

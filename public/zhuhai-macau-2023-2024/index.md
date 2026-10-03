@@ -5,7 +5,7 @@ summary: 2023 年 4 月至 2024 年 2 月，在珠海与澳门记录的海上日
 cover: ./170A9674.JPG
 tags:
   - 摄影
-  - 旅行
+  - 行旅
 location: 珠海 · 澳门
 hidden: true
 photography: true

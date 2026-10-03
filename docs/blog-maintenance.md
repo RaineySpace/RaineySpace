@@ -129,7 +129,7 @@ showHeader: false
 
 ## SEO 与 AI 阅读
 
-首页、文章、摄影、项目和详情页各自提供标题、描述、canonical、Open Graph 与 Twitter 元数据。页面规范网址统一为 `https://rainey.space/` 下带尾斜杠的 HTML 地址；`/articles/?tag=摄影` 等筛选链接的 canonical 始终是 `/articles/`，不额外生成标签索引页。聚合页不声明无法确认的 `lastmod`。
+首页、文章、摄影、项目和详情页各自提供标题、描述、canonical、Open Graph 与 Twitter 元数据。页面规范网址统一为 `https://rainey.space/` 下带尾斜杠的 HTML 地址；`/articles/?tag=诗笺` 等筛选链接的 canonical 始终是 `/articles/`，不额外生成标签索引页。聚合页不声明无法确认的 `lastmod`。
 
 首页提供 `WebSite` 与 `Person`，允许索引的普通内容提供 `BlogPosting`（包括隐藏内容），频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`，朋友们页面提供与当前友链一致的 `CollectionPage`。`noindex: true` 的详情页不输出 JSON-LD。详情页标题与摘要统一读取 Markdown，包括关于页和朋友们页面；作者身份和已公开的个人资料链接来自 `lib/config.ts`。结构化数据只使用实际内容，有明确封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
 

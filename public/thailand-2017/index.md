@@ -5,7 +5,7 @@ summary: 2017 年 5 月至 6 月，在曼谷与普吉岛记录的市场、海岸
 cover: ./IMG_1223.JPG
 tags:
   - 摄影
-  - 旅行
+  - 行旅
 location: 泰国
 hidden: true
 photography: true

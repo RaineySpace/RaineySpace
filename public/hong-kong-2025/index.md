@@ -5,6 +5,7 @@ summary: 2025 年 10 月在香港记录的海面、黄昏、街道、建筑与�
 cover: ./harbour-sunset-skyline.jpg
 tags:
   - 摄影
+  - 行旅
 location: 香港
 hidden: true
 photography: true
