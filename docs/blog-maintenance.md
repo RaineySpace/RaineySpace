@@ -32,6 +32,8 @@ Marked 的自定义 renderer 接收 token 对象；标题中的行内 Markdown �
 
 ## 项目结构
 
+页面切换由 `app/components/PageTransition.tsx` 统一处理：旧正文在 240ms 内淡出，换页后新正文用 700ms 淡入，正文顶层区块从下方 12px 归位（800ms，逐块间隔 60ms）。参考 [Gavin Nelson](https://nelson.co/) 的内容过渡节奏，继续使用现有全屏 `backdrop-filter: blur(6px)` 遮罩与底色，不给正文叠加 `filter: blur()`。位移仅作用于内容区块，跳过固定侧栏、脚本和 modal 层；首次加载、同页锚点与查询筛选不触发切换，减少动态效果模式直接导航。完成、取消与导航失败时统一清理动画、遮罩和 `inert` 状态。
+
 - `app/page.tsx`：首页文章列表。
 - `app/[slug]/page.tsx`：文章详情页，包含文章 metadata 和目录。
 - `app/rss.xml/route.ts`、`app/atom.xml/route.ts`：RSS 和 Atom feed。`app/feed/route.ts` 复用 RSS handler，使 `/feed` 直接返回 RSS XML；构建生成的 `_headers` 为这个无扩展名入口指定 RSS 类型和 `no-cache`。`feed` 为保留 slug。

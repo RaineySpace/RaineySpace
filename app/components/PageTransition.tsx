@@ -14,6 +14,17 @@ const clearFrame = { opacity: 0 };
 const blurredFrame = { opacity: 1 };
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pagePath = (path: string) => path.replace(/\/+$/, "") || "/";
+const exitTiming = { duration: 240, easing: "cubic-bezier(0.4, 0, 1, 1)", fill: "forwards" } as const;
+const entranceTiming = { duration: 700, easing: "cubic-bezier(0, 0, 0.58, 1)" } as const;
+
+// Move content blocks independently so the fixed article sidebar retains its
+// viewport containing block. Scripts and modal layers are not content blocks.
+function contentBlocks(main: HTMLElement | null) {
+  return Array.from(main?.firstElementChild?.children ?? []).filter((element): element is HTMLElement =>
+    element instanceof HTMLElement && !element.matches("script, style, aside, dialog") &&
+    !["fixed", "absolute"].includes(getComputedStyle(element).position)
+  );
+}
 
 export default function PageTransition({ header, children }: { header: ReactNode; children: ReactNode }) {
   const router = useRouter();
@@ -22,6 +33,7 @@ export default function PageTransition({ header, children }: { header: ReactNode
   const main = useRef<HTMLElement>(null);
   const overlay = useRef<HTMLDivElement>(null);
   const animation = useRef<Animation | null>(null);
+  const contentAnimations = useRef<Animation[]>([]);
   const pending = useRef(false);
   const recovery = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousPath = useRef(pathname);
@@ -29,6 +41,8 @@ export default function PageTransition({ header, children }: { header: ReactNode
   const reset = useCallback(() => {
     animation.current?.cancel();
     animation.current = null;
+    contentAnimations.current.forEach((animation) => animation.cancel());
+    contentAnimations.current = [];
     pending.current = false;
     if (recovery.current !== null) clearTimeout(recovery.current);
     recovery.current = null;
@@ -43,6 +57,10 @@ export default function PageTransition({ header, children }: { header: ReactNode
     if (pending.current) return;
     const element = overlay.current;
     const opacity = element ? getComputedStyle(element).opacity : "0";
+    const contentOpacity = main.current ? getComputedStyle(main.current).opacity : "1";
+    const blocks = contentBlocks(main.current)
+      .map((block) => ({ block, translate: getComputedStyle(block).translate }))
+      .filter(({ translate }) => translate !== "none");
     reset();
     if (!element || reduceMotion() || typeof element.animate !== "function") {
       action();
@@ -57,11 +75,13 @@ export default function PageTransition({ header, children }: { header: ReactNode
     }
     // A failed or same-route navigation must never leave the overlay visible.
     recovery.current = setTimeout(reset, 8000);
-    const exit = element.animate([{ opacity }, blurredFrame], {
-      duration: 240,
-      easing: "cubic-bezier(0.4, 0, 1, 1)",
-      fill: "forwards",
-    });
+    const exit = element.animate([{ opacity }, blurredFrame], exitTiming);
+    if (main.current) {
+      contentAnimations.current.push(main.current.animate([{ opacity: contentOpacity }, { opacity: 0 }], exitTiming));
+    }
+    for (const { block, translate } of blocks) {
+      contentAnimations.current.push(block.animate([{ translate }, { translate: "0 0" }], exitTiming));
+    }
     animation.current = exit;
     void exit.finished.then(() => {
       if (animation.current !== exit) return;
@@ -87,12 +107,20 @@ export default function PageTransition({ header, children }: { header: ReactNode
     // This runs before paint so the overlay stays visible across the swap.
     // Native back/forward also takes this path without delaying browser history.
     document.documentElement.setAttribute("data-page-transition", "in");
-    const entrance = element.animate([blurredFrame, clearFrame], {
-      duration: 700,
-      easing: "ease-out",
+    const entrance = element.animate([blurredFrame, clearFrame], entranceTiming);
+    if (main.current) {
+      contentAnimations.current.push(main.current.animate([{ opacity: 0 }, { opacity: 1 }], entranceTiming));
+    }
+    contentBlocks(main.current).forEach((block, index) => {
+      contentAnimations.current.push(block.animate([{ translate: "0 12px" }, { translate: "0 0" }], {
+        duration: 800,
+        delay: index * 60,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+        fill: "backwards",
+      }));
     });
     animation.current = entrance;
-    void entrance.finished.then(() => {
+    void Promise.all([entrance.finished, ...contentAnimations.current.map((animation) => animation.finished)]).then(() => {
       if (animation.current === entrance) reset();
     }).catch(() => {});
   }, [pathname, reset]);
@@ -102,7 +130,10 @@ export default function PageTransition({ header, children }: { header: ReactNode
     let historyFrame = 0;
     const onMotionChange = () => {
       // Finish an outgoing animation so its navigation still runs.
-      if (motion.matches) animation.current?.finish();
+      if (motion.matches) {
+        animation.current?.finish();
+        contentAnimations.current.forEach((animation) => animation.finish());
+      }
     };
     const onPageShow = () => reset();
     const onPopState = () => {
