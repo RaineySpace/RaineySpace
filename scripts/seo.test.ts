@@ -10,16 +10,18 @@ import type { Post } from '../lib/posts.ts';
 import * as seo from '../lib/seo.ts';
 import { getPosts, getPostBySlug, getListedPosts, getIndexablePosts, getPostTagCounts, generateFeed } from '../lib/posts.ts';
 import { parseUpdatedDate } from '../lib/post-dates.ts';
-import { loadEntities } from '../lib/registry.ts';
+import { loadContentIndex } from '../lib/content-index.ts';
+import { collectionEntities, isIndexable, type EntityType } from '../lib/entities.ts';
+const loadEntities = (type: EntityType) => collectionEntities(loadContentIndex().entities.values(), type);
 import { generateHeaders } from './generate-headers.ts';
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 
 function post(overrides: Partial<Post> = {}): Post {
   return {
-    slug: 'sample', title: '一篇文章', summary: '文章摘要', hidden: false, noindex: false, showHeader: true,
+    type: 'article', name: '一篇文章', icon: '', url: '', redirect: false, outgoing: [], incoming: [], slug: 'sample', title: '一篇文章', summary: '文章摘要', hidden: false, noindex: false, showHeader: true,
     date: new Date('2024-02-01'), dateText: '2024-02-01', updated: null,
-    cover: '', tags: [], keywords: [], showTitle: true, coverDisplaySrc: '', location: '', pinned: false, photography: false, images: [], content: '', plainContent: '', headings: [], ...overrides,
-  };
+    cover: '', tags: [], keywords: [], showTitle: true, coverDisplaySrc: '', location: '', pinned: false, images: [], content: '', plainContent: '', headings: [], ...overrides,
+  } as Post;
 }
 
 function updateDate(value: string) {
@@ -54,15 +56,13 @@ test('metadata keeps each page identity, feed discovery and Markdown alternates'
   const photography = seo.postMetadata(post({
     slug: 'photo-album',
     cover: '/photo-album/cover.webp',
-    photography: true,
     hidden: true,
   }));
   assert.equal(photography.openGraph.images, 'https://rainey.space/photo-album/cover.webp');
   assert.equal(seo.postJsonLd(post({
     slug: 'photo-album',
     cover: '/photo-album/cover.webp',
-    photography: true,
-  }))?.image, undefined);
+  }))?.image, 'https://rainey.space/photo-album/cover.webp');
   const about = seo.postMetadata(post({ slug: 'about', title: '自定义关于页', summary: '关于页摘要', hidden: true, showHeader: false }));
   assert.equal(about.title, "自定义关于页 - Rainey's Blog");
   assert.equal(about.description, '关于页摘要');
@@ -111,11 +111,11 @@ test('structured data uses real content and safely handles a script-closing titl
   assert.equal(about['@type'], 'AboutPage');
   assert.equal(about.name, "作者介绍 - Rainey's Blog");
   assert.equal(about.description, '自定义摘要');
-  const friends = seo.collectionJsonLd(seo.pages.friends, loadEntities('friend').map((friend) => ({ url: friend.url, name: friend.title ?? friend.name, description: friend.description })));
+  const friends = seo.entityCollectionJsonLd(seo.pages.friends, loadEntities('friend'));
   assert.equal(friends['@type'], 'CollectionPage');
   assert.equal(friends.name, "朋友们 - Rainey's Blog");
   assert.equal(friends.description, 'Rainey 的朋友们');
-  const registeredFriends = loadEntities('friend');
+  const registeredFriends = loadEntities('friend').filter(isIndexable);
   assert.equal(friends.mainEntity.numberOfItems, registeredFriends.length);
   assert.deepEqual(friends.mainEntity.itemListElement.map((item) => item.name), registeredFriends.map((item) => item.title ?? item.name));
   assert.equal(JSON.parse(seo.serializeJsonLd(seo.postJsonLd(post())!)).dateModified, undefined);
@@ -123,6 +123,15 @@ test('structured data uses real content and safely handles a script-closing titl
   const collection = seo.collectionJsonLd(seo.pages.projects, items).mainEntity;
   assert.deepEqual(collection.itemListElement.map((item) => item.url), items.map((item) => item.url));
   assert.deepEqual(collection.itemListElement.map((item) => item.position), [1, 2]);
+});
+
+test('collection structured data excludes redirects and noindex while keeping hidden indexable entities', () => {
+  const entities = [post({ slug: 'hidden', hidden: true }), post({ slug: 'noindex', noindex: true }), post({ slug: 'redirect', redirect: true, url: 'https://example.com' }), post({ slug: 'visible' })];
+  const list = seo.entityCollectionJsonLd(seo.pages.articles, entities).mainEntity;
+  assert.equal(list.numberOfItems, 2);
+  assert.deepEqual(list.itemListElement.map((item) => item.url), [seo.postUrl('hidden'), seo.postUrl('visible')]);
+  assert.deepEqual(list.itemListElement.map((item) => item.position), [1, 2]);
+  assert.equal(entities.length, 4, 'SEO filtering does not remove rendered members');
 });
 
 test('sitemap and llms include hidden indexable content without inventing dates', () => {
@@ -139,10 +148,10 @@ test('sitemap and llms include hidden indexable content without inventing dates'
   assert.ok(llms.includes('[原文](https://rainey.space/sample/)'));
   assert.ok(llms.includes('更新 2024-02-29'));
   assert.ok(llms.includes('## 内容'));
-  assert.ok(llms.includes('https://rainey.space/friends/'));
-  assert.ok(!llms.includes('https://rainey.space/friends.md'));
-  assert.ok(llms.includes('https://rainey.space/contacts/'));
-  assert.ok(!llms.includes('https://rainey.space/contacts.md'));
+  assert.ok(llms.includes('https://rainey.space/friend/'));
+  assert.ok(!llms.includes('https://rainey.space/friend.md'));
+  assert.ok(llms.includes('https://rainey.space/contact/'));
+  assert.ok(!llms.includes('https://rainey.space/contact.md'));
   assert.equal(entries.filter((entry) => entry.loc === seo.canonicalUrl(seo.pages.contacts.pathname)).length, 1);
   assert.ok(llms.includes('https://rainey.space/about.md): 文章摘要 [原文]'));
   assert.ok(!llms.includes('/excluded/'));
@@ -157,9 +166,6 @@ async function withContentFixture(run: (directory: string) => Promise<void>) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-metadata-'));
   try {
     for (const name of ['public', 'content', 'out']) await fs.mkdir(path.join(directory, name));
-    await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
-    await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
-    await fs.writeFile(path.join(directory, 'content/contacts.json'), '{}');
     process.chdir(directory);
     await run(directory);
   } finally {
@@ -170,7 +176,7 @@ async function withContentFixture(run: (directory: string) => Promise<void>) {
 
 async function writeFixture(slug: string, options = '') {
   await fs.mkdir(path.join('public', slug), { recursive: true });
-  await fs.writeFile(path.join('public', slug, 'index.md'), `---\ntitle: ${JSON.stringify(slug)}\nsummary: Fixture summary\ndate: 2024-02-01\ntags: ${JSON.stringify(['shared', slug])}\n${options}---\n\nFixture body.\n`);
+  await fs.writeFile(path.join('public', slug, 'index.md'), `---\ntype: article\ntitle: ${JSON.stringify(slug)}\nsummary: Fixture summary\ndate: 2024-02-01\ntags: ${JSON.stringify(['shared', slug])}\n${options}---\n\nFixture body.\n`);
 }
 
 test('real content keeps listing, feeds and indexing independent for all four combinations', async () => {
@@ -234,31 +240,30 @@ test('reader, validator and header CLI agree on defaults and reject invalid new 
   });
 });
 
-test('header generation encodes arbitrary slugs and removes obsolete rules on every run', async () => {
+test('header generation encodes slugs and removes obsolete rules without canonical links on redirects', async () => {
   await withContentFixture(async () => {
     await fs.mkdir('public/asset-only');
-    const originalSlug = '语法检查 #1';
-    await writeFixture(originalSlug, 'noindex: true\n');
-    assert.deepEqual((await getPosts()).map((item) => item.slug), [originalSlug]);
+    const slug = '语法检查 #1';
+    await writeFixture(slug, 'noindex: true\n');
+    assert.deepEqual((await getPosts()).map((item) => item.slug), [slug]);
     assert.equal(await generateHeaders(), 1);
     let headers = await fs.readFile('out/_headers', 'utf8');
-    assert.ok(headers.includes(`${new URL(seo.markdownUrl(originalSlug)).pathname}\n  X-Robots-Tag: noindex`));
-    const canonicalRule = '/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <https://rainey.space/:splat/>; rel="canonical"\n';
-    assert.ok(headers.startsWith(canonicalRule));
-    const baseHeaders = headers.trim().split(/\n\s*\n/).filter((rule) => !rule.includes('X-Robots-Tag: noindex')).join('\n\n') + '\n';
-    await fs.rename(path.join('public', originalSlug), 'public/renamed');
-    assert.equal(await generateHeaders(), 1);
-    headers = await fs.readFile('out/_headers', 'utf8');
-    assert.ok(!headers.includes(new URL(seo.markdownUrl(originalSlug)).pathname));
-    assert.ok(headers.includes('/renamed.md\n  X-Robots-Tag: noindex'));
-    await writeFixture('renamed', 'noindex: false\n');
-    assert.equal(await generateHeaders(), 0);
-    assert.equal(await fs.readFile('out/_headers', 'utf8'), baseHeaders);
-    await writeFixture('renamed', 'noindex: true\n');
+    assert.ok(headers.includes(`${new URL(seo.markdownUrl(slug)).pathname}\n  X-Robots-Tag: noindex`));
+    await fs.rename(path.join('public', slug), 'public/renamed');
+    await writeFixture('renamed', 'url: https://example.com/path?q=1#top\nredirect: true\n');
     await generateHeaders();
+    headers = await fs.readFile('out/_headers', 'utf8');
+    assert.ok(!headers.includes(encodeURIComponent(slug)));
+    const block = headers.split(/\n\s*\n/).find((rule) => rule.startsWith('/renamed.md\n'))!;
+    assert.match(block, /noindex/); assert.doesNotMatch(block, /canonical/);
+    const redirects = await fs.readFile('out/_redirects', 'utf8');
+    assert.match(redirects, /^\/renamed https:\/\/example.com\/path\?q=1#top 302$/m);
+    assert.match(redirects, /^\/renamed\/ https:\/\/example.com\/path\?q=1#top 302$/m);
+    assert.doesNotMatch(redirects, /renamed\.md|renamed\/\*/);
+    assert.match(redirects, /\/articles\/ \/article\/ 301/);
     await fs.rm('public/renamed', { recursive: true });
     assert.equal(await generateHeaders(), 0);
-    assert.equal(await fs.readFile('out/_headers', 'utf8'), baseHeaders);
+    assert.doesNotMatch(await fs.readFile('out/_redirects', 'utf8'), /renamed/);
     await fs.rm('out', { recursive: true });
     await assert.rejects(generateHeaders(), /ENOENT/);
   });
@@ -287,12 +292,9 @@ test('content reader and CLI both enforce updated on real Markdown fixtures', as
   try {
     await fs.mkdir(path.join(directory, 'public', 'sample'), { recursive: true });
     await fs.mkdir(path.join(directory, 'content'));
-    await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
-    await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
-    await fs.writeFile(path.join(directory, 'content/contacts.json'), '{}');
     process.chdir(directory);
     for (const [updated, error] of [['2024-02-29', null], ['2024-02-30', /valid YYYY-MM-DD/], ['2024-01-31', /earlier than/]] as const) {
-      await fs.writeFile(path.join(directory, 'public/sample/index.md'), `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);
+      await fs.writeFile(path.join(directory, 'public/sample/index.md'), `---\ntype: article\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\nupdated: ${updated}\n---\nVisible body.\n`);
       if (error) await assert.rejects(getPostBySlug('sample'), error);
       else assert.equal((await getPostBySlug('sample')).updated?.toISOString(), '2024-02-29T00:00:00.000Z');
       const check = spawnSync(process.execPath, [path.join(projectRoot, 'scripts/validate-content.ts')], { cwd: directory, encoding: 'utf8' });

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import * as config from './config.ts';
+import { isIndexable, type Entity } from './entities.ts';
 import type { Post } from './posts.ts';
 
 export interface PageInfo {
@@ -9,12 +10,12 @@ export interface PageInfo {
 }
 
 export const pages = {
-  contacts: { pathname: '/contacts/', title: `联系我 - ${config.title}`, description: 'Rainey 的联系方式' },
-  friends: { pathname: '/friends/', title: `朋友们 - ${config.title}`, description: 'Rainey 的朋友们' },
+  contacts: { pathname: '/contact/', title: `联系我 - ${config.title}`, description: 'Rainey 的联系方式' },
+  friends: { pathname: '/friend/', title: `朋友们 - ${config.title}`, description: 'Rainey 的朋友们' },
   home: { pathname: '/', title: config.title, description: config.description },
-  articles: { pathname: '/articles/', title: `文章 - ${config.title}`, description: 'Rainey 的全部公开文章' },
+  articles: { pathname: '/article/', title: `文章 - ${config.title}`, description: 'Rainey 的全部公开文章' },
   photography: { pathname: '/photography/', title: `摄影 - ${config.title}`, description: 'Rainey 的摄影记录' },
-  projects: { pathname: '/projects/', title: `项目 - ${config.title}`, description: 'Rainey 的项目与个人实验' },
+  projects: { pathname: '/project/', title: `项目 - ${config.title}`, description: 'Rainey 的项目与个人实验' },
 } satisfies Record<string, PageInfo>;
 
 export function canonicalUrl(pathname: string): string {
@@ -77,7 +78,7 @@ export function pageMetadata(
 }
 
 export function postMetadata(post: Post) {
-  const isStandalonePage = post.slug === 'about';
+  const isStandalonePage = post.slug === 'about' || post.type !== 'article';
   return {
     ...pageMetadata({
       pathname: postUrl(post.slug),
@@ -95,7 +96,7 @@ export function postMetadata(post: Post) {
       } : {}),
     }),
     keywords: [...new Set([...config.keywords, ...post.keywords, ...post.tags])],
-    ...(post.noindex ? { robots: { index: false, follow: true } } : {}),
+    ...(!isIndexable(post) ? { robots: { index: false, follow: true } } : {}),
   } satisfies Metadata;
 }
 
@@ -129,7 +130,7 @@ export function homeJsonLd() {
 }
 
 export function postJsonLd(post: Post): Record<string, unknown> | null {
-  if (post.noindex) return null;
+  if (!isIndexable(post)) return null;
   const url = postUrl(post.slug);
   if (post.slug === 'about') {
     return {
@@ -143,6 +144,11 @@ export function postJsonLd(post: Post): Record<string, unknown> | null {
       inLanguage: 'zh-CN',
     };
   }
+  if (post.type !== 'article') return {
+    '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${url}#webpage`,
+    url, name: post.title, description: post.summary || undefined, inLanguage: 'zh-CN',
+    dateModified: post.updated?.toISOString(),
+  };
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -155,8 +161,7 @@ export function postJsonLd(post: Post): Record<string, unknown> | null {
     dateModified: post.updated?.toISOString(),
     author: authorJsonLd(),
     // Only describe an image that is actually shown as this article's cover.
-    // Photography covers stay in share metadata but are not rendered on the page.
-    image: post.cover && !post.photography ? new URL(post.cover, config.siteUrl).href : undefined,
+    image: post.cover ? new URL(post.cover, config.siteUrl).href : undefined,
     inLanguage: 'zh-CN',
     isPartOf: { '@id': `${canonicalUrl('/')}#website` },
   };
@@ -187,6 +192,12 @@ export function collectionJsonLd(
   };
 }
 
+export function entityCollectionJsonLd(page: PageInfo, entities: readonly Entity[]) {
+  return collectionJsonLd(page, entities.filter(isIndexable).map((entity) => ({
+    url: postUrl(entity.slug), name: entity.title, description: entity.summary || undefined,
+  })));
+}
+
 export function serializeJsonLd(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
 }
@@ -197,7 +208,7 @@ export function sitemapEntries(posts: readonly Post[]) {
       loc: canonicalUrl(page.pathname),
       lastmod: undefined as string | undefined,
     })),
-    ...posts.filter((post) => !post.noindex).map((post) => ({
+    ...posts.filter(isIndexable).map((post) => ({
       loc: postUrl(post.slug),
       lastmod: (post.updated || post.date)?.toISOString(),
     })),
@@ -205,7 +216,7 @@ export function sitemapEntries(posts: readonly Post[]) {
 }
 
 function markdownText(value: string): string {
-  return value.replace(/\s+/g, ' ').replace(/[\\`*_\[\]<>]/g, '\\$&').trim();
+  return value.replace(/\s+/g, ' ').replace(/[\\`*_\[\]<>@]/g, '\\$&').trim();
 }
 
 export function llmsText(posts: readonly Post[]): string {
@@ -224,7 +235,7 @@ export function llmsText(posts: readonly Post[]): string {
     '',
     '## 内容',
     '',
-    ...posts.filter((post) => !post.noindex).map((post) => {
+    ...posts.filter(isIndexable).map((post) => {
       const dates = [post.dateText, post.updated ? `更新 ${post.updated.toISOString().slice(0, 10)}` : ''].filter(Boolean).join('；');
       const description = [dates, markdownText(post.summary)].filter(Boolean).join('。');
       return `- [${markdownText(post.title)}](${markdownUrl(post.slug)}): ${description ? `${description} ` : ''}[原文](${postUrl(post.slug)})`;

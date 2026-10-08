@@ -1,24 +1,23 @@
 ---
+type: article
 title: 指南村
 date: 2020-11-29
 summary: 2020 年 11 月在临安指南村记录的溪流、秋草、老树与梯田。
-cover: ./170A6543.jpg
 tags:
   - 摄影
   - 杭州
 location: 杭州
 hidden: true
-photography: true
 ---
 
-![秋日溪流穿过石滩](./170A6543.jpg)
+![秋日溪流穿过石滩](./170A6543.jpg "photography")
 
-![秋草上的细小穗子](./170A6586.jpg)
+![秋草上的细小穗子](./170A6586.jpg "photography")
 
-![枝头低垂的野花](./170A6591.jpg)
+![枝头低垂的野花](./170A6591.jpg "photography")
 
-![写着“指南村”的白墙](./170A6643.jpg)
+![写着“指南村”的白墙](./170A6643.jpg "photography")
 
-![无叶老树的枝干](./170A6651.jpg)
+![无叶老树的枝干](./170A6651.jpg "photography")
 
-![雾气中的山村梯田](./170A6675.jpg)
+![雾气中的山村梯田](./170A6675.jpg "photography")

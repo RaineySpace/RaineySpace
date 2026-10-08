@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { listPostSlugs, postAssetDir, postMarkdownPath } from "../lib/post-files.ts";
 
 import type { ImageManifest, OptimizedImage } from "../lib/optimized-images.ts";
-import { isPlainObject } from "../lib/registry.ts";
+import { isPlainObject } from "../lib/content-paths.ts";
 
 const publicDir = path.join(process.cwd(), "public");
 const OPTIMIZED_DIR = "_optimized";

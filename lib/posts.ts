@@ -1,22 +1,20 @@
 import fs from 'fs/promises';
 import path from 'node:path';
-import matter from 'gray-matter';
 import { Feed } from 'feed';
 import * as config from './config.ts';
 import { Renderer, marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import { readImageExif, type ImageExif } from './image-exif.ts';
-import { parseUpdatedDate } from './post-dates.ts';
-import { parsePostOptions } from './post-options.ts';
 import {
   resolveDisplayImage,
   type DisplayImage,
   toOriginalSrc,
 } from './optimized-images.ts';
-import { listPostSlugs, postMarkdownPath } from './post-files.ts';
-import { loadRegistries } from './registry.ts';
-import { stripElementsByClass, transformDataRefTokens } from './markdown-refs.ts';
+import { loadContentIndex, type ContentIndex } from './content-index.ts';
+import { compareEntityDates, isIndexable, type Entity } from './entities.ts';
+import { normalizeRelativeAssetPath, imageAnchor } from './content-paths.ts';
+import { stripElementsByClass, transformEntityLinks, type EntityIndex } from './markdown-refs.ts';
 
 // 配置 marked 使用 highlight.js
 marked.use(
@@ -29,30 +27,16 @@ marked.use(
   })
 );
 
-export interface Post {
-  title: string;
+export type Post = Entity & {
   showTitle: boolean;
-  showHeader: boolean;
-  date: Date | null;
-  dateText: string;
-  updated: Date | null;
-  summary: string;
-  slug: string;
-  cover: string;
   coverDisplaySrc: string;
-  coverImage?: DisplayImage;
-  tags: string[];
-  keywords: string[];
-  location: string;
-  hidden: boolean;
-  noindex: boolean;
-  pinned: boolean;
-  photography: boolean;
   images: PostImage[];
   content: string;
   plainContent: string;
   headings: Heading[];
-}
+  outgoing: Entity[];
+  incoming: Entity[];
+};
 
 export interface PostTagCount {
   tag: string;
@@ -64,6 +48,8 @@ export interface PostImage extends ImageExif, DisplayImage {
   src: string;
   alt: string;
   liveVideoSrc?: string;
+  photography: boolean;
+  anchor: string;
 }
 
 export interface Heading {
@@ -74,21 +60,6 @@ export interface Heading {
 
 const LIVE_PHOTO_BADGE_HTML =
   '<span class="live-photo-badge-anchor"><span class="live-photo-badge" aria-hidden="true"><svg viewBox="0 0 24 24" class="live-photo-badge-icon" fill="none"><circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.6" /><circle cx="12" cy="12" r="3.1" fill="currentColor" /></svg><span class="live-photo-badge-label">LIVE</span></span></span>';
-
-function normalizeList(value: unknown): string[] {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);
-  return String(value)
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function normalizeDate(value: unknown): Date | null {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(String(value));
-  return Number.isNaN(date.getTime()) ? null : date;
-}
 
 export function formatDate(date: Date | null): string {
   if (!date) return '';
@@ -105,36 +76,6 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-}
-
-function normalizeRelativeImagePath(value: string): string | null {
-  const href = value.trim().split(/[?#]/, 1)[0];
-  if (
-    !href ||
-    href.startsWith('/') ||
-    href.startsWith('//') ||
-    href.includes('\\') ||
-    /^[a-z][a-z\d+.-]*:/i.test(href)
-  ) {
-    return null;
-  }
-
-  let decodedHref: string;
-  try {
-    decodedHref = decodeURIComponent(href);
-  } catch {
-    return null;
-  }
-
-  if (decodedHref.includes('\\') || decodedHref.split('/').includes('..')) {
-    return null;
-  }
-
-  const normalized = path.posix.normalize(decodedHref).replace(/^\.\//, '');
-  if (!normalized || normalized === '.' || normalized === '..' || normalized.startsWith('../')) {
-    return null;
-  }
-  return normalized;
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -169,7 +110,7 @@ async function resolveCover(
     return { cover: value, coverDisplaySrc: value };
   }
 
-  const relativePath = normalizeRelativeImagePath(value);
+  const relativePath = normalizeRelativeAssetPath(value);
   if (!relativePath) return { cover: "", coverDisplaySrc: "" };
 
   const filePath = path.join(process.cwd(), "public", slug, relativePath);
@@ -192,14 +133,16 @@ export async function resolveLiveVideoSrc(
 ): Promise<string | undefined> {
   const parsed = path.posix.parse(relativePath);
   const directory = path.join(process.cwd(), "public", slug, parsed.dir);
-  const seen = new Set<string>();
+  let filenames: string[];
+  try { filenames = await fs.readdir(directory); } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw error;
+  }
 
   for (const extension of [".mov", ".MOV"]) {
     const fileName = `${parsed.name}${extension}`;
-    if (seen.has(fileName)) continue;
-    seen.add(fileName);
-
-    if (await fileExists(path.join(directory, fileName))) {
+    // Preserve actual case even on case-insensitive development filesystems.
+    if (filenames.includes(fileName)) {
       const relativeVideo = parsed.dir ? path.posix.join(parsed.dir, fileName) : fileName;
       return toOriginalSrc(slug, relativeVideo);
     }
@@ -222,6 +165,7 @@ async function extractMarkdownImages(
   const seen = new Set<string>();
   const relativePaths: string[] = [];
   const alts = new Map<string, string>();
+  const selected = new Set<string>();
 
   const visit = (value: unknown) => {
     if (Array.isArray(value)) {
@@ -232,11 +176,15 @@ async function extractMarkdownImages(
 
     const token = value as Record<string, unknown>;
     if (token.type === 'image' && typeof token.href === 'string') {
-      const relativePath = normalizeRelativeImagePath(token.href);
+      const relativePath = normalizeRelativeAssetPath(token.href);
+      if (relativePath && token.title === 'photography' && !selected.has(relativePath)) {
+        selected.add(relativePath);
+        alts.set(relativePath, String(token.text || '').trim());
+      }
       if (relativePath && !seen.has(relativePath)) {
         seen.add(relativePath);
         relativePaths.push(relativePath);
-        alts.set(relativePath, typeof token.text === 'string' ? token.text.trim() : '');
+        if (!alts.has(relativePath)) alts.set(relativePath, typeof token.text === 'string' ? token.text.trim() : '');
       }
       return;
     }
@@ -257,6 +205,8 @@ async function extractMarkdownImages(
     if (liveVideoSrc) liveVideoSrcByRelativePath.set(relativePath, liveVideoSrc);
     images.push({
       id: `${slug}/${relativePath}`,
+      photography: selected.has(relativePath),
+      anchor: imageAnchor(relativePath),
       src: display.originalSrc || src,
       ...display,
       alt: alts.get(relativePath) || '',
@@ -289,13 +239,14 @@ function renderMarkdown(
     displayByRelativePath?: Map<string, DisplayImage>;
     liveVideoSrcByRelativePath?: Map<string, string>;
     dataRefFormat?: 'card' | 'plain';
-    registries?: ReturnType<typeof loadRegistries>;
+    entities?: EntityIndex;
   },
 ): { html: string; headings: Heading[] } {
   const headings: Heading[] = [];
   const counts = new Map<string, number>();
   const renderer = new Renderer();
-  const registries = options?.registries || loadRegistries();
+  const entities = options?.entities || loadContentIndex().entities;
+  const anchoredImages = new Set<string>();
 
   renderer.heading = ({ tokens, depth: level }) => {
     const text = renderer.parser.parseInline(tokens);
@@ -311,8 +262,8 @@ function renderMarkdown(
   renderer.image = ({ href, title, text }) => {
     const hrefValue = href || '';
     const alt = escapeHtml(stripHtml(String(text || '')));
-    const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-    const relativePath = options?.slug ? normalizeRelativeImagePath(hrefValue) : null;
+    const titleAttr = title && title !== 'photography' ? ` title="${escapeHtml(title)}"` : '';
+    const relativePath = options?.slug ? normalizeRelativeAssetPath(hrefValue) : null;
 
     if (!options?.slug || !relativePath) {
       return `<img src="${escapeHtml(hrefValue)}" alt="${alt}"${titleAttr} loading="lazy">`;
@@ -325,14 +276,16 @@ function renderMarkdown(
     const responsive = display?.srcSet ? ` srcset="${escapeHtml(display.srcSet)}" sizes="(min-width: 672px) 632px, calc(100vw - 40px)"` : '';
     const liveVideoSrc = options.liveVideoSrcByRelativePath?.get(relativePath);
     const liveAttr = liveVideoSrc ? ` data-live-src="${escapeHtml(liveVideoSrc)}"` : "";
-    const image = `<img src="${escapeHtml(displaySrc)}" alt="${alt}"${titleAttr}${dimensions}${responsive} loading="lazy" decoding="async" data-full-src="${escapeHtml(originalSrc)}"${liveAttr}>`;
+    const anchor = anchoredImages.has(relativePath) ? '' : ` id="${escapeHtml(imageAnchor(relativePath))}"`;
+    anchoredImages.add(relativePath);
+    const image = `<img${anchor} src="${escapeHtml(displaySrc)}" alt="${alt}"${titleAttr}${dimensions}${responsive} loading="lazy" decoding="async" data-full-src="${escapeHtml(originalSrc)}"${liveAttr}>`;
     if (!liveVideoSrc) return image;
     return `<span class="live-photo" data-live-src="${escapeHtml(liveVideoSrc)}">${image}${LIVE_PHOTO_BADGE_HTML}</span>`;
   };
 
   const tokens = marked.lexer(content);
-  transformDataRefTokens(tokens, {
-    registries,
+  transformEntityLinks(tokens, {
+    entities,
     format: options?.dataRefFormat || 'card',
     source: options?.slug,
   });
@@ -354,85 +307,46 @@ export async function getEndContent(): Promise<string> {
   return renderMarkdown(end).html;
 }
 
-export async function getPostBySlug(slug: string): Promise<Post> {
-  const fileContents = await fs.readFile(postMarkdownPath(path.join(process.cwd(), 'public'), slug), 'utf8');
-  const { data, content, matter: frontmatter } = matter(fileContents);
-  const date = normalizeDate(data.date);
-  let updated: Date | null;
-  let options: ReturnType<typeof parsePostOptions>;
-  try {
-    options = parsePostOptions(data);
-    updated = parseUpdatedDate(data.updated, date, frontmatter);
-  } catch (error) {
-    throw new Error(`${slug}: ${(error as Error).message}`);
-  }
-  const { images, displayByRelativePath, liveVideoSrcByRelativePath } = await extractMarkdownImages(
-    content,
-    slug,
-  );
-  const registries = loadRegistries();
-  const renderOptions = { slug, displayByRelativePath, liveVideoSrcByRelativePath, registries };
+async function renderPost(slug: string, index: ContentIndex): Promise<Post> {
+  const document = index.documents.get(slug);
+  if (!document) throw new Error(`Unknown document "${slug}"`);
+  const { entity, content } = document;
+  const { images, displayByRelativePath, liveVideoSrcByRelativePath } = await extractMarkdownImages(content, slug);
+  const renderOptions = { slug, displayByRelativePath, liveVideoSrcByRelativePath, entities: index.entities };
   const rendered = renderMarkdown(content, { ...renderOptions, dataRefFormat: 'card' });
   const plain = renderMarkdown(content, { ...renderOptions, dataRefFormat: 'plain' });
-  const { cover, coverDisplaySrc, coverImage } = await resolveCover(slug, data.cover);
-
+  const cover = await resolveCover(slug, entity.cover);
+  const related = (slugs: string[] = []) => slugs.map((key) => index.entities.get(key)!).sort(compareEntityDates);
   return {
-    ...options,
-    title: data.title ? String(data.title) : slug,
-    showTitle: Boolean(data.title),
-    date,
-    dateText: formatDate(date),
-    updated,
-    summary: data.summary ? String(data.summary) : '',
-    slug,
-    cover,
-    coverDisplaySrc,
-    coverImage,
-    tags: normalizeList(data.tags),
-    keywords: normalizeList(data.keywords),
-    location: data.location ? String(data.location) : '',
-    hidden: !!data.hidden,
-    pinned: !!data.pinned,
-    photography: !!data.photography,
-    images,
-    content: rendered.html,
-    plainContent: plain.html,
-    headings: rendered.headings,
+    ...entity, ...cover, showTitle: true, images,
+    content: rendered.html, plainContent: plain.html, headings: rendered.headings,
+    outgoing: related(index.outgoing.get(slug)), incoming: related(index.incoming.get(slug)),
   };
 }
 
-function comparePostDates(a: Post, b: Post): number {
-  if (!a.date && !b.date) return a.slug.localeCompare(b.slug);
-  if (!a.date) return 1;
-  if (!b.date) return -1;
-  const difference = b.date.getTime() - a.date.getTime();
-  return difference || a.slug.localeCompare(b.slug);
-}
-
-function comparePosts(a: Post, b: Post): number {
-  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-  return comparePostDates(a, b);
+export async function getPostBySlug(slug: string): Promise<Post> {
+  return renderPost(slug, loadContentIndex());
 }
 
 export async function getPosts(): Promise<Post[]> {
-  const slugs = await listPostSlugs(path.join(process.cwd(), "public"));
-  const posts = await Promise.all(slugs.map(getPostBySlug));
-  return posts.sort(comparePosts);
+  const index = loadContentIndex();
+  return (await Promise.all([...index.documents.keys()].map((slug) => renderPost(slug, index)))).sort(compareEntityDates);
 }
 
 export async function getListedPosts(): Promise<Post[]> {
-  return (await getPosts()).filter((post) => !post.hidden);
+  return (await getPosts()).filter((post) => post.type === 'article' && !post.hidden).sort((a, b) =>
+    Boolean(a.pinned) !== Boolean(b.pinned) ? a.pinned ? -1 : 1 : compareEntityDates(a, b));
 }
 
 export async function getIndexablePosts(): Promise<Post[]> {
-  return (await getPosts()).filter((post) => !post.noindex);
+  return (await getPosts()).filter(isIndexable);
 }
 
-export function getPostTagCounts(posts: readonly Pick<Post, 'tags' | 'hidden'>[]): PostTagCount[] {
+export function getPostTagCounts(posts: readonly Pick<Post, 'tags' | 'hidden' | 'type'>[]): PostTagCount[] {
   const counts = new Map<string, number>();
 
   for (const post of posts) {
-    if (post.hidden) continue;
+    if (post.type !== 'article' || post.hidden) continue;
     for (const tag of new Set(post.tags)) {
       counts.set(tag, (counts.get(tag) || 0) + 1);
     }
@@ -444,7 +358,7 @@ export function getPostTagCounts(posts: readonly Pick<Post, 'tags' | 'hidden'>[]
 }
 
 export async function generateFeed() {
-  const posts = (await getListedPosts()).sort(comparePostDates);
+  const posts = (await getListedPosts()).sort(compareEntityDates);
 
   const feed = new Feed({
     author: {
@@ -467,7 +381,7 @@ export async function generateFeed() {
     feed.addItem({
       author: [{ name: config.author, email: config.email, link: config.siteUrl }],
       category: post.tags.map((tag) => ({ name: tag })),
-      date: post.date || new Date(),
+      date: post.date!,
       description: post.summary || stripHtml(post.plainContent || post.content).substring(0, 200) + '...',
       content: post.plainContent || post.content,
       id: `${config.siteUrl}/${post.slug}/`,

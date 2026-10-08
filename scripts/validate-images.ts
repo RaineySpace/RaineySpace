@@ -5,7 +5,7 @@ import sharp from 'sharp';
 import { createHash } from 'node:crypto';
 
 import type { ImageManifest, OptimizedImage } from "../lib/optimized-images.ts";
-import { getFeaturedPhotos, getPhotographyAlbums, type Photo } from '../lib/photography.ts';
+import { getFeaturedPhotos, getPhotographyPhotos, type Photo } from '../lib/photography.ts';
 
 const output = path.resolve('out');
 const localFile = (url: string) => path.join(output, decodeURIComponent(url));
@@ -66,10 +66,12 @@ async function checkExportedExif(route: string, photos: Photo[]) {
 }
 
 async function main() {
-  const albums = await getPhotographyAlbums();
+  const photos = await getPhotographyPhotos();
   let exifImages = await checkExportedExif('', await getFeaturedPhotos());
-  exifImages += await checkExportedExif('photography', albums.flatMap((album) => album.photos));
-  for (const album of albums) exifImages += await checkExportedExif(album.slug, album.photos);
+  exifImages += await checkExportedExif('photography', photos);
+  for (const slug of new Set(photos.map((photo) => photo.sourceSlug))) {
+    exifImages += await checkExportedExif(slug, photos.filter((photo) => photo.sourceSlug === slug));
+  }
 
   const manifest: ImageManifest = JSON.parse(await fs.readFile(path.join(output, '_optimized/manifest.json'), 'utf8'));
   const widths = new Map<string, number>();

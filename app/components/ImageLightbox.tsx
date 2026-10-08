@@ -403,6 +403,7 @@ export default function ImageLightbox({
   if (activeImage) slides.push({ image: activeImage, role: "current" });
   if (nextImage) slides.push({ image: nextImage, role: "next" });
   const dateText = activeImage ? displayDate(activeImage) : undefined;
+  const dateLabel = activeImage?.capturedAt?.match(/^\d{4}-\d{2}-\d{2}/) ? "拍摄于" : "文档日期";
   const focalText = activeImage ? activeImage.focalLength35mm || activeImage.focalLength : undefined;
   const params: Array<{ key: string; icon: ReactNode; value: string }> = [];
   if (focalText) params.push({ key: "focal", icon: <FocalIcon />, value: focalText });
@@ -414,7 +415,7 @@ export default function ImageLightbox({
   const titleText = activeImage?.alt?.trim() || undefined;
   const hasSummary = Boolean(locationText || dateText || activeImage?.camera);
   const hasExtra = Boolean(params.length > 0 || activeImage?.lens);
-  const showMore = Boolean(titleText || hasExtra || hasSummary);
+  const showMore = Boolean(titleText || hasExtra || hasSummary || activeImage?.sourceHref);
   const hasDesktopMeta = hasSummary || hasExtra;
 
   const finishOpening = useCallback(() => {
@@ -709,7 +710,7 @@ export default function ImageLightbox({
                     )}
                   </MetaColumn>
                 )}
-                {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
+                {dateText && <MetaColumn label={dateLabel}>{dateText}</MetaColumn>}
                 {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
                 {showMore && (
                   <button
@@ -754,7 +755,7 @@ export default function ImageLightbox({
                     )}
                   </MetaColumn>
                 )}
-                {dateText && <MetaColumn label="日期">{dateText}</MetaColumn>}
+                {dateText && <MetaColumn label={dateLabel}>{dateText}</MetaColumn>}
                 {activeImage.camera && <MetaColumn label="相机">{activeImage.camera}</MetaColumn>}
                 {activeImage.lens && <MetaColumn label="镜头">{activeImage.lens}</MetaColumn>}
               </div>
@@ -823,6 +824,13 @@ export default function ImageLightbox({
           )}
         >
           <div className="grid grid-cols-[1fr_1fr] gap-[0.6rem]">
+            {activeImage.sourceHref && activeImage.sourceLabel && (
+              <SheetCard label="来源文档" wide>
+                <a href={activeImage.sourceHref} className="image-lightbox-sheet-card-value image-lightbox-meta-link">
+                  {activeImage.sourceLabel}
+                </a>
+              </SheetCard>
+            )}
             {locationText && (
               <SheetCard label="地点">
                 {hasGps(activeImage) ? (
@@ -840,7 +848,7 @@ export default function ImageLightbox({
               </SheetCard>
             )}
             {dateText && (
-              <SheetCard label="拍摄于" value={dateText} detail={capturedTime} />
+              <SheetCard label={dateLabel} value={dateText} detail={capturedTime} />
             )}
             {activeImage.camera && <SheetCard label="相机" value={activeImage.camera} />}
             {activeImage.lens && <SheetCard label="镜头" value={activeImage.lens} />}

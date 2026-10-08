@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { PostTagCount } from "@/lib/posts";
 import { READING_SETTINGS_CHANGE_EVENT } from "@/lib/reading-settings";
 import HoverCardList from "@/app/components/HoverCardList";
+import { emptyCollectionMessage } from "@/lib/entity-rendering";
 
 interface ArticleListProps {
   posts: { slug: string; tags: string[]; card: ReactNode }[];
@@ -163,6 +164,8 @@ export function ArticleListContent({
   const visiblePosts = selectedTag === null
     ? posts
     : posts.filter((post) => post.tags.includes(selectedTag));
+
+  if (!posts.length) return <p className="meta">{emptyCollectionMessage.article}</p>;
 
   return (
     <div>

@@ -1,16 +1,8 @@
-import { getEntityById, loadEntities, PROJECT_KIND } from "./registry.ts";
-import type { Entity } from "./entities.ts";
+import { loadContentIndex } from './content-index.ts';
+import { collectionEntities, type Entity } from './entities.ts';
 
-export type Project = Entity<"project">;
+export type Project = Entity<'project'>;
 
-export function getProjectById(projectId: string): Project | null {
-  return getEntityById(PROJECT_KIND, projectId);
-}
-
-export async function getProjects(): Promise<Project[]> {
-  return loadEntities(PROJECT_KIND);
-}
-
-export async function getFeaturedProjects(limit = 3): Promise<Project[]> {
-  return (await getProjects()).slice(0, limit);
+export async function getProjects(): Promise<Entity[]> {
+  return collectionEntities(loadContentIndex().entities.values(), 'project');
 }

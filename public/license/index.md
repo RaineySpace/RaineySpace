@@ -1,4 +1,5 @@
 ---
+type: article
 title: 授权说明
 summary: 原创文字与摄影内容采用 CC BY-NC-ND 4.0，欢迎署名并非商业性分享原作。
 hidden: true

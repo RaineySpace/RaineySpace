@@ -1,32 +1,31 @@
 ---
+type: article
 title: 象山
 date: 2024-02-13
 summary: 2024 年 2 月在象山海边记录的风车、渔港、海岛与海风。
-cover: ./170A0661.JPG
 tags:
   - 摄影
   - 行旅
 location: 象山
 hidden: true
-photography: true
 ---
 
 ## 2 月 11 日
 
-![象山港码头停泊的渔船](./170A9973.JPG)
+![象山港码头停泊的渔船](./170A9973.JPG "photography")
 
 ## 2 月 13 日
 
-![沿海堤坝上走向远方的人](./170A0639.JPG)
+![沿海堤坝上走向远方的人](./170A0639.JPG "photography")
 
-![海岸礁石与远处的风电场](./170A0661.JPG)
+![海岸礁石与远处的风电场](./170A0661.JPG "photography")
 
-![海边观景台上眺望大海的人](./IMG_3758.jpg)
+![海边观景台上眺望大海的人](./IMG_3758.jpg "photography")
 
-![坐在海边眺望风车的人](./170A0692.JPG)
+![坐在海边眺望风车的人](./170A0692.JPG "photography")
 
-![风车旁拍照的人与海面](./IMG_3781.jpg)
+![风车旁拍照的人与海面](./IMG_3781.jpg "photography")
 
-![雾霾天中的海上风力发电机](./170A0707.JPG)
+![雾霾天中的海上风力发电机](./170A0707.JPG "photography")
 
-![远海与成排风力发电机](./IMG_0062.JPG)
+![远海与成排风力发电机](./IMG_0062.JPG "photography")

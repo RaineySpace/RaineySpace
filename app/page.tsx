@@ -2,7 +2,6 @@ import Link from 'next/link';
 import HomeSection from '@/app/components/HomeSection';
 import HoverCardList from '@/app/components/HoverCardList';
 import PhotoGallery from '@/app/components/PhotoGallery';
-import PostCard from '@/app/components/PostCard';
 import { author } from '@/lib/config';
 import { getContacts } from '@/lib/contacts';
 import { getFeaturedPhotos } from '@/lib/photography';
@@ -11,7 +10,8 @@ import { getWelcomeContent, getListedPosts } from '@/lib/posts';
 import JsonLd from '@/app/components/JsonLd';
 import { homeJsonLd, pageMetadata, pages } from '@/lib/seo';
 import EntityList from '@/app/components/EntityList';
-import { EntityContent } from '@/app/components/Entity';
+import Entity from '@/app/components/Entity';
+import EntityContent from '@/app/components/EntityContent';
 import { emptyCollectionMessage } from '@/lib/entity-rendering.ts';
 import { getFriends } from '@/lib/friends';
 import './[slug]/prose.css';
@@ -36,10 +36,10 @@ export default async function Home() {
         <EntityContent className="markdown" html={welcomeContent} />
       </section>
 
-      <HomeSection id="articles" title="字里行间" href="/articles" linkLabel="全部文章" description="写日常，写技术，也写那些还没有答案的事。">
+      <HomeSection id="articles" title="字里行间" href="/article" linkLabel="全部文章" description="写日常，写技术，也写那些还没有答案的事。">
         <HoverCardList>
           {posts.slice(0, 3).map((post) => (
-            <PostCard key={post.slug} post={post} />
+            <Entity key={post.slug} item={post} headingLevel="h2" />
           ))}
         </HoverCardList>
       </HomeSection>
@@ -48,19 +48,16 @@ export default async function Home() {
         <PhotoGallery photos={featuredPhotos} variant="strip" />
       </HomeSection>
 
-      <HomeSection id="projects" title="念有所成" href="/projects" linkLabel="全部项目" description="把偶然闪过的念头，做成值得留下的东西。">
+      <HomeSection id="projects" title="念有所成" href="/project" linkLabel="全部项目" description="把偶然闪过的念头，做成值得留下的东西。">
         <EntityList
           items={projects}
           variant="card"
-          appearance="chip"
           showIcon
-          hoverCard
-          placement="top"
           emptyLabel={emptyCollectionMessage.project}
         />
       </HomeSection>
 
-      <HomeSection id="friends" title="远近有邻" href="/friends" linkLabel="全部朋友" description="循着这些名字，去看看别处的生活。">
+      <HomeSection id="friends" title="远近有邻" href="/friend" linkLabel="全部朋友" description="循着这些名字，去看看别处的生活。">
         <EntityList
           items={friends}
           variant="inline"
@@ -80,6 +77,8 @@ export default async function Home() {
             variant="inline"
             appearance="icon"
             size="sm"
+            external
+            newTab
             showIcon
             placement="top"
             emptyLabel={emptyCollectionMessage.contact}

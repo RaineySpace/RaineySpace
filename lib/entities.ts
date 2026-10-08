@@ -1,63 +1,89 @@
-/** Canonical registry and rendering contract shared by projects, friends, and contacts. */
-export type EntityKind = "project" | "friend" | "contact";
-export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+import type { DisplayImage } from './optimized-images.ts';
 
-export interface EntityExtensions {
-  [key: string]: JsonValue | undefined;
-}
+/** A document's directory supplies its globally unique slug. */
+export const entityTypes = ['article', 'project', 'friend', 'contact'] as const;
+export type EntityType = typeof entityTypes[number];
 
-// Each kind can add typed, optional fields here without changing the shared renderer.
-export interface ProjectExtensions {
-  [key: string]: JsonValue | undefined;
-}
-export interface FriendExtensions {
-  [key: string]: JsonValue | undefined;
-}
-
-export interface ContactExtensions {
-  [key: string]: JsonValue | undefined;
-}
-
-export interface EntityExtensionsByKind {
-  contact: ContactExtensions;
-  project: ProjectExtensions;
-  friend: FriendExtensions;
-}
-
-/** Source JSON: the object key supplies id; the registry file supplies kind. */
-export interface EntityDefinition<Extensions extends EntityExtensions = EntityExtensions> {
+export interface EntityBase {
+  slug: string;
+  title: string;
   name: string;
-  title?: string;
-  url: string;
-  description?: string;
-  icon?: string;
-  date: string;
-  extensions?: Extensions;
-}
-
-/** Normalized data. All loaders return this shape without renaming fields. */
-export interface Entity<Kind extends EntityKind = EntityKind> {
-  id: string;
-  kind: Kind;
-  name: string;
-  title?: string;
-  url: string;
-  description?: string;
-  icon?: string;
+  summary: string;
   date: Date | null;
   dateText: string;
-  extensions: EntityExtensionsByKind[Kind];
+  updated: Date | null;
+  tags: string[];
+  keywords: string[];
+  icon: string;
+  cover: string;
+  /** Derived image variants, never an authored metadata field. */
+  coverImage?: DisplayImage;
+  location: string;
+  url: string;
+  redirect: boolean;
+  noindex: boolean;
+  showHeader: boolean;
 }
 
-export interface EntityRenderOptions {
-  variant?: "inline" | "card";
-  appearance?: "text" | "chip" | "icon";
-  /** Only affects inline entities; cards keep their fixed dimensions. */
-  size?: "sm" | "md" | "lg";
+export type Entity<Type extends EntityType = EntityType> = EntityBase & (
+  Type extends 'article'
+    ? { type: Type; hidden: boolean; pinned: boolean }
+    : { type: Type; hidden?: never; pinned?: never }
+);
+
+export function isIndexable(entity: Pick<Entity, 'noindex' | 'redirect'>) {
+  return !entity.noindex && !entity.redirect;
+}
+
+export function compareEntityDates(a: Entity, b: Entity): number {
+  if (!a.date && !b.date) return compareSlugs(a.slug, b.slug);
+  if (!a.date) return 1;
+  if (!b.date) return -1;
+  return b.date.getTime() - a.date.getTime() || compareSlugs(a.slug, b.slug);
+}
+
+function compareSlugs(a: string, b: string) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+export function collectionEntities(entities: Iterable<Entity>, type: EntityType): Entity[] {
+  return [...entities].filter((entity) => entity.type === type && !entity.hidden).sort((a, b) =>
+    type === 'article' && Boolean(a.pinned) !== Boolean(b.pinned)
+      ? a.pinned ? -1 : 1
+      : compareEntityDates(a, b));
+}
+
+export interface EntityNavigationOptions {
+  newTab?: boolean;
+  /** Only explicit contact actions (e.g. the homepage footer) bypass the document. */
+  external?: boolean;
+}
+
+export interface EntityInlineOptions extends EntityNavigationOptions {
+  appearance?: 'text' | 'chip' | 'icon';
+  size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
   hoverCard?: boolean;
   popoverShowIcon?: boolean;
-  placement?: "auto" | "top";
-  headingLevel?: "h2" | "h3";
-  newTab?: boolean;
+  placement?: 'auto' | 'top';
 }
+
+export interface EntityCardOptions extends EntityNavigationOptions {
+  headingLevel?: 'h2' | 'h3';
+  /** Standalone article cards use their text-only template. */
+  showIcon?: boolean;
+}
+
+export type EntityRenderOptions =
+  | (EntityCardOptions & {
+    variant?: 'card';
+    appearance?: never;
+    size?: never;
+    hoverCard?: never;
+    popoverShowIcon?: never;
+    placement?: never;
+  })
+  | (EntityInlineOptions & {
+    variant: 'inline';
+    headingLevel?: never;
+  });

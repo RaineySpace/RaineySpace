@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const reservedSlugs = new Set(["articles", "assets", "photography", "projects", "friends", "contacts", "feed", "_optimized"]);
+import { reservedSlugs } from '../lib/content-paths.ts';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -42,7 +42,8 @@ async function main() {
 
   await fs.mkdir(postDir, { recursive: false });
   await fs.writeFile(filePath, `---
-title: ${rawTitle}
+type: article
+title: ${JSON.stringify(rawTitle)}
 date: ${today()}
 summary: 
 tags: []

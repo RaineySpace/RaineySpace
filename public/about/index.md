@@ -1,6 +1,8 @@
 ---
+type: article
 title: 关于 Rainey
 summary: 关于 Rainey：写了十多年代码，现在重新创业，探索产品、AI 与生活。
+icon: /me.jpg
 hidden: true
 showHeader: false
 ---

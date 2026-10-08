@@ -1,30 +1,29 @@
 ---
+type: article
 title: 径山寺
 date: 2022-11-05
 summary: 2022 年 11 月，在径山寺记录的秋色、香火与山寺日常。
-cover: ./170A9215.JPG
 tags:
   - 摄影
   - 杭州
 location: 杭州
 hidden: true
-photography: true
 ---
 
-![秋日树木间的径山寺建筑与行人](./170A9215.JPG)
+![秋日树木间的径山寺建筑与行人](./170A9215.JPG "photography")
 
-![地面上燃烧的香火](./170A9241.JPG)
+![地面上燃烧的香火](./170A9241.JPG "photography")
 
-![香灰升起的烟雾](./170A9246.JPG)
+![香灰升起的烟雾](./170A9246.JPG "photography")
 
-![手里拿着的寺庙经文](./170A9247.JPG)
+![手里拿着的寺庙经文](./170A9247.JPG "photography")
 
-![手持写有“径山”的纸杯](./170A9250.JPG)
+![手持写有“径山”的纸杯](./170A9250.JPG "photography")
 
-![站在石栏旁仰望的游人](./170A9270.JPG)
+![站在石栏旁仰望的游人](./170A9270.JPG "photography")
 
-![山寺屋檐与蓝天](./170A9283.JPG)
+![山寺屋檐与蓝天](./170A9283.JPG "photography")
 
-![香炉中燃烧的线香](./170A9295.JPG)
+![香炉中燃烧的线香](./170A9295.JPG "photography")
 
-![池水中的白色锦鲤](./170A9305.JPG)
+![池水中的白色锦鲤](./170A9305.JPG "photography")

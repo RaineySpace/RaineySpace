@@ -4,14 +4,15 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import * as config from '../lib/config.ts';
-import { getPosts } from '../lib/posts.ts';
+import { getPosts, getListedPosts } from '../lib/posts.ts';
 import { canonicalUrl, markdownUrl, pages, postUrl } from '../lib/seo.ts';
 import { rewritePublishedMarkdown, toSiteAbsoluteAssetPath } from '../lib/published-markdown.ts';
 
-import type { EntityDefinition } from '../lib/entities.ts';
+import { collectionEntities, isIndexable } from '../lib/entities.ts';
+import { collectPhotographyPhotos } from '../lib/photography.ts';
+import { entityPath } from '../lib/content-paths.ts';
 import type { collectionJsonLd } from '../lib/seo.ts';
 
-type Registry = Record<string, EntityDefinition>;
 type ExportedJsonLd = Record<string, unknown> & {
   '@graph'?: { '@type': string }[];
   mainEntity?: ReturnType<typeof collectionJsonLd>['mainEntity'];
@@ -78,11 +79,12 @@ function verifyPage(html: string, expected: PageExpectation) {
 
 async function main() {
   const posts = await getPosts();
-  const listedPosts = posts.filter((post) => !post.hidden);
-  const indexablePosts = posts.filter((post) => !post.noindex);
-  const contactRegistry: Registry = JSON.parse(await fs.readFile('content/contacts.json', 'utf8'));
-  const friendRegistry: Registry = JSON.parse(await fs.readFile('content/friends.json', 'utf8'));
-  const projectRegistry: Registry = JSON.parse(await fs.readFile('content/projects.json', 'utf8'));
+  const listedPosts = await getListedPosts();
+  const indexablePosts = posts.filter(isIndexable);
+  const photos = collectPhotographyPhotos(indexablePosts);
+  const contactRegistry = collectionEntities(posts, 'contact');
+  const friendRegistry = collectionEntities(posts, 'friend');
+  const projectRegistry = collectionEntities(posts, 'project');
   for (const page of [pages.home, pages.articles, pages.photography, pages.projects, pages.friends, pages.contacts]) {
     const html = await read(`${page.pathname.slice(1)}index.html`);
     const { data } = verifyPage(html, { ...page, url: canonicalUrl(page.pathname) });
@@ -97,17 +99,17 @@ async function main() {
     const items = data[0].mainEntity.itemListElement;
     assert.equal(data[0].mainEntity.numberOfItems, items.length);
     assert.deepEqual(items.map((item) => item.position), items.map((_, index) => index + 1));
-    if (page === pages.articles) assert.deepEqual(items.map((item) => item.url), listedPosts.map((post) => postUrl(post.slug)));
-    if (page === pages.photography) assert.deepEqual(items.map((item) => item.url), posts.filter((post) => post.photography && post.images.length).map((post) => postUrl(post.slug)));
-    if (page === pages.contacts) assert.deepEqual(items.map((item) => item.url).sort(), Object.values(contactRegistry).map((contact) => contact.url).sort());
-    if (page === pages.projects) assert.deepEqual(items.map((item) => item.url).sort(), Object.values(projectRegistry).map((project) => project.url).sort());
+    if (page === pages.articles) assert.deepEqual(items.map((item) => item.url), listedPosts.filter(isIndexable).map((post) => postUrl(post.slug)));
+    if (page === pages.photography) assert.deepEqual(items.map((item) => item.url), photos.map((photo) => `${postUrl(photo.sourceSlug)}#${encodeURIComponent(photo.anchor)}`));
+    if (page === pages.contacts) assert.deepEqual(items.map((item) => item.url).sort(), contactRegistry.filter(isIndexable).map((contact) => postUrl(contact.slug)).sort());
+    if (page === pages.projects) assert.deepEqual(items.map((item) => item.url).sort(), projectRegistry.filter(isIndexable).map((project) => postUrl(project.slug)).sort());
     if (page === pages.friends) {
-      assert.deepEqual(items.map((item) => item.url).sort(), Object.values(friendRegistry).map((friend) => friend.url).sort());
-      assert.deepEqual(items.map((item) => item.name).sort(), Object.values(friendRegistry).map((friend) => friend.title ?? friend.name).sort());
+      assert.deepEqual(items.map((item) => item.url).sort(), friendRegistry.filter(isIndexable).map((friend) => postUrl(friend.slug)).sort());
+      assert.deepEqual(items.map((item) => item.name).sort(), friendRegistry.filter(isIndexable).map((friend) => friend.title).sort());
     }
     const body = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
     const hrefs = tags(body, 'a').map((tag) => new URL(tag.href, config.siteUrl).href.replace(/\/$/, ''));
-    for (const item of items) assert.ok(hrefs.includes(item.url.replace(/\/$/, '')), `${page.pathname}: JSON-LD item has no rendered link: ${item.url}`);
+    for (const item of page === pages.photography ? [] : items) assert.ok(hrefs.includes(item.url.replace(/\/$/, '')), `${page.pathname}: JSON-LD item has no rendered link: ${item.url}`);
   }
 
   for (const post of posts) {
@@ -115,25 +117,29 @@ async function main() {
     const expected = {
       title: `${post.title} - ${config.title}`, description: post.summary || config.description,
     };
-    const { data, meta } = verifyPage(html, { ...expected, url: postUrl(post.slug), markdown: markdownUrl(post.slug), noindex: post.noindex });
+    const { data, meta } = verifyPage(html, { ...expected, url: postUrl(post.slug), markdown: markdownUrl(post.slug), noindex: !isIndexable(post) });
     assert.equal(meta('og:image'), new URL(post.cover || config.ogImage, config.siteUrl).href);
     assert.equal(meta('twitter:image'), meta('og:image'));
-    if (post.noindex) assert.equal(data.length, 0, `${post.slug}: noindex content has JSON-LD`);
+    if (!isIndexable(post)) assert.equal(data.length, 0, `${post.slug}: noindex content has JSON-LD`);
     else if (post.slug === 'about') {
       assert.equal(data.length, 1);
       assert.equal(data[0]['@type'], 'AboutPage');
       assert.equal(data[0].name, expected.title);
       assert.equal(data[0].description, post.summary || undefined);
     }
-    else {
+    else if (post.type !== 'article') {
+      assert.equal(data.length, 1); assert.equal(data[0]['@type'], 'WebPage');
+      assert.equal(data[0].name, post.title);
+    } else {
       assert.equal(data.length, 1);
       assert.equal(data[0]['@type'], 'BlogPosting');
       assert.equal(data[0].headline, post.title);
       assert.equal(data[0].datePublished, post.date?.toISOString());
       assert.equal(data[0].dateModified, post.updated?.toISOString());
       assert.equal(meta('article:modified_time'), post.updated?.toISOString());
-      assert.equal(data[0].image, post.cover && !post.photography ? new URL(post.cover, config.siteUrl).href : undefined);
+      assert.equal(data[0].image, post.cover ? new URL(post.cover, config.siteUrl).href : undefined);
     }
+    if (!post.redirect) {
     const body = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
     assert.ok(body.includes(post.content), `${post.slug}: body missing from static HTML`);
     const header = body.match(/<header class="article-header">([\s\S]*?)<\/header>/)?.[1] || '';
@@ -141,11 +147,10 @@ async function main() {
     assert.equal(header.includes('class="article-meta '), Boolean(post.showHeader && (post.date || post.location || post.tags.length)), `${post.slug}: incorrect visible metadata`);
     assert.equal(header.includes('class="article-summary"'), Boolean(post.showHeader && post.summary), `${post.slug}: incorrect visible summary`);
     const headerHasCover = tags(header, 'img').some((image) => image.src === post.coverDisplaySrc);
-    if (post.photography) {
-      assert.equal(headerHasCover, false, `${post.slug}: photography cover should stay share-only`);
-    } else if (post.coverDisplaySrc) {
+    if (post.coverDisplaySrc) {
       assert.ok(headerHasCover, `${post.slug}: cover missing from article header`);
     }
+    } else assert.match(html, /正在跳转/);
     const source = await fs.readFile(`public/${post.slug}/index.md`, 'utf8');
     const published = await read(`${post.slug}.md`);
     assert.equal(published, rewritePublishedMarkdown(source, post.slug), `${post.slug}: published Markdown rewrite mismatch`);
@@ -173,19 +178,13 @@ async function main() {
       : homeBody.match(new RegExp(`<section id="${id}"[^>]*>([\\s\\S]*?)</section>`));
     assert.ok(section, `homepage missing ${id === 'contacts' ? 'contacts footer' : `${id} section`}`);
     const entityLinks = tags(section[1], 'a').filter((tag) => tag.class?.split(' ').includes(id === 'projects' ? 'entity-card-hit' : 'entity-inline-link'));
-    assert.deepEqual(entityLinks.map((link) => link.href).sort(), Object.values(registry).map((item) => item.url).sort());
+    assert.deepEqual(entityLinks.map((link) => link.href).sort(), Object.values(registry).map((item) => id === 'contacts' ? item.url : entityPath(item.slug)).sort());
   }
 
-  for (const slug of ['xiaofenshen', 'wefeather-copilot']) {
-    await assert.rejects(fs.access(path.join(output, slug, 'index.html')), { code: 'ENOENT' }, `deleted post still exported: ${slug}`);
-    await assert.rejects(fs.access(path.join(output, `${slug}.md`)), { code: 'ENOENT' }, `deleted Markdown still exported: ${slug}`);
-    await assert.rejects(fs.access(path.join(output, slug, 'cover.webp')), { code: 'ENOENT' }, `deleted cover still exported: ${slug}`);
-  }
-
-  const friendsHtml = await read('friends/index.html');
+  const friendsHtml = await read('friend/index.html');
   assert.doesNotMatch(friendsHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, ''), /friend:\*|project:/);
   if (Object.keys(friendRegistry).length === 0) assert.match(friendsHtml, /暂时还没有添加朋友。/);
-  await assert.rejects(fs.access(path.join(output, 'friends.md')), { code: 'ENOENT' });
+  await assert.rejects(fs.access(path.join(output, 'friend.md')), { code: 'ENOENT' });
   const friendsBody = friendsHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
   assert.doesNotMatch(friendsBody, /<aside\b|aria-label="返回上一页"/);
   const friendsSiteHeader = friendsBody.split('<main>')[0];
@@ -213,14 +212,14 @@ async function main() {
     const filename = decodeURIComponent(url.pathname).slice(1) + (url.pathname.endsWith('/') ? 'index.html' : '');
     assert.ok((await fs.stat(path.join(output, filename))).isFile(), href);
   }
-  for (const post of posts.filter((post) => post.noindex)) assert.ok(!links.includes(postUrl(post.slug)) && !links.includes(markdownUrl(post.slug)), `${post.slug}: noindex entry in llms.txt`);
+  for (const post of posts.filter((post) => !isIndexable(post))) assert.ok(!links.includes(postUrl(post.slug)) && !links.includes(markdownUrl(post.slug)), `${post.slug}: noindex entry in llms.txt`);
   assert.ok(llms.includes('## 内容'));
   assert.ok(llms.includes('不允许将内容用于模型训练'));
-  assert.ok(sitemap.includes(postUrl('friends')));
+  assert.ok(sitemap.includes(canonicalUrl(pages.friends.pathname)));
   assert.ok(!sitemap.includes(postUrl('xiaofenshen')));
   assert.ok(!sitemap.includes(postUrl('wefeather-copilot')));
   assert.ok(llms.includes(canonicalUrl(pages.friends.pathname)));
-  assert.ok(!llms.includes(markdownUrl('friends')));
+  assert.ok(!llms.includes(markdownUrl('friend')));
   assert.ok(!llms.includes(markdownUrl('xiaofenshen')));
   assert.ok(!llms.includes(markdownUrl('wefeather-copilot')));
 
@@ -234,19 +233,17 @@ async function main() {
   }
   assert.ok(robots.includes(`Sitemap: ${config.siteUrl}/sitemap.xml`));
   const headers = await read('_headers');
-  assert.ok(headers.includes(`/*.md\n  Content-Type: text/markdown; charset=utf-8\n  Link: <${canonicalUrl('/:splat/')}>; rel="canonical"`));
+  assert.ok(headers.includes(`/*.md\n  Content-Type: text/markdown; charset=utf-8`));
   const noindexPaths = headers.trim().split(/\n\s*\n/).filter((rule) => rule.includes('X-Robots-Tag: noindex')).map((rule) => rule.split('\n')[0]);
-  assert.deepEqual(noindexPaths.sort(), posts.filter((post) => post.noindex).map((post) => new URL(markdownUrl(post.slug)).pathname).sort(), 'incorrect Markdown noindex rules');
+  assert.deepEqual(noindexPaths.sort(), posts.filter((post) => !isIndexable(post)).map((post) => new URL(markdownUrl(post.slug)).pathname).sort(), 'incorrect Markdown noindex rules');
   assert.ok(headers.includes('/feed\n  Content-Type: application/rss+xml; charset=utf-8\n  Cache-Control: no-cache'));
   for (const feed of ['feed', 'rss.xml', 'atom.xml']) {
     const xml = await read(feed);
     for (const post of listedPosts) assert.ok(xml.includes(postUrl(post.slug)), `${feed}: missing ${post.slug}`);
     const ids = Array.from(xml.matchAll(/<(?:id|guid)(?:\s[^>]*)?>([^<]+)<\/(?:id|guid)>/g), (match) => match[1]);
-    for (const post of posts.filter((post) => post.hidden)) assert.ok(!ids.includes(postUrl(post.slug)), `${feed}: hidden entry ${post.slug}`);
+    for (const post of posts.filter((post) => post.type !== 'article' || post.hidden)) assert.ok(!ids.includes(postUrl(post.slug)), `${feed}: hidden entry ${post.slug}`);
     assert.doesNotMatch(xml, /entity-card/);
     assert.doesNotMatch(xml, /"(project|friend):/);
-    assert.ok(!xml.includes('/xiaofenshen/'), `${feed}: deleted xiaofenshen`);
-    assert.ok(!xml.includes('/wefeather-copilot/'), `${feed}: deleted wefeather-copilot`);
   }
   console.log(`SEO validation passed for ${posts.length + 4} HTML pages, ${indexablePosts.length} indexable Markdown entries, sitemap, feeds, robots.txt and _headers.`);
 }

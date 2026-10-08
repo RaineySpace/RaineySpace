@@ -24,9 +24,6 @@ test('image pipeline serves responsive previews, preserves originals and handles
   try {
     await fs.mkdir(postDir, { recursive: true });
     await fs.mkdir(path.join(directory, 'content'), { recursive: true });
-    await fs.writeFile(path.join(directory, 'content/projects.json'), '{}');
-    await fs.writeFile(path.join(directory, 'content/friends.json'), '{}');
-    await fs.writeFile(path.join(directory, 'content/contacts.json'), '{}');
     await picture(2400, 1200).jpeg().toFile(path.join(postDir, 'photo.jpg'));
     await picture(800, 600).png().toFile(path.join(postDir, 'photo.png'));
     await picture(1200, 600).withMetadata({ orientation: 6 }).jpeg().toFile(path.join(postDir, 'rotated.jpg'));
@@ -36,7 +33,7 @@ test('image pipeline serves responsive previews, preserves originals and handles
     const frames = Buffer.concat([Buffer.alloc(8 * 8 * 3, 0), Buffer.alloc(8 * 8 * 3, 255)]);
     await sharp(frames, { raw: { width: 8, height: 16, channels: 3, pageHeight: 8 } }).gif({ delay: [100, 100] }).toFile(path.join(postDir, 'animated.gif'));
     const original = await fs.readFile(path.join(postDir, 'photo.jpg'));
-    const markdown = `---\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\ncover: ./photo.jpg\n---\n` +
+    const markdown = `---\ntype: article\ntitle: Sample\nsummary: Summary\ndate: 2024-02-01\ncover: ./photo.jpg\n---\n` +
       ['photo.jpg', 'photo.png', 'rotated.jpg', 'portrait.jpg', 'small.png', '中文 image,1.png', 'animated.gif'].map((name) => `![Image](<./${name}>)`).join('\n\n');
     await fs.writeFile(path.join(postDir, 'index.md'), markdown);
     await fs.writeFile(path.join(postDir, 'photo.mov'), 'live photo fixture');
@@ -85,7 +82,18 @@ test('image pipeline serves responsive previews, preserves originals and handles
     assert.equal('pipelineHash' in post.coverImage, false);
     assert.match(post.content, /data-live-src="\/sample\/photo.mov"/);
 
-    await fs.writeFile(path.join(postDir, 'index.md'), '---\nhidden: true\n---\n![Small](./small.png)');
+    // A referring document must use the target's optimized cover, not its own directory.
+    await fs.mkdir(path.join(directory, 'public/referrer'));
+    await fs.writeFile(path.join(directory, 'public/referrer/index.md'), '---\ntype: article\ntitle: Referrer\nhidden: true\n---\n引用 [Sample](/sample/#anchor)。');
+    const referrer = await getPostBySlug('referrer');
+    assert.ok(referrer.content.includes(`class="entity-card-cover" src="${manifest['/sample/photo.jpg'].thumbnailSrc}"`));
+    assert.ok(referrer.content.includes(`srcset="${manifest['/sample/photo.jpg'].srcSet}"`));
+    assert.match(referrer.content, /sizes="48px"/);
+    assert.doesNotMatch(referrer.content, /src="(?:\.\/photo.jpg|\/referrer\/photo.jpg)"|data-image-preview/);
+    assert.equal('sourceHash' in referrer.outgoing[0].coverImage!, false);
+    assert.equal('pipelineHash' in referrer.outgoing[0].coverImage!, false);
+
+    await fs.writeFile(path.join(postDir, 'index.md'), '---\ntype: article\ntitle: Sample\nhidden: true\n---\n![Small](./small.png)');
     optimize();
     const cleaned = JSON.parse(await fs.readFile(path.join(directory, 'public/_optimized/manifest.json'), 'utf8'));
     assert.deepEqual(Object.keys(cleaned), ['/sample/small.png']);

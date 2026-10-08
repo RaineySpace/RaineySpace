@@ -145,8 +145,8 @@ description: 通过多轮对话把模糊想法发展成完整文章。用户想�
 仅在用户明确要求写入项目时执行：
 
 1. 保存到 `public/<slug>/index.md`，不要移动现有文章目录。
-2. 使用项目要求的 frontmatter：`title`、`date`、`summary` 和可选 `tags`；从文章列表、标签统计、相关阅读和 RSS/Atom 隐藏时使用 `hidden: true`，摄影归属与索引不受影响。`noindex` 默认 `false`；明确需要禁止索引时设为 `true`，同时从 sitemap、`llms.txt` 和详情页 JSON-LD 排除，但仍可直接访问。`showHeader` 默认 `true`；需要保留完整 SEO 元数据并隐藏自动标题、日期、地点、标签和摘要时设为 `false`，封面、正文、目录与导航不受影响。两个新字段仅接受 YAML 布尔值；常规文章省略默认开关。
-3. 将本地资源放在同一文章目录中，并使用 `./image.png` 形式的相对路径。
+2. 使用项目要求的 frontmatter：`type: article`、`title`、`date`、`summary` 和可选 `tags`、SEO 专用 `keywords`；从文章列表、标签统计和 RSS/Atom 隐藏时使用 `hidden: true`，摄影归属、索引与文档引用关系不受影响。`noindex` 默认 `false`；明确需要禁止索引时设为 `true`，同时从 sitemap、`llms.txt` 和详情页 JSON-LD 排除，但仍可直接访问。`showHeader` 默认 `true`；需要保留完整 SEO 元数据并隐藏自动标题、日期、地点、标签和摘要时设为 `false`，封面、正文、目录与导航不受影响。两个新字段仅接受 YAML 布尔值；常规文章省略默认开关。
+3. 将本地资源放在同一文章目录中，并使用 `./image.png` 形式的相对路径。只有需要收录到摄影列表的图片才写 `![说明](./photo.jpg "photography")`，标记图片必须有非空 alt；不写文档级 `photography`。图集仍是 article，可用 hidden 隐藏且省略 cover。实体引用写普通本站内链，独立段落的实体或集合链接会展开卡片／列表，行内引用保留作者文字。
 4. 保持日期格式为 `YYYY-MM-DD`，不要修改作为 GitHub 主页的 `README.md`。
 5. 写入后运行 `pnpm validate:content` 和 `pnpm build`。区分已有警告与本次新增问题。
 

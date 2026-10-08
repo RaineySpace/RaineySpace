@@ -14,18 +14,20 @@ The homepage intro reads root `WELCOME.md`. `README.md` is used only for the Git
 - `app/rss.xml/route.ts` and `app/atom.xml/route.ts` generate feeds.
 - `app/sitemap.xml/route.ts` and `app/robots.txt/route.ts` generate SEO metadata files.
 - `lib/config.ts` contains site metadata such as `siteUrl`, author, avatar, and title.
-- `lib/posts.ts` is the content data layer. Keep Markdown parsing, frontmatter normalization, date formatting, article-channel/indexable-content filtering, and feed data behavior centralized there. `lib/post-options.ts` shares `noindex` and `showHeader` parsing with maintenance scripts. `lib/registry.ts` and `lib/markdown-refs.ts` share project/friend registry reading, entry-order preservation, and Markdown data-reference expansion with pages, validation, and published Markdown export.
-- `content/projects.json`, `content/friends.json`, and `content/contacts.json` share the Entity schema in `lib/entities.ts`: names, optional titles, links, dates, descriptions, `icon`, and per-kind `extensions`. `lib/registry.ts` validates and normalizes both without field adapters.
-- `lib/entity-rendering.ts` is the single HTML renderer for React `Entity` / `EntityList` and Markdown references. Keep inline, card, hover-card, icon, and no-icon variants there; see `docs/entities.md`.
+- `lib/posts.ts` renders document bodies, images, article views and feeds. `lib/content-index.ts` reads all Markdown metadata before extracting relationships, without recursive rendering. `lib/entity-metadata.ts` centralizes metadata validation; `lib/post-options.ts` and `lib/post-dates.ts` share option/date rules.
+- Every entity is a `public/<slug>/index.md` document with `type: article | project | friend | contact`. `lib/entities.ts` defines shared attributes and article-only flags. `lib/markdown-refs.ts` resolves ordinary internal links; `lib/content-paths.ts` shares routes, reserved slugs and asset paths. There are no JSON entity registries.
+- `lib/entity-rendering.ts` is the single HTML renderer for React `Entity` / `EntityList` and Markdown references. Public render functions dispatch through `getEntityPresentation(type)` with default templates and exhaustive type overrides; keep concrete templates internal. `EntityRenderOptions` separates card and inline parameters. `EntityDetail` / `EntityHeader` share detail presentation while the route handles content, SEO and redirects; see `docs/entity-rendering-design.md`.
+- `Entity` renders HTML on the page's server side; `EntityContent` is the client interaction boundary and only receives HTML. Do not serialize complete `Post` bodies and image lists into client card props.
 - `public/<slug>/index.md` is the source format for posts. The same directory holds referenced assets.
 - `scripts/` contains local maintenance scripts.
 
 ## Content Model
 
-Posts are directories under `public/` with an `index.md` file. Public posts should include:
+Documents are directories under `public/` with an `index.md` file. A public article includes:
 
 ```yaml
 ---
+type: article
 title: Post title
 date: YYYY-MM-DD
 summary: Short summary
@@ -33,40 +35,30 @@ tags: []
 ---
 ```
 
-Optional collection metadata:
+Full attribute meanings and rendering rules are in `docs/entities.md`; photography and tag vocabulary are in `docs/content-collections.md`. The directory slug is the identity: do not add metadata `id`, `slug`, `order`, `related`, `description` or `extensions`. All types require `type` and `title`; non-article bodies may be empty. `summary` is the shared description; optional `name` defaults to `title` and is only needed for a distinct short name. Retain `keywords` for SEO independently of visible tags. Unknown fields are errors.
 
-```yaml
-location: Hangzhou
-pinned: true
-photography: true
-cover: ./cover.webp
-```
+Articles alone support `hidden` and `pinned`. `hidden: true` excludes articles from article lists, tag counts and RSS/Atom; it does not affect access, references, photography or indexing. About, license and test use hidden articles; there is no `page` type. Public articles require `date` and `summary`; hidden articles and other entities may omit dates. Never invent dates from filesystem timestamps.
 
-`cover` is optional. Prefer a local file in the post directory with a relative path such as `./cover.webp`. When present, the cover is used for Open Graph / Twitter sharing. For ordinary posts it also renders after the summary (or other header metadata when no summary exists) and before the body on the article page only; article lists never show covers. Photography posts keep `cover` for sharing metadata but do not render it on the album page. Posts without `cover` keep the original title-first layout and must not use body images as a fallback cover.
+`noindex` defaults to false; effective indexing exclusion is `noindex || redirect`, applied to HTML, Markdown headers, sitemap, llms.txt and JSON-LD. It does not exclude entities from lists, photos or references. `showHeader` defaults to true and only hides the generated header, leaving cover, body, TOC and relationships. Boolean metadata requires actual YAML booleans.
 
-Use `hidden: true` to exclude content from article listings, tag statistics, and RSS/Atom. It does not affect indexing, photography, or registered project/friend membership.
+`url` is an optional HTTP(S) destination; contacts require it and also support mailto. `redirect: true` requires HTTP(S) and redirects the entity HTML route; Markdown and assets remain accessible. New/old collection routes are reserved. Collections use `/article/`, `/project/`, `/friend/`, `/contact/`; old plurals have generated 301 redirects. Entity cards use the local slug, while homepage footer contacts explicitly use their contact URL.
 
-`noindex` defaults to `false`. Set `noindex: true` to emit HTML `noindex, follow` and Markdown `X-Robots-Tag: noindex`, and exclude the content from sitemap, `llms.txt`, and JSON-LD. It does not prevent direct access or hide content from article/photography/project collections. Indexable hidden content belongs in sitemap and `llms.txt`; omit unavailable dates rather than inventing them.
+`icon` is an HTTPS URL or site-absolute public path for small graphics. `cover` is optional, preferably a document-relative asset. It appears in details, sharing and hover previews, never in lists. All four types share the default `popover` standard card: 48px media on the left, title and summary on the right. Media prefers cover, then icon, then the title initial, including on load failure. Covers crop to fill; icons preserve their proportions. Article list cards keep their text layout. The content index supplies derived `coverImage` variants for optimized previews. Missing cover uses the site sharing image for SEO only, never a body-image fallback. Keep local resources beside the document.
 
-`showHeader` defaults to `true`. Set `showHeader: false` to hide the generated title, date, location, tags, and summary while retaining those values for SEO. Covers, body content, and table of contents remain available. Both new fields require actual YAML booleans; strings and null values are invalid. Ordinary posts should omit these default options.
+Ordinary Markdown links to an entity create references. Inline links preserve author labels and show previews; sole text links in top-level paragraphs expand entities to cards or collections to lists. Query/hash/Markdown-file links keep navigation semantics. Extract references from original Markdown before expansion; deduplicate and ignore self-links. Include hidden/noindex/redirect documents; exclude WELCOME.md, code, image tokens and generated chrome. Expanding a collection does not create edges to members.
 
-Projects and friends are registered in `content/projects.json` and `content/friends.json`. Registration is enough to display them; they do not need a referencing post. Display projects, friends, and contacts in their JSON registry entry order; `date` and ID do not reorder entities. Entity registries do not support `pinned`. Cite them from Markdown with standard link titles such as `"project:xiaofenshen"` or `"friend:*"`. Do not put `projectId` or other project display fields in post frontmatter.
+Photography is an image-level title marker: `![Description](./photo.jpg "photography")`. Marked images require local relative paths within the document and nonempty alt. Deduplicate per document/path, including when only a later occurrence is marked. The photography page is a flat grid. Sort by EXIF capture time, falling back to document date, then source slug/body order; no article pinning. The homepage shows the first six. Preserve EXIF, image optimization and same-name `.mov` / `.MOV` Live Photo behavior. Old albums are hidden articles with no cover or document-level photography field; retain their images.
 
-Both registries use `name`, optional `title`, `url`, `date`, optional `description`, `icon`, and `extensions`. Inline links use `name`; cards and collection metadata use `title ?? name`. `icon` is an HTTPS URL or site-absolute public path; project `cover` is no longer accepted (article frontmatter `cover` is unchanged). Kind-specific fields belong in the JSON object `extensions`, with independent TypeScript interfaces for projects and friends. Extensions do not override shared fields or render automatically.
-
-Local assets referenced by a post should live in the same post directory. Prefer relative paths such as `./image.png`.
-The public Markdown URL is `/<slug>.md`. Build copies `public/<slug>/index.md` there, rewrites relative asset paths such as `./cover.webp` to site-absolute `/<slug>/...` URLs, and deletes the copied `out/<slug>/index.md` so it is not a second public document. Source files keep `./` paths. Do not keep a second source file at `public/<slug>.md`.
-Photography images must use relative Markdown image paths with non-empty alt text.
-A sibling `.mov` / `.MOV` with the same filename as a still image enables Live Photo playback; Markdown should still reference only the still.
+The public Markdown URL is `/<slug>.md`. Build publishes it from `index.md`, rewrites relative assets including titled/reference images, expands collection links to Markdown lists, and removes `out/<slug>/index.md`. Source paths stay relative. Do not maintain a second source file.
 
 ## Implementation Rules
 
 - Preserve the current static export model in `next.config.ts`.
 - Do not add a CMS, database, server runtime dependency, or dynamic hosting requirement unless explicitly requested.
-- Keep article-channel filtering based on `hidden`; photography membership is independent of `hidden`. Registered projects and friends are shown from their registries and do not depend on post references.
+- Keep article filtering based on `type === article && !hidden`; entity collections use type and photography uses image markers. Membership never depends on references.
 - Keep date display stable as `YYYY-MM-DD`.
 - Keep tags optional; when assigning them, follow the vocabulary in `docs/content-collections.md`.
-- Keep homepage articles and photography ordered by post `pinned` first and post date descending. Keep projects, friends, and contacts in their JSON registry entry order. Feeds remain strictly date-ordered.
+- Articles use pinned first then date descending. Other entities use date descending, missing dates last, ties by slug. Feeds remain strictly date-ordered. Photography uses its capture-time ordering.
 - Keep the visual style lightweight and personal; avoid broad redesigns unless explicitly requested.
 - Tailwind CSS 4 uses `@tailwindcss/postcss` and explicitly loads `tailwind.config.ts` from `app/globals.css`. Keep element defaults in `@layer base` so utilities can override them. Preserve photography `transform` matrices used by lightbox opening geometry.
 - Do not move Markdown posts out of `public/<slug>/index.md` without an explicit migration request.
@@ -94,7 +86,7 @@ pnpm new-post <slug> [title]
 pnpm deploy:cf
 ```
 
-`pnpm build` is the primary verification command. The deployed artifact is `out/`. Its `postbuild` step generates `out/_headers` from site configuration and content metadata; do not add a second handwritten `public/_headers` source. A failed header-generation step must fail the build.
+`pnpm build` is the primary verification command. The deployed artifact is `out/`. Its `postbuild` step generates `out/_headers` and `out/_redirects` from content metadata. Do not maintain handwritten public copies. Entity 302 rules match only the exact HTML paths; never redirect assets or `.md`. A failed header-generation step must fail the build.
 
 `pnpm validate:content` should pass before shipping. Warnings about missing local images should be investigated but are not currently fatal.
 
@@ -102,6 +94,6 @@ pnpm deploy:cf
 
 - `README.md` is the user's GitHub public profile and should remain untouched.
 - The current static site target is Cloudflare Pages.
-- `my-programmer-growth-journey` currently references a missing local attachment and the validator reports it as a warning.
+- Investigate missing-image warnings from the current validator output; photography missing assets are fatal.
 
-Contacts use the shared `contact` entity kind in `content/contacts.json`, with `contact:id` / `contact:*` Markdown references and `lib/contacts.ts` loaders. Official site icons are stored in `public/assets/contacts/`; provenance is documented in `docs/entities.md`. Contacts appear on the homepage, through references, and on the standalone `/contacts/` collection route, with the same card layout as projects and friends.
+Contacts are Markdown entities with `type: contact`. Official icon assets remain in `public/assets/contacts/`; provenance is documented in `docs/entities.md`. Homepage contact actions directly use `url`; the `/contact/` collection and references use local entity details.

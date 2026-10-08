@@ -34,8 +34,8 @@ function toPreviewImage(photo: Photo): PreviewImage {
     iso: photo.iso,
     focalLength: photo.focalLength,
     focalLength35mm: photo.focalLength35mm,
-    sourceHref: `/${photo.sourceSlug}/`,
-    sourceLabel: `查看图集《${photo.sourceTitle}》`,
+    sourceHref: `/${encodeURIComponent(photo.sourceSlug)}/#${encodeURIComponent(photo.anchor)}`,
+    sourceLabel: `查看出处《${photo.sourceTitle}》`,
     sourceTitle: photo.sourceTitle,
     liveVideoSrc: photo.liveVideoSrc,
   };

@@ -1,4 +1,5 @@
 ---
+type: article
 title: Markdown 语法测试文档
 summary: 这是一个完整的 Markdown 语法测试文档，包含所有常用的 Markdown 元素。
 cover: ./cover.webp
@@ -532,39 +533,39 @@ gantt
 
 ## 数据引用
 
-行内项目：[小分身](https://xiaofenshen.com "project:xiaofenshen") 和集合 [全部项目](https://rainey.space/projects/ "project:*")。
+行内项目：[小分身](/xiaofenshen/) 和集合 [全部项目](/project/)。
 
 独立项目卡：
 
-[小分身](https://xiaofenshen.com "project:xiaofenshen")
+[小分身](/xiaofenshen/)
 
 全部项目卡：
 
-[全部项目](https://rainey.space/projects/ "project:*")
+[全部项目](/project/)
 
 列表、引用中保持行内：
 
-- [微羽助手](https://www.wefeather.cn "project:wefeather-copilot")
+- [微羽助手](/wefeather-copilot/)
 
-> [小分身](https://xiaofenshen.com "project:xiaofenshen")
+> [小分身](/xiaofenshen/)
 
 ---
 
-行内友链：[Season](https://seasonx.life "friend:Season") 和集合 [全部友链](https://rainey.space/friends/ "friend:*")。
+行内友链：[Season](/Season/) 和集合 [全部友链](/friend/)。
 
 独立友链卡：
 
-[Season](https://seasonx.life "friend:Season")
+[Season](/Season/)
 
 全部友链：
 
-[全部友链](https://rainey.space/friends/ "friend:*")
+[全部友链](/friend/)
 
 列表、引用中保持行内：
 
-- [Season](https://seasonx.life "friend:Season")
+- [Season](/Season/)
 
-> [Season](https://seasonx.life "friend:Season")
+> [Season](/Season/)
 
 ---
 

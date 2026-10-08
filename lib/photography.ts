@@ -20,16 +20,9 @@ export interface Photo {
   focalLength?: string;
   focalLength35mm?: string;
   sourceSlug: string;
+  anchor: string;
   sourceTitle: string;
   liveVideoSrc?: string;
-}
-
-export interface PhotographyAlbum {
-  slug: string;
-  title: string;
-  date: string;
-  location?: string;
-  photos: Photo[];
 }
 
 function toPhoto(image: PostImage, post: Post): Photo {
@@ -53,28 +46,29 @@ function toPhoto(image: PostImage, post: Post): Photo {
     focalLength: image.focalLength,
     focalLength35mm: image.focalLength35mm,
     sourceSlug: post.slug,
+    anchor: image.anchor,
     sourceTitle: post.title,
     liveVideoSrc: image.liveVideoSrc,
   };
 }
 
-export async function getPhotographyAlbums(): Promise<PhotographyAlbum[]> {
-  const posts = await getPosts();
-
-  return posts
-    .filter((post) => post.photography)
-    .map((post) => ({
-      slug: post.slug,
-      title: post.title,
-      date: formatDate(post.date),
-      location: post.location || undefined,
-      photos: post.images.map((image) => toPhoto(image, post)),
-    }))
-    .filter((album) => album.photos.length > 0);
+export function collectPhotographyPhotos(posts: Post[]): Photo[] {
+  const rows = posts.flatMap((post) => post.images.map((image, order) => ({ post, image, order })))
+    .filter(({ image }) => image.photography);
+  const timestamp = ({ post, image }: typeof rows[number]) => {
+    const captured = image.capturedAt ? new Date(image.capturedAt).getTime() : NaN;
+    return Number.isFinite(captured) ? captured : post.date?.getTime() ?? -Infinity;
+  };
+  rows.sort((a, b) => {
+    const dateOrder = timestamp(b) - timestamp(a);
+    if (dateOrder && !Number.isNaN(dateOrder)) return dateOrder;
+    return (a.post.slug < b.post.slug ? -1 : a.post.slug > b.post.slug ? 1 : 0) || a.order - b.order;
+  });
+  return rows.map(({ post, image }) => toPhoto(image, post));
 }
 
 export async function getPhotographyPhotos(): Promise<Photo[]> {
-  return (await getPhotographyAlbums()).flatMap((album) => album.photos);
+  return collectPhotographyPhotos(await getPosts());
 }
 
 export async function getFeaturedPhotos(limit = 6): Promise<Photo[]> {

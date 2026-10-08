@@ -10,7 +10,6 @@ async function withWorkspace(run: (directory: string) => Promise<void>) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rainey-ts-cli-'));
   try {
     for (const name of ['public', 'content', 'out']) await fs.mkdir(path.join(directory, name));
-    for (const kind of ['projects', 'friends', 'contacts']) await fs.writeFile(path.join(directory, 'content', `${kind}.json`), '{}');
     await run(directory);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
@@ -27,12 +26,12 @@ function cli(directory: string, name: string, ...args: string[]) {
 test('native TypeScript new-post CLI uses the working directory and preserves argument and error handling', async () => {
   await withWorkspace(async (directory) => {
     assert.equal(cli(directory, 'new-post').status, 1);
-    assert.equal(cli(directory, 'new-post', 'projects').status, 1);
+    for (const route of ['project', 'projects', 'article', 'friend', 'contact', 'photography', 'feed']) assert.equal(cli(directory, 'new-post', route).status, 1);
     const created = cli(directory, 'new-post', '中文 Hello World', '测试标题');
     assert.equal(created.status, 0, created.stderr);
     const filename = path.join(directory, 'public/中文-hello-world/index.md');
     const content = await fs.readFile(filename, 'utf8');
-    assert.match(content, /title: 测试标题\ndate: \d{4}-\d{2}-\d{2}/);
+    assert.match(content, /type: article\ntitle: "测试标题"\ndate: \d{4}-\d{2}-\d{2}/);
     assert.equal(cli(directory, 'new-post', '中文 Hello World', 'Overwrite').status, 1);
     assert.equal(await fs.readFile(filename, 'utf8'), content);
   });
@@ -41,7 +40,7 @@ test('native TypeScript new-post CLI uses the working directory and preserves ar
 test('native TypeScript export and headers CLIs resolve code from import.meta.url and content from cwd', async () => {
   await withWorkspace(async (directory) => {
     const slug = '中文 #1';
-    const markdown = '---\ntitle: Sample\ndate: 2024-02-01\nsummary: Summary\nnoindex: true\ncover: ./photo.png\n---\n![Photo](./photo.png)\n';
+    const markdown = '---\ntype: article\ntitle: Sample\ndate: 2024-02-01\nsummary: Summary\nnoindex: true\ncover: ./photo.png\n---\n![Photo](./photo.png)\n';
     for (const base of ['public', 'out']) {
       await fs.mkdir(path.join(directory, base, slug));
       await fs.writeFile(path.join(directory, base, slug, 'index.md'), markdown);
@@ -57,7 +56,7 @@ test('native TypeScript export and headers CLIs resolve code from import.meta.ur
     await fs.writeFile(path.join(directory, 'public', slug, 'index.md'), '[Missing](https://example.com "project:missing")');
     const rejected = cli(directory, 'export-markdown');
     assert.equal(rejected.status, 1);
-    assert.match(rejected.stderr, /unknown project "missing"/);
+    assert.match(rejected.stderr, /frontmatter "type"/);
   });
 });
 

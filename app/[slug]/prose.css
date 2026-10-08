@@ -86,6 +86,13 @@
   letter-spacing: normal;
 }
 
+.markdown .article-header > img {
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  background: transparent;
+}
+
 .markdown .article-cover img {
   margin: 0;
   width: 100%;
@@ -213,7 +220,7 @@
 }
 
 /* The line belongs to the complete inline link, including the animated arrow. */
-.markdown a:not(:has(img)):not(.entity-inline-link) {
+.markdown a:not(:has(img)):not(.entity-inline-link):not(.post-card) {
   border-bottom: 1px solid var(--border);
   transition: border-color 200ms;
   padding-bottom: 2px;
@@ -221,18 +228,18 @@
   box-decoration-break: clone;
 }
 
-.markdown a:not(:has(img)):not(.entity-inline-link):focus-visible { border-bottom-color: var(--title); }
+.markdown a:not(:has(img)):not(.entity-inline-link):not(.post-card):focus-visible { border-bottom-color: var(--title); }
 
-.markdown a:not(:has(img)):not(.entity-inline-link)::after {
+.markdown a:not(:has(img)):not(.entity-inline-link):not(.post-card)::after {
   content: "↗";
   display: inline-block;
   padding-left: 4px;
   text-decoration: none;
   transition: transform 200ms ease;
 }
-.markdown a:not(:has(img)):not(.entity-inline-link):focus-visible::after { transform: translate(0.1em, -0.1em); }
+.markdown a:not(:has(img)):not(.entity-inline-link):not(.post-card):focus-visible::after { transform: translate(0.1em, -0.1em); }
 @media (prefers-reduced-motion: reduce) {
-  .markdown a:not(:has(img)):not(.entity-inline-link)::after { transition: none; transform: none !important; }
+  .markdown a:not(:has(img)):not(.entity-inline-link):not(.post-card)::after { transition: none; transform: none !important; }
 }
 
 .markdown a img {
@@ -486,10 +493,27 @@ html[data-theme="dark"] .markdown strong a {
 .markdown mark { background: var(--surface-muted); color: inherit; }
 .markdown input[type="checkbox"] { accent-color: var(--title); }
 
-/* Project / friend cards keep their own layout and must not inherit prose decorations. */
+/* Entity cards keep their own layout and must not inherit prose decorations. */
 .markdown .entity-card-list {
   margin-top: 16px;
   margin-bottom: 16px;
+}
+.markdown a.post-card {
+  border-bottom: none;
+  padding-bottom: 12px;
+  white-space: normal;
+  color: inherit;
+}
+.markdown a.post-card::after {
+  content: none;
+}
+.markdown .post-card :is(h2, h3) {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 400;
+}
+.markdown .post-card p {
+  margin: 8px 0 0;
 }
 .markdown .entity-card p,
 .markdown .entity-card h2,
@@ -510,7 +534,6 @@ html[data-theme="dark"] .markdown strong a {
   line-height: 1.65;
   color: var(--secondary);
 }
-.markdown .entity-card img:not([hidden]),
 .markdown .entity-card-icon:not([hidden]) {
   display: block;
   max-width: none;
@@ -524,7 +547,7 @@ html[data-theme="dark"] .markdown strong a {
   display: none;
 }
 .markdown .entity-card a,
-.markdown .entity-card a:not(:has(img)):not(.entity-inline-link) {
+.markdown .entity-card a:not(:has(img)):not(.entity-inline-link):not(.post-card) {
   overflow-wrap: normal;
   word-wrap: normal;
   white-space: normal;
@@ -535,7 +558,7 @@ html[data-theme="dark"] .markdown strong a {
   color: inherit;
 }
 .markdown .entity-card a::after,
-.markdown .entity-card a:not(:has(img)):not(.entity-inline-link)::after {
+.markdown .entity-card a:not(:has(img)):not(.entity-inline-link):not(.post-card)::after {
   content: none;
   display: none;
 }
@@ -570,8 +593,8 @@ html[data-theme="dark"] .markdown strong a {
     /* Only mouse input can reveal blurred text; other inputs keep it readable. */
     del { filter: blur(8px); transition: filter 0.5s; }
     del:hover { filter: blur(0); }
-    a:not(:has(img)):not(.entity-inline-link):hover { border-bottom-color: var(--title); }
-    a:not(:has(img)):not(.entity-inline-link):hover::after { transform: translate(0.1em, -0.1em); }
+    a:not(:has(img)):not(.entity-inline-link):not(.post-card):hover { border-bottom-color: var(--title); }
+    a:not(:has(img)):not(.entity-inline-link):not(.post-card):hover::after { transform: translate(0.1em, -0.1em); }
     .entity-inline-link--chip:hover { color: var(--title); }
   }
 }

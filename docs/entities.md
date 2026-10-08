@@ -1,114 +1,105 @@
-# Entity 数据与渲染
+# 文档即实体
 
-项目、友链和联系方式分别存放在 `content/projects.json`、`content/friends.json`、`content/contacts.json`，使用同一份 `EntityDefinition`。对象 key 是稳定 ID，文件决定 `kind`，无需在每条记录重复填写。
+每个 `public/<slug>/index.md` 定义一个实体。目录名是全局唯一 slug，metadata 是属性，正文是内容，普通 Markdown 内链建立关联。详情地址为 `/<slug>/`，公开 Markdown 为 `/<slug>.md`。所有类型使用同一静态发布链路，没有 JSON 名录、数据库或 CMS。
 
-```json
-{
-  "example": {
-    "name": "显示名称",
-    "title": "可选的完整站点或产品标题",
-    "url": "https://example.com/",
-    "date": "2026-09-23",
-    "description": "可选简介",
-    "icon": "https://example.com/icon.png",
-    "extensions": {
-      "repository": "https://github.com/example/project"
-    }
-  }
-}
+## 共享属性
+
+| 属性 | 默认／约束 | 用途 |
+|---|---|---|
+| `type` | 必填，`article` / `project` / `friend` / `contact` | 决定集合与渲染 |
+| `title` | 必填非空文字 | 完整标题，用于详情、卡片和 SEO |
+| `name` | 省略时使用 `title` | 自动生成的行内名称；只有简称与完整标题不同才填写 |
+| `summary` | 可选，公开文章必填 | 简介，用于详情、卡片和 SEO；不再使用 `description` |
+| `date` | 可选，公开文章必填，`YYYY-MM-DD` | 实体日期与列表排序，不用文件时间补造 |
+| `updated` | 可选，`YYYY-MM-DD`，必须有 `date` 且不早于它 | 实质内容更新，用于 SEO 和 sitemap，不改变排序 |
+| `tags` | 空数组 | 可见标签；文章筛选、统计仅包含公开文章 |
+| `keywords` | 空数组 | SEO 专用，与站点关键词和 tags 去重合并，不显示为标签 |
+| `icon` | 可选，HTTPS 或站内绝对路径 | 头像、标志、小图标，不作为分享封面 |
+| `cover` | 可选，相对路径、站内绝对路径或 HTTP(S) | 详情头图、分享大图及悬浮卡片封面；列表不显示，没有时不从正文取首图 |
+| `location` | 可选文字 | 文档地点说明，摄影使用来源文档的说明，不推断精确坐标 |
+| `url` | 可选，contact 必填 | HTTP(S) 相关网址，contact 额外允许单个邮箱的 `mailto:` |
+| `redirect` | `false` | 详情是否跳转到 url；启用时必须提供 HTTP(S) 目标，不能自动打开邮件应用 |
+| `noindex` | `false` | 控制索引及 sitemap、llms.txt、JSON-LD，不控制列表、摄影或关联 |
+| `showHeader` | `true` | 显示自动头部；关闭仍保留封面、正文、目录和关联区域 |
+
+布尔字段仅接受 YAML 布尔值。tags、keywords 推荐数组，也支持英文逗号分隔字符串。未知属性报错；不接受 `id`、`slug`、`order`、`related`、`extensions` 或旧的文档级 `photography`。今后确需专属属性时直接在类型与校验器中定义。
+
+没有 summary 时不补写可见简介，SEO 使用站点默认描述；没有 cover 时使用站点默认分享图。有效不索引状态也用于过滤集合的 JSON-LD 条目，但不影响可见卡片或摄影成员。
+
+## 类型与日期含义
+
+- `article`：文章、随笔、图集、关于页、授权页等正文内容。date 是发布日期，公开文章必须有 date、summary。专属 `hidden` 默认 false，设为 true 时排除文章列表、标签统计和 RSS/Atom；专属 `pinned` 默认 false，设为 true 时在首页和文章集合置顶，不影响订阅和摄影排序。
+- `project`：项目、产品或实验。title 是项目名称，date 是项目开始日期，summary 介绍用途，icon 是标志，url 是项目网址。现有记录原日期原样迁移，不另推断。没有其他专属属性。
+- `friend`：朋友及其站点。title 是站点标题，name 可以是朋友名字，date 是收录日期，icon 是头像或站点标志，url 是站点地址。没有其他专属属性。
+- `contact`：联系方式、账号或订阅入口。title 是渠道名称，summary 是用途，date 是收录日期，url 必填。没有其他专属属性。
+
+`page` 不单独建模：关于、授权、测试等页面使用 `article + hidden: true`；隐藏文档可以不填日期。hidden 不控制访问或索引，也不排除引用关系。
+
+```yaml
+---
+type: friend
+title: SeasonX
+name: Season
+summary: 个人博客 · 技术、思考与生活
+date: 2026-09-22
+icon: https://seasonx.life/favicon.svg
+url: https://seasonx.life/
+redirect: true
+---
 ```
 
-`name`、`url`、`date` 必填；其余字段可省略。`title` 提供时必须是非空字符串。行内使用 `name`，卡片、集合 JSON-LD 和块级 Markdown 导出使用 `title ?? name`。项目原来的 `cover` 已迁移为 `icon`，不再保留别名；文章 frontmatter 的 `cover` 不受影响。`icon` 支持 HTTPS URL 或站点绝对路径，本地文件由内容校验器检查。
+## 集合与详情渲染
 
-`lib/registry.ts` 负责统一校验并保留注册表条目顺序。加载后的 `Entity` 增加 `id`、`kind`、解析后的 `date` 和 `dateText`；`extensions` 默认 `{}`。`getProjects()`、`getFriends()`、`getContacts()` 直接返回这份结构，没有 `cover → image → icon` 的转换。项目、友链和联系方式均按 JSON 文件中条目从上到下的顺序展示，调整条目位置即可调整展示顺序；`date` 和 ID 不参与排序，不再支持实体 `pinned` 字段。ID 应使用有语义的非纯数字名称（如 `github`），避免 JavaScript 对整数键自动排序。
+| 路径 | 内容与排序 | 展示 |
+|---|---|---|
+| `/article/` | article 且非 hidden，pinned 优先、日期倒序 | 文章文字卡：标题、日期、标签、摘要；保留单选标签筛选与折叠 |
+| `/project/` | 全部 project，日期倒序 | 单列实体卡：48px 图标、标题和简介各一行，超出省略 |
+| `/friend/` | 全部 friend，日期倒序 | 同项目卡片 |
+| `/contact/` | 全部 contact，日期倒序 | 同项目卡片 |
+| `/photography/` | 所有显式标记图片，拍摄时间优先 | 平铺网格与同一个灯箱序列，不按文章或地点分组 |
 
-项目和友链的 `url` 仅接受 HTTP(S)；联系方式还支持单个邮箱的 `mailto:` 链接，可附带 URL 编码的 `subject`、`body` 等查询参数。例如 `"url": "mailto:raineyspace@gmail.com"`，不要在 JSON 值中嵌套 Markdown 链接。邮箱链接在行内、列表卡片、悬浮卡片及 Markdown 导出中使用同一地址，不设置新标签页属性，由浏览器调用邮件应用。
+没有日期排最后，同日期按 slug 升序。标准实体卡片不显示日期、标签或正文。缺 icon 用标题首字占位，图标保持比例。文章列表及独立卡片不显示 icon 或 cover。四种实体的悬浮预览统一使用标准卡片：左侧 48px 图片，右侧标题和简介各一行。图片优先 cover，其次 icon，均缺失或加载失败时显示标题首字；封面裁切填满，图标保持比例。封面复用优化后的响应式图片，不从正文补取图片。
 
-## 各类扩展
+首页保留 WELCOME.md、3 篇文章、6 张摄影照片条、全部项目卡片、全部朋友名称标记及页脚联系方式图标。朋友自动名称使用 name，悬浮卡片使用 title。页脚联系方式直接访问 url；其他实体链接访问本站详情。
 
-`extensions` 是每条 Entity 自己的 JSON 对象，允许字符串、有限数字、布尔值、null、数组和嵌套对象。它不会覆盖公共字段，也不会自动进入卡片、Markdown、摘要或 SEO 文本；它不是存放私密数据的区域。
+详情共用正文、目录、图片与灯箱。非文章头部可以展示 icon 和外链入口；正文允许为空。showHeader 不影响 SEO。非跳转详情末尾直接展示关联的实体列表，不显示标题；反向引用列表保留“引用此文档的内容”标题。空集合不显示，按日期倒序与 slug 排序。
 
-`lib/entities.ts` 中的 `ProjectExtensions`、`FriendExtensions` 和 `ContactExtensions` 独立定义各自的类型，通过 `EntityExtensionsByKind` 关联。例如，后续真正需要项目仓库地址时，可以为 `ProjectExtensions` 增加 `repository?: string`，再在使用该字段的功能中验证其业务约束。友链可以独立定义自己的 RSS 等字段。当前仅提供扩展容器，不虚构现有数据没有的业务字段。
+共享渲染器为 `lib/entity-rendering.ts`，React 的 Entity、EntityList 与 Markdown 共用默认模板和类型覆盖。文章列表也使用 Entity；所有悬浮预览共用默认 popover 配置中的标准实体卡片。详情通过 EntityDetail、EntityHeader 组织，头部差异读取同一展示配置。各实体的六种形态、组件职责和扩展方式见 [实体渲染形态与组件映射](./entity-rendering-design.md)。
 
-顶层未知字段仍然报错，以便及时发现 `icon` 等公共字段的拼写错误；专属属性放进 `extensions`。
+渲染参数按 card / inline 区分：卡片支持标题层级和适用的图标设置；行内支持文字 / chip / icon、sm / md / lg、图标和悬浮预览。错误的形态参数组合由类型检查拒绝。保持现有鼠标、键盘和触控边界，默认使用本站实体地址；仅显式 external 联系动作使用 url。
 
-## 统一组件
+## 内链与关联
 
-单项使用 `app/components/Entity.tsx`，集合使用 `EntityList.tsx`。二者接收同一种 Entity，可混合项目、友链与联系方式；列表 key 使用 `kind:id`。不再为项目和朋友各维护一套卡片或列表适配器。
+```md
+在正文中引用 [我给项目起的名字](/xiaofenshen/)。
 
-| 参数 | 默认值 | 行为 |
-| --- | --- | --- |
-| `variant` | `card` | `inline` 为行内链接，`card` 为列表卡片 |
-| `appearance` | `text` | 行内文字链接，保留箭头；`chip` 为无下划线的圆角链接，显示名称；`icon` 为仅图标的圆角链接，不显示名称；`chip` 和 `icon` 均不显示箭头，保留悬停背景 |
-| `size` | 行内 `lg` | 仅在 `inline` 模式生效：`sm` / `md` / `lg` 的图标分别为 16 / 20 / 24px，圆角链接内边距四边均为 `6px`；普通文字链接保留正文样式；卡片模式忽略该属性 |
-| `showIcon` | 行内 `false`、卡片 `true` | 是否显示图标；关闭时也不显示占位；`appearance="icon"` 始终显示图标 |
-| `hoverCard` | `true` | 行内链接有效鼠标悬停或键盘 focus-visible 时是否出现详情卡片 |
-| `popoverShowIcon` | `true` | 独立控制悬浮卡片里的图标 |
-| `placement` | `auto` | `top` 固定上方，`auto` 根据空间上下避让；均水平避让 |
-| `headingLevel` | `h3` | 块级卡片支持 `h2` / `h3`；行内浮层只用 span |
-| `newTab` | `true` | 是否在新标签页访问；Markdown 行内引用沿用当前页打开；`mailto:` 链接始终不设置新标签页属性 |
+[小分身](/xiaofenshen/)
 
-```tsx
-// 首页：图标 + 名称，圆角悬停背景，上方详情卡片。
-<EntityList items={projects} variant="inline" appearance="chip" showIcon placement="top" />
-
-// 仅图标，保留悬停背景；使用 aria-label 提供链接名称。
-<EntityList items={contacts} variant="inline" appearance="icon" size="sm" hoverCard={false} />
-
-// 普通行内引用，不显示图标，悬浮卡片仍显示图标。
-<Entity item={friend} variant="inline" />
-
-// 无图标、无悬浮卡片的文字链接。
-<Entity item={project} variant="inline" showIcon={false} hoverCard={false} />
-
-// 无图标的集合卡片。
-<EntityList items={friends} showIcon={false} headingLevel="h2" />
+[全部项目](/project/)
 ```
 
-行内圆角链接默认图标 24px、6px 圆角矩形；链接本身为 8px 圆角，内边距四边固定为 6px，仅有效鼠标悬停时增加背景并改变文字颜色；键盘使用可见轮廓，不增加背景。`chip` 保留名称，`icon` 仅显示图标，两者均不显示箭头；只有 `text` 保留箭头及其动效。集合卡片及悬浮卡片固定使用 48px 图标、12px 圆角矩形与 12px 内边距，不受 `size` 影响。图标容器不添加背景。缺少图标或加载失败时显示名称首字；请求隐藏图标则不保留图标空间。
+行内实体链接保留作者文字、格式与悬浮预览。顶层独立段落中的单个文字链接：指向实体展开卡片，指向四种实体集合展开列表。列表、引用块、标题内的链接保持行内。行内集合链接只导航；摄影链接不展开图库。query、hash、`.md` 链接保持导航用途，不块级展开。
 
-`public/assets/contacts/` 下的联系方式 SVG 使用黑白单色图形，通过共享 `--contact-icon-filter` 在暗色主题中反色，保留即刻图标等黑白组合的内部结构。列表卡片、首页页脚、行内图标和悬浮卡片统一适配，跟随 `html[data-theme]` 支持系统外观与手动切换；无脚本时使用系统配色回退。该规则仅匹配此目录中的 SVG，彩色项目图标、朋友头像和其他图片保持原色。
+识别 `/slug`、`/slug/`、`/slug.md`、本站绝对地址和相对地址。身份忽略 query/hash，导航保留它们。外部网址不会反查 url 字段，因此要建立关联应写本站内链。
 
-## Markdown 与页面共用渲染
+先对全部原始 Markdown 提取引用，再展开卡片或集合：hidden、noindex、redirect 文档均在索引中。重复引用去重，自引用忽略，互相引用合法。集合展开不会给全部成员建立关系；图片 token、代码、WELCOME.md、系统导航和自动关联区域不生成文档间关系。
 
-`lib/entity-rendering.ts` 是唯一 Entity HTML 模板，统一名称选择、图标及占位、外链属性、浮层结构和类名。所有动态文本与属性值均转义；扩展属性不拼接到 HTML。
+`lib/content-index.ts` 先读取所有 metadata，再提取引用；`lib/entity-metadata.ts` 统一校验；`lib/posts.ts` 负责正文、图片、详情和订阅；`lib/markdown-refs.ts` 负责内链识别与展开。读取索引不会递归渲染目标文档。
 
-React 的 `Entity` 通过 `EntityContent` 挂载这份 HTML；Markdown 的 `lib/markdown-refs.ts` 使用同一渲染器。HTML 仅由内部渲染器和已有 Markdown 管线生成。`useEntityPopovers` 为页面、首页介绍和 Markdown 统一连接浮层定位，`lib/entity-chip-popovers.ts` 处理边缘避让。显示和图标失败回退不依赖第二份 React 模板。
+## 静态跳转与公开 Markdown
 
-浮层按内容自适应宽度，最大 `20rem`（当前为 320px），仅受视口左右各 20px 安全距离限制；实体列表和 Markdown 容器不限制浮层宽度或水平位置。靠近页面边缘时整体平移避让，视口不足时才缩窄。定位同时观察浮层面板尺寸，阅读字号变化时重新避让，防止隐藏面板撑宽触摸视口。
+redirect 实体由构建生成的 `_redirects` 以 302 跳转，精确覆盖 `/slug`、`/slug/`，不覆盖资源或 `.md`。旧复数集合以 301 转到同名单数集合，保留查询参数。静态兜底页保留自动跳转和手动入口；实体跳转链接跳过客户端页面过渡。目标 query 优先，否则沿用来源 query；浏览器片段行为在客户端兜底保持一致。
 
-实体浮层与全站统一输入策略共用 `hoverInput`，仅 `(any-hover: hover)` 且当前鼠标操作时启用悬停；键盘 `:focus-visible` 可独立打开并进入浮层链接。手机、平板手指以及触笔直接执行链接，不增加按压背景、不打开浮层；iPad 连接鼠标时，手指操作仍遵循触摸规则。输入切换立即清除悬停效果，列表高亮只跟随鼠标。触摸、触笔及初始或失焦重置的 `none` 模式下浮层退出布局，避免隐藏面板撑宽移动视口并使原页面滚动位置上移；隐藏时不以零宽度覆盖已有定位，切回鼠标或键盘时重新测量定位。无脚本时没有输入模式属性，保留原生键盘焦点预览。
+有效不索引状态是 `noindex || redirect`。公开 Markdown 保留实体身份和普通内链，集合展开为 Markdown 列表，相对资源（包括带 title 或引用式图片）改写为站内绝对地址。跳转实体的 `.md` 声明 noindex 且不声明指向本站跳转页的 canonical。构建不会留下 `out/<slug>/index.md`。
 
-点击实体链接或悬浮卡片中的链接后，浮层立即关闭（包含键盘激活和鼠标中键）。Escape 也可关闭，焦点位于浮层链接时回到触发链接。返回原页面时保持关闭；鼠标从其他元素重新移入，或键盘从其他元素重新聚焦后，可再次显示。关闭不阻止链接跳转。无脚本时保留原生链接和键盘焦点，关闭鼠标增强。
+## 联系方式图标来源
 
-Markdown 引用语法保持不变：独立段落生成卡片，段落内部生成带浮层的文字链接。正文行内不添加图标、胶囊背景或内边距；RSS/Atom 和公开 Markdown 仍导出普通链接、列表与简介。
+`public/assets/contacts/` 的单色 SVG 使用 `--contact-icon-filter` 适配明暗主题，仅作用于此目录，不改变其他彩色图标。RSS 图标由用户提供，订阅 url 为 `https://rainey.space/feed`。历史官方图标于 2026-09-23 获取；更新时确认响应是图片而非拦截页。
 
-修改后运行 `pnpm verify`，涵盖 schema、扩展保留、渲染组合、Markdown 一致性、静态构建、SEO 和图片校验。
-
-## 联系方式
-
-RSS 联系项使用 `https://rainey.space/feed`，在首页页脚和 `/contacts/` 中随注册表统一展示。图标使用用户提供的 `public/assets/contacts/rss.svg`；订阅内容与现有 `/rss.xml` 一致。
-
-`contact` 复用公共 schema、排序和渲染器，当前登记博客、GitHub、B站、即刻和 X 的公开主页；`date` 为登记日期。使用 `getContactById(id)` 或 `getContacts()` 读取。 每个平台可独立填写可选的 `description`，用于说明这个渠道的内容或联系场景；描述显示在卡片和行内链接的悬浮卡片中，也进入块级 Markdown 导出，行内链接仍只显示名称。
-
-```markdown
-欢迎在 [GitHub](https://github.com/RaineySpace "contact:github") 找到我。
-
-[全部联系方式](https://rainey.space/ "contact:*")
-```
-
-行内引用与独立段落、通配集合、RSS/Atom 及公开 Markdown 导出规则均与其他实体一致。首页 `WELCOME.md` 已使用单项引用，保留原有文字和排列顺序。当前不新增独立联系方式页面。
-
-图标于 2026-09-23 从官方站点获取，保存在 `public/assets/contacts/`。更新图标时核实响应确实为图片；不要保存站点拦截页。
-
-| ID | 官方图标来源 |
-| --- | --- |
+| 资源 | 官方来源 |
+|---|---|
 | blog | https://rainey.space/favicon.ico |
 | github | https://github.githubassets.com/favicons/favicon.png |
 | bilibili | https://space.bilibili.com/favicon.ico |
 | jike | https://web.okjike.com/apple-touch-icon.png |
 | x | https://x.com/favicon.ico |
-
-## 联系我页面
-
-`/contacts/` 通过 `lib/contacts.ts` 读取联系方式注册表，复用项目和友链的集合页布局、实体卡片及排序规则。首页页脚以仅图标模式显示联系方式，直接链接到各个渠道。独立集合页提供 metadata 和 JSON-LD，进入 sitemap 与 `llms.txt`，不进入文章列表和订阅，也不提供 `/contacts.md`。`contacts` 是保留路由，不能作为文章 slug。

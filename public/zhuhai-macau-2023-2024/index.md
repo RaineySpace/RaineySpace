@@ -1,38 +1,37 @@
 ---
+type: article
 title: 珠海与澳门
 date: 2024-02-12
 summary: 2023 年 4 月至 2024 年 2 月，在珠海与澳门记录的海上日落、水族馆、城市建筑与夜色。
-cover: ./170A9674.JPG
 tags:
   - 摄影
   - 行旅
 location: 珠海 · 澳门
 hidden: true
-photography: true
 ---
 
 ## 2023 年 4 月 29 日
 
-![水族馆中游过玻璃前的鳐鱼](./170A9674.JPG)
+![水族馆中游过玻璃前的鳐鱼](./170A9674.JPG "photography")
 
-![紫蓝色灯光下的水母](./170A9692.JPG)
+![紫蓝色灯光下的水母](./170A9692.JPG "photography")
 
-![珊瑚枝旁的黄色海马](./170A9765.JPG)
+![珊瑚枝旁的黄色海马](./170A9765.JPG "photography")
 
-![蓝色水光中的水母](./170A9768.JPG)
+![蓝色水光中的水母](./170A9768.JPG "photography")
 
-![水族馆中游过的鲨鱼](./170A9771.JPG)
+![水族馆中游过的鲨鱼](./170A9771.JPG "photography")
 
 ## 2023 年 4 月 30 日
 
-![澳门大三巴牌坊](./170A9816.JPG)
+![澳门大三巴牌坊](./170A9816.JPG "photography")
 
 ## 2023 年 5 月 2 日
 
-![棕榈树与夜色中的发光装置](./FullSizeRender.jpg)
+![棕榈树与夜色中的发光装置](./FullSizeRender.jpg "photography")
 
-![夜色中的海边建筑与人群](./IMG_6280.jpg)
+![夜色中的海边建筑与人群](./IMG_6280.jpg "photography")
 
 ## 2024 年 2 月 12 日
 
-![海面上落下的夕阳](./170A0588.JPG)
+![海面上落下的夕阳](./170A0588.JPG "photography")

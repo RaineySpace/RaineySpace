@@ -1,6 +1,6 @@
 # 博客维护说明
 
-这个项目是一个基于 Next.js App Router 的静态博客。文章内容存放在 `public/<slug>/index.md`，封面和附件放在同一个文章目录，构建后输出到 `out/`，用于 Cloudflare Pages 部署。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。
+这个项目是一个基于 Next.js App Router 的静态博客。所有实体内容存放在 `public/<slug>/index.md`，封面和附件放在同一个文章目录，构建后输出到 `out/`，用于 Cloudflare Pages 部署。访问 `/<slug>/` 渲染文章，访问 `/<slug>.md` 返回 Markdown 原文。
 
 ## 运行时与 TypeScript
 
@@ -20,7 +20,7 @@
 
 依赖使用兼容的稳定版本。当前 Tailwind CSS 为 `4.3.3`、Marked 为 `18.0.14`、Feed 为 `6.0.0`、Sharp 为 `0.35.4`。TypeScript 暂留 `6.0.3`，因为 [typescript-eslint 的支持范围](https://typescript-eslint.io/users/dependency-versions/)尚未包含 TypeScript 7；ESLint 暂留 `9.39.5`，因为 Next.js 使用的 `eslint-plugin-react` 和 `eslint-plugin-jsx-a11y` 尚未声明支持 ESLint 10。`@types/node` 跟随 Node 24，而非独立升级到 Node 26。后续升级先核对插件的 peerDependencies，再更新锁文件，不通过强制覆盖忽略兼容约束。
 
-Tailwind 4 通过 `@tailwindcss/postcss` 接入，自带前缀处理，不再单独安装 Autoprefixer。`app/globals.css` 使用 `@import "tailwindcss"`、`@config "../tailwind.config.ts"` 加载现有字号与 typography 配置，并显式限定 `app/` 为工具类扫描目录。CSS 变量工具类使用 `text-(--secondary)` 等 v4 语法。新增全局元素默认样式应放在 `@layer base` 内，避免覆盖工具类；现有灰色值、焦点轮廓与模糊强度保持升级前效果。
+Tailwind 4 通过 `@tailwindcss/postcss` 接入，自带前缀处理，不再单独安装 Autoprefixer。`app/globals.css` 使用 `@import "tailwindcss"`、`@config "../tailwind.config.ts"` 加载现有字号与 typography 配置。工具类扫描覆盖 `app/` 和 `lib/**/*.ts`，确保共享实体 HTML 模板中的类名也被生成。CSS 变量工具类使用 `text-(--secondary)` 等 v4 语法。新增全局元素默认样式应放在 `@layer base` 内，避免覆盖工具类；现有灰色值、焦点轮廓与模糊强度保持升级前效果。
 
 摄影缩略图保留基于二维 `transform` 的位移、旋转和缩放，灯箱开场几何会合成图片及祖先的变换矩阵；不要直接替换成独立 `translate` / `rotate` / `scale` 属性。按照 [Tailwind 4 官方兼容要求](https://tailwindcss.com/docs/upgrade-guide)，浏览器最低版本为 Safari 16.4、Chrome 111、Firefox 128。
 
@@ -40,8 +40,8 @@ Marked 的自定义 renderer 接收 token 对象；标题中的行内 Markdown �
 - `app/sitemap.xml/route.ts`、`app/robots.txt/route.ts`：搜索引擎入口。
 - `app/llms.txt/route.ts`：允许索引内容的 AI 阅读导航。
 - `lib/posts.ts`：文章读取、frontmatter 归一化、Markdown 渲染、日期格式、文章频道／允许索引内容筛选和 feed 数据逻辑。
-- `lib/registry.ts`：项目、友链与联系方式注册表读取、校验字段、保留条目顺序。
-- `lib/markdown-refs.ts`：识别 `project:` / `friend:` 链接 title，并生成卡片、行内图标名称、悬停预览和公开 Markdown 展开结果。
+- `lib/content-index.ts`：先读取全部 Markdown 实体元数据，再建立原始正文内链关联。`lib/entity-metadata.ts` 统一校验属性，`lib/content-paths.ts` 统一保留路由和资源路径。
+- `lib/markdown-refs.ts`：识别普通本站内链，保留作者行内文字，展开独立实体卡片或集合列表，供网页与公开 Markdown 共用。
 - `lib/seo.ts`：规范网址、页面元数据、JSON-LD、sitemap 条目和 llms.txt 内容。
 - `lib/config.ts`：站点 URL、标题、作者、头像、关键词等全局配置。
 - `scripts/new-post.ts`：新建文章脚本。
@@ -54,6 +54,10 @@ Marked 的自定义 renderer 接收 token 对象；标题中的行内 Markdown �
 原创程序代码采用 MIT，根目录 `LICENSE.txt` 保存全文与适用范围，`package.json` 的 `license` 为 `MIT`。所有原创文字与摄影内容默认采用 CC BY-NC-ND 4.0，第三方素材和单独声明的内容除外。授权说明源文件为 `public/license/index.md`，发布为 `/license/` 和 `/license.md`；设置 `hidden: true`，不进入文章列表或 RSS/Atom，但允许搜索索引。首页 footer 链接至该页，feed 的内容版权声明由 `lib/config.ts` 统一维护。
 
 根目录 `LICENSE-CONTENT.txt` 是 2026-09-23 从 `https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.txt` 获取的未经修改的官方英文全文。协议全文只在仓库保留，不复制到 `public/`；授权页面面向内容读者，仅介绍文字与摄影内容的 CC 授权并链接官方全文和中文法律文本，不展示代码许可或仓库文件说明。不要把站点说明写入 CC 协议全文，也不要将内容授权声明套用到 `package.json` 的代码许可字段。
+
+## 实体模型
+
+四种类型为 article、project、friend、contact，共享 metadata；目录 slug 提供唯一身份，正文内链建立引用。属性、集合、详情、摄影与跳转契约以 [文档即实体](./entities.md) 和 [内容维护](./content-collections.md) 为准。没有独立 page 或 photography 文档类型。
 
 ## 新建文章
 
@@ -77,6 +81,7 @@ public/my-new-post/index.md
 
 ```yaml
 ---
+type: article
 title: 我的新文章
 date: YYYY-MM-DD
 summary: 
@@ -84,7 +89,7 @@ tags: []
 ---
 ```
 
-公开文章建议填写 `title`、`date`、`summary`。`tags` 可以为空数组。
+公开文章必须填写 `type: article`、`title`、`date`、`summary`。`tags` 可以为空数组。
 
 文章有实质更新时，可以添加：
 
@@ -112,7 +117,7 @@ hidden: true
 
 隐藏文章仍会被静态生成，所以 `/about/` 这类页面可以继续作为独立页面使用。
 
-`hidden` 默认为 `false`，不控制索引或访问权限。摄影集合仍与 `hidden` 无关；项目和友链来自注册表，也不依赖文章引用。它们的频道 JSON-LD 与实际展示的条目一致。sitemap 和 `llms.txt` 按独立的 `noindex` 字段筛选，允许索引的隐藏页面也会被列出。
+`hidden` 默认为 `false`，不控制索引或访问权限。摄影集合仍与 `hidden` 无关；项目、朋友、联系方式来自各自 type 的 Markdown 文档，不依赖文章引用。它们的频道 JSON-LD 与实际展示的条目一致。sitemap 和 `llms.txt` 按 `noindex || redirect` 筛选，允许索引的隐藏页面也会被列出。
 
 ## 索引与页头开关
 
@@ -123,19 +128,19 @@ showHeader: false
 
 `noindex` 默认为 `false`。设为 `true` 时，HTML 声明 `noindex, follow`，Markdown 原文声明 `X-Robots-Tag: noindex`，同时不进入 sitemap、`llms.txt` 或详情页 JSON-LD；页面仍可直达，文章列表、订阅和摄影集合不因此隐藏。当前只有语法测试页显式设置为 `true`，索引规则不再根据 `test` 目录名判断。不要用 robots.txt 禁止抓取这些页面，否则搜索引擎无法读取索引声明。
 
-`showHeader` 默认为 `true`。设为 `false` 时隐藏自动生成的标题、日期、地点、标签和摘要，但这些数据仍用于 SEO。封面、正文和目录保持原有行为。关于页、朋友们页面和测试页填写完整标题与摘要，再通过这个开关保持当前正文起始布局；不需要为它们补造发布日期。
+`showHeader` 默认为 `true`。设为 `false` 时隐藏自动生成的标题、日期、地点、标签和摘要，但这些数据仍用于 SEO。封面、正文和目录保持原有行为。关于页和测试页填写完整标题与摘要，再通过这个开关保持当前正文起始布局；不需要为它们补造发布日期。
 
 两个字段只接受 YAML 布尔值，字符串 `"false"`、空值和其他类型会使读取、内容校验或响应头生成失败。共享解析位于 `lib/post-options.ts`。常规新文章模板省略这两个默认开关；完整字段说明见 [内容集合维护](./content-collections.md)。
 
 ## SEO 与 AI 阅读
 
-首页、文章、摄影、项目和详情页各自提供标题、描述、canonical、Open Graph 与 Twitter 元数据。页面规范网址统一为 `https://rainey.space/` 下带尾斜杠的 HTML 地址；`/articles/?tag=诗笺` 等筛选链接的 canonical 始终是 `/articles/`，不额外生成标签索引页。聚合页不声明无法确认的 `lastmod`。
+首页、文章、摄影、项目和详情页各自提供标题、描述、canonical、Open Graph 与 Twitter 元数据。页面规范网址统一为 `https://rainey.space/` 下带尾斜杠的 HTML 地址；`/article/?tag=诗笺` 等筛选链接的 canonical 始终是 `/article/`，不额外生成标签索引页。聚合页不声明无法确认的 `lastmod`。
 
-首页提供 `WebSite` 与 `Person`，允许索引的普通内容提供 `BlogPosting`（包括隐藏内容），频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`，朋友们页面提供与当前友链一致的 `CollectionPage`。`noindex: true` 的详情页不输出 JSON-LD。详情页标题与摘要统一读取 Markdown，包括关于页和朋友们页面；作者身份和已公开的个人资料链接来自 `lib/config.ts`。结构化数据只使用实际内容，有明确封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
+首页提供 `WebSite` 与 `Person`，允许索引的 article 提供 `BlogPosting`（包括隐藏文章），非文章详情提供 `WebPage`，频道页提供 `CollectionPage` 与 `ItemList`，关于页提供 `AboutPage`。有效不索引状态为 `noindex || redirect`，这些详情页不输出 JSON-LD，也不进入集合页的结构化列表；可见卡片和摄影成员不受影响。详情页标题与摘要统一读取 Markdown，包括关于页和联系方式详情；作者身份和已公开的个人资料链接来自 `lib/config.ts`。结构化数据只使用实际内容，有明确封面时才声明文章图片。JSON-LD 统一转义 `<`，防止内容中的 `</script>` 结束脚本元素。
 
 每页都提供 RSS/Atom 自动发现链接，详情页额外声明 `text/markdown` 替代格式。源文件仍是 `public/<slug>/index.md`，构建时发布为 `/<slug>.md`，不维护第二份源文件。发布稿会把 `./cover.webp` 这类相对资源改写成 `/<slug>/cover.webp`，让根路径 Markdown 对搜索引擎和 AI 抓取仍能解析图片；源文件继续使用相对路径。构建后删除 `out/<slug>/index.md`，避免同一篇文章出现两份公开 Markdown。
 
-`pnpm build` 完成静态导出与 Markdown 发布后，`postbuild` 步骤运行 `scripts/generate-headers.ts`，根据站点 URL 与原文元数据完整生成 `out/_headers`：为 `/<slug>.md` 提供 `Content-Type: text/markdown; charset=utf-8` 和指向 HTML 页的 canonical Link，为标记内容添加 `X-Robots-Tag: noindex`，并生成图片长期缓存及页面校验规则。删除内容或取消标记后，下一次构建会移除旧规则；生成失败会使构建失败。不要维护第二份手写 `public/_headers`。变更站点域名后重新构建并运行 SEO 校验即可；普通本地静态服务器不会解释 `_headers`。
+`pnpm build` 完成静态导出与 Markdown 发布后，`postbuild` 步骤运行 `scripts/generate-headers.ts`，根据站点 URL 与原文元数据完整生成 `out/_headers` 和 `out/_redirects`：为 `/<slug>.md` 提供 `Content-Type: text/markdown; charset=utf-8` ，为非跳转文档提供指向 HTML 页的 canonical Link，为有效不索引内容添加 `X-Robots-Tag: noindex`，并生成图片长期缓存及页面校验规则。删除内容或取消标记后，下一次构建会移除旧规则；生成失败会使构建失败。实体 HTML 跳转使用精确路径 302，旧复数集合路径使用 301；`.md` 与资产不跳转。不要维护手写 `public/_headers` 或 `public/_redirects`。变更站点域名后重新构建并运行 SEO 校验即可；普通本地静态服务器不会解释 `_headers`。
 
 `/llms.txt` 在构建时从允许索引的内容生成站点导航、标题、摘要、日期和 Markdown 链接，并提供 HTML 原文链接供引用。没有日期时省略日期，不产生空日期标点或当前时间；sitemap 同样省略无法确定的 `lastmod`。它只是机器阅读的便利入口，不保证排名或 AI 引用量提升；[Google 的 AI 搜索功能仍遵循基础 SEO 要求](https://developers.google.com/search/docs/appearance/ai-features)。
 
@@ -193,8 +198,8 @@ pnpm validate:content
 - `noindex` 和 `showHeader` 是否为布尔值
 - 本地封面文件是否存在
 - Markdown 本地图片是否存在
-- 项目／友链注册表必填字段、日期、网址、图标路径、重复网址和空注册表
-- Markdown 中已声明的 `project:` / `friend:` 标记是否格式正确、ID 是否存在
+- 所有实体的类型、必填字段、未知属性、日期、网址、图标、保留 slug 和跳转循环
+- Markdown 实体内链是否存在，以及摄影图片标记的相对路径、文件与 alt
 
 缺失图片以当次校验输出为准，发布前应逐项检查 warning。
 
@@ -237,10 +242,11 @@ pnpm deploy:cf
 - robots
 - llms.txt
 - `_headers`（构建后自动生成的 Markdown canonical、索引及缓存响应头）
+- `_redirects`（实体 302 与旧集合 301）
 
 `pnpm test:seo` 检查日期、元数据和结构化数据序列化，通过临时 Markdown 覆盖 `hidden/noindex` 四种组合、新字段默认值与非法类型、非测试页的索引声明、重命名或删除后的响应头清理，以及图片长期缓存和页面校验的匹配范围。`pnpm validate:seo` 读取 `out/`，检查页面元数据、JSON-LD、静态正文、自动页头与封面、sitemap、feed、Markdown 原文、llms.txt 链接及完整 `_headers` 索引规则；运行前必须完成当前版本的 `pnpm build`。这些脚本由 Node.js 原生执行 TypeScript，不引入浏览器端依赖。
 
-`pnpm verify` 依次执行路由类型生成、两套严格类型检查、ESLint、内容校验、注册表与 Markdown 数据标记测试、SEO 测试、图片管线及预加载调度测试、脚本 CLI 测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留、哈希稳定性、同名替换、构建缓存修复、派生文件清理，以及下载字节进度、总大小缺失、流失败、共享请求与 Blob 释放、预加载优先级、并发去重、网络策略、后台暂停和路由清理；产物校验检查静态内链、测试页 noindex、文件内容与哈希的一致性、版本化原图字节、图片候选尺寸、正文占位尺寸、封面灯箱入口及缓存响应头。
+`pnpm verify` 依次执行路由类型生成、两套严格类型检查、ESLint、内容校验、实体属性、引用关系、集合展开与图片标记测试、SEO 测试、图片管线及预加载调度测试、脚本 CLI 测试、完整构建、SEO 产物校验和图片产物校验。图片测试覆盖缩略图、方向、小图、动图、原图保留、哈希稳定性、同名替换、构建缓存修复、派生文件清理，以及下载字节进度、总大小缺失、流失败、共享请求与 Blob 释放、预加载优先级、并发去重、网络策略、后台暂停和路由清理；产物校验检查静态内链、测试页 noindex、文件内容与哈希的一致性、版本化原图字节、图片候选尺寸、正文占位尺寸、封面灯箱入口及缓存响应头。
 
 `pnpm test:scripts` 验证原生 TypeScript 入口在临时工作目录下的新建文章、Markdown 导出、响应头生成，以及重复文章、无效引用、损坏图片和缺失产物的失败退出。
 
@@ -260,6 +266,6 @@ pnpm deploy:cf
 
 - 首页介绍维护在根目录 `WELCOME.md`；`README.md` 仅用于 GitHub public profile，博客不再读取，不要把项目维护说明写入其中。
 - 不要改变 `public/<slug>/index.md` 的文章存储方式，除非明确执行内容迁移。文章的公开 Markdown 地址是 `/<slug>.md`。
-- `hidden` 控制文章列表与 feed；`noindex` 独立控制 sitemap、llms.txt 与索引声明。
+- `hidden` 控制文章列表与 feed；`noindex || redirect` 控制 sitemap、llms.txt 与索引声明，隐藏文档仍参与关联。
 - 日期展示保持 `YYYY-MM-DD`。
 - 优先保持轻量个人博客风格，避免引入复杂内容系统。
