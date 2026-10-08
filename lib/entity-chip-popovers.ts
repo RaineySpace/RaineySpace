@@ -25,7 +25,10 @@ export function alignEntityChipPopovers(root: HTMLElement) {
     const spaceAbove = chipRect.top - ENTITY_CHIP_POPOVER_GAP;
     const placeAbove = chip.dataset.placement === "top" || (height > 0 && spaceBelow < height && spaceAbove > spaceBelow);
 
-    const left = Math.max(minLeft, Math.min(chipRect.left, maxRight - width)) - chipRect.left;
+    // A wrapped inline chip's union rect can start on a later line. Its popover
+    // is positioned from the first fragment, so measure that actual origin.
+    const originLeft = popover.getBoundingClientRect().left - (parseFloat(popover.style.left) || 0);
+    const left = Math.max(minLeft, Math.min(originLeft, maxRight - width)) - originLeft;
 
     popover.style.left = `${left}px`;
     popover.style.right = "auto";

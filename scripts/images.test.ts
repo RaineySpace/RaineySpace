@@ -86,9 +86,9 @@ test('image pipeline serves responsive previews, preserves originals and handles
     await fs.mkdir(path.join(directory, 'public/referrer'));
     await fs.writeFile(path.join(directory, 'public/referrer/index.md'), '---\ntype: article\ntitle: Referrer\nhidden: true\n---\n引用 [Sample](/sample/#anchor)。');
     const referrer = await getPostBySlug('referrer');
-    assert.ok(referrer.content.includes(`class="entity-card-cover" src="${manifest['/sample/photo.jpg'].thumbnailSrc}"`));
+    assert.ok(referrer.content.includes(`class="entity-card-cover" src="${manifest['/sample/photo.jpg'].displaySrc}"`));
     assert.ok(referrer.content.includes(`srcset="${manifest['/sample/photo.jpg'].srcSet}"`));
-    assert.match(referrer.content, /sizes="48px"/);
+    assert.match(referrer.content, /sizes="\(max-width: 360px\) calc\(100vw - 40px\), 320px"/);
     assert.doesNotMatch(referrer.content, /src="(?:\.\/photo.jpg|\/referrer\/photo.jpg)"|data-image-preview/);
     assert.equal('sourceHash' in referrer.outgoing[0].coverImage!, false);
     assert.equal('pipelineHash' in referrer.outgoing[0].coverImage!, false);

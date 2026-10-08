@@ -124,10 +124,10 @@ function renderMedia(item: Entity, size: "card" | "inline", name: string, { show
 function renderCardCover(item: Entity, hasFallback: boolean) {
   if (!item.cover) return "";
   const image = item.coverImage;
-  const src = image?.thumbnailSrc || image?.displaySrc || entityAssetSrc(item.slug, item.cover);
-  const responsive = image?.srcSet ? ` srcset="${escapeEntityHtml(image.srcSet)}" sizes="48px"` : "";
+  const src = image?.displaySrc || image?.thumbnailSrc || entityAssetSrc(item.slug, item.cover);
+  const responsive = image?.srcSet ? ` srcset="${escapeEntityHtml(image.srcSet)}" sizes="(max-width: 360px) calc(100vw - 40px), 320px"` : "";
   const dimensions = image?.width && image.height ? ` width="${image.width}" height="${image.height}"` : "";
-  const fallback = hasFallback ? "this.hidden=true" : "this.parentElement.hidden=true";
+  const fallback = `this.hidden=true${hasFallback ? "" : ";this.parentElement.hidden=true"}`;
   return `<img class="entity-card-cover" src="${escapeEntityHtml(src)}"${responsive}${dimensions} alt="" loading="lazy" decoding="async" onerror="${fallback}">`;
 }
 
