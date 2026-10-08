@@ -30,7 +30,7 @@
 
 - `article`：文章、随笔、图集、关于页、授权页等正文内容。date 是发布日期，公开文章必须有 date、summary。专属 `hidden` 默认 false，设为 true 时排除文章列表、标签统计和 RSS/Atom；专属 `pinned` 默认 false，设为 true 时在首页和文章集合置顶，不影响订阅和摄影排序。
 - `project`：项目、产品或实验。title 是项目名称，date 是项目开始日期，summary 介绍用途，icon 是标志，url 是项目网址。现有记录原日期原样迁移，不另推断。没有其他专属属性。
-- `friend`：朋友及其站点。title 是站点标题，name 可以是朋友名字，date 是收录日期，icon 是头像或站点标志，url 是站点地址。没有其他专属属性。
+- `friend`：朋友及其站点。title 是站点标题，name 可以是朋友名字，date 是收录日期，icon 是头像或站点标志，下载到对应文档目录后使用站内绝对路径引用，url 是站点地址。没有其他专属属性。
 - `contact`：联系方式、账号或订阅入口。title 是渠道名称，summary 是用途，date 是收录日期，url 必填。没有其他专属属性。
 
 `page` 不单独建模：关于、授权、测试等页面使用 `article + hidden: true`；隐藏文档可以不填日期。hidden 不控制访问或索引，也不排除引用关系。
@@ -42,7 +42,7 @@ title: SeasonX
 name: Season
 summary: 个人博客 · 技术、思考与生活
 date: 2026-09-22
-icon: https://seasonx.life/favicon.svg
+icon: /Season/icon.svg
 url: https://seasonx.life/
 redirect: true
 ---
