@@ -569,6 +569,16 @@ gantt
 
 ---
 
+行内联系方式集合：[全部联系方式](/contact/)。
+
+全部联系方式卡片：
+
+[全部联系方式](/contact/)
+
+带片段的集合链接只导航：[联系方式页面](/contact/#top)。
+
+---
+
 ## 结束
 
 感谢阅读！如有问题，欢迎在 [GitHub](https://github.com/RaineySpace) 上联系我。

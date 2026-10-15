@@ -797,22 +797,25 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
 .entity-inline-link.entity-size--md { --entity-icon-size: 20px; }
 .entity-inline-link.entity-size--lg { --entity-icon-size: 24px; }
 .entity-inline-link {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 2px;
   color: var(--title);
   text-decoration: none;
 }
 .entity-inline-link--text {
+  --entity-icon-size: 1em;
+  vertical-align: baseline;
+  line-height: 1.2;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 2px;
+  padding-bottom: 1px;
   transition: border-color 200ms;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
 .entity-inline-link--text:focus-visible { border-bottom-color: var(--title); }
 .entity-inline-link--chip {
-  display: inline-flex;
-  max-width: 100%;
-  align-items: center;
-  gap: 4px;
   padding: 6px;
   border-radius: 8px;
   color: var(--secondary);
@@ -821,36 +824,33 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
 }
 .entity-inline-link--chip:focus-visible { color: var(--title); }
 .entity-inline-name { min-width: 0; overflow-wrap: anywhere; }
+/* Align prose to the name's text baseline instead of the leading icon. */
+.entity-inline-link--text .entity-inline-name { align-self: baseline; }
 .entity-inline-link::after {
   content: "↗";
   display: inline-block;
   flex-shrink: 0;
-  padding-left: 4px;
   transition: transform 200ms ease;
 }
 .entity-inline-link:focus-visible::after { transform: translate(0.1em, -0.1em); }
-.entity-inline-link--chip::after,
 .entity-inline-link--icon::after { content: none; }
 .entity-inline-media {
   display: inline-flex;
-  vertical-align: middle;
   height: var(--entity-icon-size, 24px);
   width: var(--entity-icon-size, 24px);
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  margin-right: 4px;
   overflow: hidden;
   border-radius: 6px;
-  font-size: var(--fs-xs);
 }
+.entity-inline-fallback { font-size: var(--fs-xs); }
 .entity-inline-icon {
   display: block;
   height: 100%;
   width: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
-.entity-inline-link--icon .entity-inline-media { margin-right: 0; }
 .entity-inline-link [hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .entity-inline-link, .entity-inline-link::after { transition: none; }

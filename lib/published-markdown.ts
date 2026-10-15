@@ -22,6 +22,10 @@ export function rewritePublishedMarkdown(source: string, slug: string, entities:
     if (next) prefix = prefix.replace(/^(cover:\s*).*$/m, `$1${JSON.stringify(next)}`);
   }
   const rewriteLink = (token: Tokens.Link | Tokens.Image): string => {
+    if (token.type === 'link') {
+      const collection = expandedCollectionMarkdown(token, entities, slug);
+      if (collection !== null) return collection;
+    }
     const resolved = token.type === 'link' ? resolveEntityLink(token.href, entities, slug) : null;
     // Relative document links use their HTML route base, even when read as /slug.md.
     let next = resolved?.href ?? toSiteAbsoluteAssetPath(token.href, slug);

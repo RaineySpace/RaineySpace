@@ -80,7 +80,7 @@
 
 共享 HTML 渲染器没有 React、文件系统或浏览器依赖，供 React 与原生 Node 构建脚本调用。React 详情组件可以读取展示配置；共享渲染器不能导入详情组件，也不能把含模板函数的配置对象通过服务端到客户端的 props 传递。
 
-React 卡片列表使用 `HoverCardList`，Markdown 集合展开使用 `.entity-card-list`。它们共用卡片模板，仍保留各自已有的列表容器和背景效果。
+React 卡片列表使用 `HoverCardList`，Markdown 独立集合展开使用 `.entity-card-list`。它们共用卡片模板，仍保留各自已有的列表容器和背景效果。Markdown 行内集合逐项调用 `renderEntityInlineHtml`，使用成员 `name`，以 `、` 分隔；不往段落中插入块级容器，沿用单个行内实体的预览和交互。
 
 ## 参数与默认行为
 
@@ -89,7 +89,7 @@ React 卡片列表使用 `HoverCardList`，Markdown 集合展开使用 `.entity-
 | 参数组 | 属性与默认值 |
 |---|---|
 | 卡片 | `variant?: 'card'`，`headingLevel` 默认 `h3`，`showIcon` 默认 true；文章固定使用无图标模板 |
-| 行内 | `variant: 'inline'`，`appearance` 默认 text，`size` 可选 sm/md/lg，`showIcon` 默认 false |
+| 行内 | `variant: 'inline'`，`appearance` 默认 text，`size` 可选 sm/md/lg，`showIcon` 默认 true；text / chip 显示图标、名称和 ↗，icon 保持纯图标；text 图标默认随字号缩放 |
 | 行内悬浮 | `hoverCard` 默认 true，`popoverShowIcon` 默认 true；关闭时隐藏图标及首字占位，但仍可显示封面。`placement` 默认 auto，可设 top |
 | 导航 | `external`、`newTab` 默认 false；公共导航逻辑处理链接属性，文章卡片固定使用本站地址 |
 | 内部上下文 | `root` 以及作者提供的 HTML/href 仅供 HTML 渲染入口使用，不是 React 展示参数；封面策略由映射传给内部模板 |

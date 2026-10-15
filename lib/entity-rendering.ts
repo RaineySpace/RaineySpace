@@ -149,7 +149,7 @@ function renderStandardEntityCardHtml(item: Entity, { headingLevel = "h3", root 
 function renderDefaultEntityInlineHtml(item: Entity, {
   appearance = "text",
   size,
-  showIcon = false,
+  showIcon = true,
   hoverCard = true,
   popoverShowIcon = true,
   placement = "auto",

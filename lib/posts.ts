@@ -250,7 +250,8 @@ function renderMarkdown(
 
   renderer.heading = ({ tokens, depth: level }) => {
     const text = renderer.parser.parseInline(tokens);
-    const plainText = stripHtml(stripElementsByClass(String(text), 'entity-chip-popover'));
+    const withoutPreview = stripElementsByClass(String(text), 'entity-chip-popover');
+    const plainText = stripHtml(stripElementsByClass(withoutPreview, 'entity-inline-media'));
     if (level === 2 || level === 3) {
       const id = createHeadingId(plainText, counts);
       headings.push({ id, text: plainText, level });

@@ -59,10 +59,16 @@ function soleLink(token: Token): Tokens.Link | null {
   return link;
 }
 
+function hasLinkedImage(link: Tokens.Link) {
+  let hasImage = false;
+  marked.walkTokens(link.tokens, (child) => { if (child.type === 'image') hasImage = true; });
+  return hasImage;
+}
+
 export function transformEntityLinks(tokens: Token[], { entities, source, format = 'card' }: {
   entities: EntityIndex; source?: string; format?: 'card' | 'plain';
 }) {
-  // Only top-level paragraphs expand. Links inside headings, quotes or lists stay inline.
+  // Only top-level sole links become block lists/cards; other references stay inline.
   for (let i = 0; i < tokens.length; i++) {
     const link = soleLink(tokens[i]);
     if (!link) continue;
@@ -84,27 +90,38 @@ export function transformEntityLinks(tokens: Token[], { entities, source, format
     const resolved = resolveEntityLink(link.href, entities, source);
     if (!resolved) return;
     link.href = resolved.href;
-    let hasImage = false;
-    marked.walkTokens(link.tokens, (child) => { if (child.type === 'image') hasImage = true; });
     // Image links must still reach the image renderer for optimization and anchors.
-    if (hasImage) return;
-    if (resolved.entity && format === 'card') {
-      const html = renderEntityInlineHtml(resolved.entity, {}, { html: marked.Parser.parseInline(link.tokens), href: resolved.href });
-      Object.assign(link, { type: 'html', raw: html, text: html, block: false, pre: false });
-      delete (link as Partial<Tokens.Link>).tokens;
-    }
+    if (hasLinkedImage(link)) return;
+    let html: string;
+    if (resolved.collection && resolved.expandable) {
+      const items = collectionEntities(entities.values(), resolved.collection);
+      // Keep an empty collection's authored link so the surrounding sentence still reads naturally.
+      if (!items.length) return;
+      html = items.map((item) => format === 'plain'
+        ? `<a href="${entityPath(item.slug)}">${escapeEntityHtml(item.name)}</a>`
+        : renderEntityInlineHtml(item)).join('、');
+    } else if (resolved.entity && format === 'card') {
+      html = renderEntityInlineHtml(resolved.entity, {}, { html: marked.Parser.parseInline(link.tokens), href: resolved.href });
+    } else return;
+    Object.assign(link, { type: 'html', raw: html, text: html, block: false, pre: false });
+    delete (link as Partial<Tokens.Link>).tokens;
   });
 }
 
 function escapeMarkdown(value: string) {
-  return value.replace(/[\\[\]<>*_`]/g, '\\$&').replace(/\s+/g, ' ');
+  return value.replace(/[\\[\]<>*_`|]/g, '\\$&').replace(/\s+/g, ' ');
 }
 
 export function expandedCollectionMarkdown(token: Token, entities: EntityIndex, source: string) {
-  const link = soleLink(token);
-  const resolved = link && resolveEntityLink(link.href, entities, source);
+  const inline = token.type === 'link';
+  const link = inline ? token as Tokens.Link : soleLink(token);
+  if (!link || hasLinkedImage(link)) return null;
+  const resolved = resolveEntityLink(link.href, entities, source);
   if (!resolved?.collection || !resolved.expandable) return null;
   const items = collectionEntities(entities.values(), resolved.collection);
+  if (inline) return items.length
+    ? items.map((item) => `[${escapeMarkdown(item.name)}](${entityPath(item.slug)})`).join('、')
+    : null;
   return items.length ? items.map((item) => `- [${escapeMarkdown(item.title)}](${entityPath(item.slug)})${item.summary ? `：${escapeMarkdown(item.summary)}` : ''}`).join('\n') + '\n\n'
     : emptyCollectionMessage[resolved.collection] + '\n\n';
 }

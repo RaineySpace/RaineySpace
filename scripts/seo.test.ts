@@ -312,11 +312,13 @@ test('Markdown headings retain inline formatting and stable anchors after render
     await writeFixture('renderer');
     const filename = path.join(directory, 'public/renderer/index.md');
     await fs.appendFile(filename, '\n## **粗体** 与 `代码`\n\n## **粗体** 与 `代码`\n\n### [站点](https://example.com)\n\n![A & B](https://example.com/image.png "Image title")\n');
+    await fs.appendFile(filename, '\n## [**作者标题**](/renderer/)\n');
     const item = await getPostBySlug('renderer');
     assert.deepEqual(item.headings, [
       { id: '粗体-与-代码', text: '粗体 与 代码', level: 2 },
       { id: '粗体-与-代码-2', text: '粗体 与 代码', level: 2 },
       { id: '站点', text: '站点', level: 3 },
+      { id: '作者标题', text: '作者标题', level: 2 },
     ]);
     assert.match(item.content, /<h2 id="粗体-与-代码"><strong>粗体<\/strong> 与 <code>代码<\/code><\/h2>/);
     assert.match(item.content, /<h3 id="站点"><a href="https:\/\/example.com">站点<\/a><\/h3>/);
