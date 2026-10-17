@@ -800,7 +800,7 @@ body { background: var(--bg); color: var(--text); font-size: var(--fs-sm); line-
   display: inline-flex;
   max-width: 100%;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   color: var(--title);
   text-decoration: none;
 }
