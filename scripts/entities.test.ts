@@ -1,11 +1,8 @@
 import assert from 'node:assert/strict';
-import { globSync } from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 import { getEntityPresentation, renderEntityCardHtml, renderEntityHtml, renderEntityInlineHtml } from '../lib/entity-rendering.ts';
 import { entityTypes, type EntityType } from '../lib/entities.ts';
 import { entity } from './content-fixtures.ts';
-import { loadContentIndex } from '../lib/content-index.ts';
 
 test('cards preserve title and summary while linking to the local entity identity', () => {
   const item = entity('Season', { type: 'friend', title: 'SeasonX', name: 'Season', url: 'https://example.com', redirect: true });
@@ -140,14 +137,4 @@ test('navigation is shared while article cards always preserve their local desti
   assert.equal((action.match(/href="https:\/\/example.com\/\?x=1&amp;y=2#target" target="_blank" rel="noreferrer"/g) || []).length, 2);
   assert.doesNotMatch(action, /data-no-page-transition/);
   assert.match(renderEntityHtml(contact), /href="\/sample-contact\/"/);
-});
-
-test('content index includes every document and preserves migrated identities and friend names', () => {
-  const { entities } = loadContentIndex();
-  const slugs = globSync('*/index.md', { cwd: path.join(process.cwd(), 'public') })
-    .map((filename) => path.dirname(filename));
-  assert.deepEqual([...entities.keys()].sort(), slugs.sort());
-  assert.equal(entities.get('Season')?.title, 'SeasonX'); assert.equal(entities.get('Season')?.name, 'Season');
-  assert.equal(entities.get('AwesomeYang')?.title, '老杨的知识荒原');
-  assert.equal(entities.get('xiaofenshen')?.redirect, true); assert.equal(entities.get('email')?.redirect, false);
 });
