@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { globSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import { getEntityPresentation, renderEntityCardHtml, renderEntityHtml, renderEntityInlineHtml } from '../lib/entity-rendering.ts';
 import { entityTypes, type EntityType } from '../lib/entities.ts';
@@ -140,9 +142,11 @@ test('navigation is shared while article cards always preserve their local desti
   assert.match(renderEntityHtml(contact), /href="\/sample-contact\/"/);
 });
 
-test('migrated documents preserve identities and the two distinct friend display names', () => {
+test('content index includes every document and preserves migrated identities and friend names', () => {
   const { entities } = loadContentIndex();
-  assert.equal(entities.size, 50);
+  const slugs = globSync('*/index.md', { cwd: path.join(process.cwd(), 'public') })
+    .map((filename) => path.dirname(filename));
+  assert.deepEqual([...entities.keys()].sort(), slugs.sort());
   assert.equal(entities.get('Season')?.title, 'SeasonX'); assert.equal(entities.get('Season')?.name, 'Season');
   assert.equal(entities.get('AwesomeYang')?.title, '老杨的知识荒原');
   assert.equal(entities.get('xiaofenshen')?.redirect, true); assert.equal(entities.get('email')?.redirect, false);
